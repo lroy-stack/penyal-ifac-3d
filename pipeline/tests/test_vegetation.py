@@ -117,6 +117,33 @@ def test_radius_is_clamped_to_its_limits() -> None:
     assert wide[0] == vegetation.MAX_CROWN_RADIUS
 
 
+def disc(
+    radius: float, hole: tuple[float, float] | None = None
+) -> list[tuple[float, float, float]]:
+    """A flat 6 m crown of ``radius``; cells whose distance is within ``hole`` are missing."""
+    out = []
+    for x in range(-12, 13):
+        for z in range(-12, 13):
+            distance = float(np.hypot(x, z))
+            if distance > radius or (hole and hole[0] <= distance <= hole[1]):
+                continue
+            out.append((float(x), float(z), 6.0))
+    return out
+
+
+def reach(points: list[tuple[float, float, float]]) -> float:
+    chm = vegetation.canopy_height_model(points_of(points))
+    radii = vegetation.crown_radii(chm, np.array([0.0]), np.array([0.0]), np.array([6.0]))
+    return float(radii[0])
+
+
+def test_the_radius_crosses_a_gap_of_empty_cells_but_not_a_wide_one() -> None:
+    solid = reach(disc(5.0))
+    assert solid == pytest.approx(5.0, abs=0.6)
+    assert reach(disc(5.0, hole=(2.0, 2.4))) == pytest.approx(solid, abs=0.3)
+    assert reach(disc(6.0, hole=(1.6, 4.6))) < solid - 1.0
+
+
 def test_detection_is_independent_of_point_order() -> None:
     pts = cone(0, 0, 9.0) + cone(14, 3, 6.0)
     rng = np.random.default_rng(3)

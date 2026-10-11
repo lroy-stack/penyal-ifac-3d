@@ -9,7 +9,8 @@ Method (all steps pure and deterministic; ``docs/research/003-inventario-datos-p
    the area that is processed.
 3. A crown is a CHM cell that is the maximum of its 5 x 5 window and at least 3 m high. Equal
    neighbours keep the first one in raster order.
-4. The crown radius is the mean distance, over 8 rays, to the contour at half the crown height.
+4. The crown radius is the mean reach, over 8 rays, of the cells at least half the crown height,
+   crossing gaps up to 1.5 m.
 5. The NDVI of the 2024 orthophoto (median over the crown disk) marks crowns whose canopy is no
    longer there: the LiDAR is from 2016.
 
@@ -54,6 +55,7 @@ MIN_CROWN_HEIGHT = 3.0  # metres above the DEM
 MIN_GROUND_HEIGHT = 0.5  # metres a.s.l.; lower points are boats, masts and sea clutter
 RADIUS_RAY_STEP = 0.5
 RADIUS_HEIGHT_FRACTION = 0.5
+RADIUS_MAX_GAP = 1.5  # metres of empty or low cells a ray crosses
 MIN_CROWN_RADIUS = 0.75
 MAX_CROWN_RADIUS = 6.0
 ROUTE_BAND = 40.0  # metres around the route that always belong to the area
@@ -82,7 +84,7 @@ NIR_BAND = 4
 # is therefore tied to the measured reference classes above: 0.07 is the 10th percentile of the
 # high vegetation of 2016 as seen in 2024, and sits above the medians of ground (0.06) and
 # buildings (0.03). A crown median below it looks more like ground or roof than canopy. It
-# excludes 135 of the 1441 crowns analysed (3 of the 185 in the pilot band);
+# excludes 128 of the 1441 crowns analysed (2 of the 185 in the pilot band);
 # ``penyal vegetation --analyse`` prints the histogram and the counts for any other threshold.
 NDVI_ABSENT_THRESHOLD = 0.07
 # Crowns taller than this are LiDAR/DEM mismatches on vertical rock (4 crowns, 23-94 m, on slopes
@@ -271,19 +273,26 @@ def detect_peaks(chm: Chm) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
 
 
 def crown_radii(chm: Chm, x: Floats, z: Floats, height: Floats) -> Floats:
-    """Mean distance over 8 rays to the contour at half the crown height (clamped)."""
+    """Mean reach of 8 rays over cells at least half the crown height (clamped).
+
+    LiDAR at 0.5-1 point/m2 leaves many empty 1 m cells inside a crown, so a ray crosses gaps of up
+    to ``RADIUS_MAX_GAP`` metres and ends at the last canopy cell before a longer one.
+    """
     steps = int(MAX_CROWN_RADIUS / RADIUS_RAY_STEP)
+    max_gap = int(RADIUS_MAX_GAP / RADIUS_RAY_STEP)
     total = np.zeros(x.shape)
     for angle in range(8):
         dx, dz = math.cos(angle * math.pi / 4), math.sin(angle * math.pi / 4)
-        alive = np.ones(x.shape, dtype=np.bool_)
-        reach = np.full(x.shape, MAX_CROWN_RADIUS)
+        misses = np.zeros(x.shape, dtype=np.int64)
+        ended = np.zeros(x.shape, dtype=np.bool_)
+        reach = np.zeros(x.shape)
         for step in range(1, steps + 1):
             distance = step * RADIUS_RAY_STEP
             value = chm.value_at(x + dx * distance, z + dz * distance)
-            ended = alive & ~(value >= RADIUS_HEIGHT_FRACTION * height)
-            reach[ended] = distance - RADIUS_RAY_STEP / 2.0
-            alive &= ~ended
+            canopy = value >= RADIUS_HEIGHT_FRACTION * height
+            reach[~ended & canopy] = distance + RADIUS_RAY_STEP / 2.0
+            misses = np.where(canopy, 0, misses + 1)
+            ended |= misses > max_gap
         total += reach
     return np.clip(total / 8.0, MIN_CROWN_RADIUS, MAX_CROWN_RADIUS)
 
@@ -520,7 +529,8 @@ def document(found: Detection, understory_doc: dict[str, Any], threshold: float)
             "chmCell": CHM_CELL,
             "peakWindow": PEAK_WINDOW,
             "minCrownHeight": MIN_CROWN_HEIGHT,
-            "radius": f"mean of 8 rays to the contour at {RADIUS_HEIGHT_FRACTION} of the height",
+            "radius": f"mean reach of 8 rays over cells >= {RADIUS_HEIGHT_FRACTION} of the height, "
+            f"crossing gaps up to {RADIUS_MAX_GAP} m",
             "area": f"nature reserve (OSM relation {RESERVE_RELATION}) plus {ROUTE_BAND:.0f} m "
             "around the route",
             "ndviBand": {"red": RED_BAND, "nir": NIR_BAND},
