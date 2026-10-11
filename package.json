@@ -1,0 +1,22 @@
+{
+  "name": "penyal-ifac-3d",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.10.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "lint": "biome check . && uv run --project pipeline ruff check pipeline && uv run --project pipeline ruff format --check pipeline",
+    "format": "biome format --write . && uv run --project pipeline ruff format pipeline",
+    "typecheck": "pnpm -r typecheck && uv run --directory pipeline basedpyright",
+    "test": "pnpm -r test && uv run --project pipeline pytest -q",
+    "optimize": "node scripts/optimize.mjs",
+    "spike": "uv run --project pipeline penyal spike && node scripts/optimize.mjs build/spike/spike.glb app/public/assets/generated/spike/spike.glb --textures keep"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@gltf-transform/cli": "4.5.1"
+  },
+  "license": "EUPL-1.2"
+}

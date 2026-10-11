@@ -1,0 +1,22 @@
+# claude-studio
+.claude/settings.local.json
+.claude/studio.local.json
+CLAUDE.local.md
+.env
+.env.*
+!.env.example
+
+# penyal-ifac-3d
+node_modules/
+dist/
+app/public/decoders/
+build/
+data/raw/
+tools/bin/
+*.log
+.DS_Store
+playwright-report/
+test-results/
+app/public/assets/generated/
+tools/ktx-*/
+data/manual/

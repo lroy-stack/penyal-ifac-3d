@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "app",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@penyal/app", "dev", "--port", "5173", "--strictPort"],
+      "port": 5173
+    }
+  ]
+}

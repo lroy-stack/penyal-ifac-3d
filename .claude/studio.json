@@ -1,0 +1,21 @@
+{
+  "branchPolicy": "trunk",
+  "commitConvention": "conventional",
+  "packageManager": "pnpm",
+  "gates": {
+    "lint": "pnpm lint",
+    "typecheck": "pnpm typecheck",
+    "test": "pnpm test"
+  },
+  "stopGate": {
+    "enabled": true,
+    "run": [
+      "lint",
+      "typecheck",
+      "test"
+    ],
+    "maxAttempts": 3,
+    "timeoutSec": 600
+  },
+  "protectedPaths": []
+}
