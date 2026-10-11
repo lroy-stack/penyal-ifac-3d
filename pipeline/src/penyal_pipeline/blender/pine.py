@@ -22,7 +22,7 @@ import json
 import warnings
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 import numpy as np
 import numpy.typing as npt
@@ -602,6 +602,11 @@ def build_meshes(atlas: Atlas) -> list[PineMesh]:
 # --- Blender ------------------------------------------------------------------------------------
 
 
+class HasRgba(Protocol):
+    @property
+    def rgba(self) -> npt.NDArray[np.uint8]: ...
+
+
 def rgba_pixels(rgba: npt.NDArray[np.uint8]) -> Floats:
     """Flat float pixels, rows bottom-to-top, from a top-down RGBA uint8 image."""
     return np.asarray(rgba[::-1].astype(np.float32) / 255.0, dtype=np.float32).reshape(-1)
@@ -626,12 +631,12 @@ def _make_object(bpy: Any, bmesh: Any, item: PineMesh, material: Any) -> None:
     bpy.context.scene.collection.objects.link(bpy.data.objects.new(item.name, mesh))
 
 
-def _make_material(bpy: Any, atlas: Atlas) -> Any:
-    image = bpy.data.images.new("pine_atlas", ATLAS_WIDTH, ATLAS_HEIGHT, alpha=True)
+def _make_material(bpy: Any, atlas: HasRgba, name: str = MATERIAL_NAME) -> Any:
+    image = bpy.data.images.new(f"{name}_atlas", ATLAS_WIDTH, ATLAS_HEIGHT, alpha=True)
     image.pixels.foreach_set(rgba_pixels(atlas.rgba))
     image.update()
     image.pack()
-    material = bpy.data.materials.new(MATERIAL_NAME)
+    material = bpy.data.materials.new(name)
     material.use_backface_culling = False  # cards are seen from both sides
     nodes, links = material.node_tree.nodes, material.node_tree.links
     bsdf = nodes["Principled BSDF"]
@@ -648,13 +653,25 @@ def _make_material(bpy: Any, atlas: Atlas) -> Any:
     return material
 
 
-def build_scene(bpy: Any, meshes: list[PineMesh], atlas: Atlas) -> None:
+def build_scene(
+    bpy: Any, meshes: list[PineMesh], atlas: HasRgba, material_name: str = MATERIAL_NAME
+) -> None:
     """Replace the current Blender scene with every pine mesh sharing one material."""
     bmesh = importlib.import_module("bmesh")
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    material = _make_material(bpy, atlas)
+    material = _make_material(bpy, atlas, material_name)
     for item in meshes:
         _make_object(bpy, bmesh, item, material)
+
+
+def export_scene(
+    meshes: list[PineMesh], atlas: HasRgba, out: Path, material_name: str = MATERIAL_NAME
+) -> Path:
+    """Build ``meshes`` sharing one atlas material in a fresh Blender state and write ``out``."""
+    bpy = importlib.import_module("bpy")
+    build_scene(bpy, meshes, atlas, material_name)
+    export_glb(bpy, out)
+    return out
 
 
 def export_pine(meshes: list[PineMesh], atlas: Atlas, out: Path) -> Path:

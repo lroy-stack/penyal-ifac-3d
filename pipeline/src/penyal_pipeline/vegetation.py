@@ -39,7 +39,7 @@ from penyal_pipeline import artefacts, dem, ortho, trail, understory
 from penyal_pipeline.blender.pine import NOMINAL_HEIGHT, NOMINAL_RADIUS, VARIANT_COUNT
 from penyal_pipeline.cellhash import SEED, hash_cells, unit_float
 from penyal_pipeline.geo import ORIGIN_E, ORIGIN_N
-from penyal_pipeline.paths import GENERATED_DIR, TRAIL_GENERATED
+from penyal_pipeline.paths import GENERATED_DIR, PINE_GENERATED, TRAIL_GENERATED
 from penyal_pipeline.rawdata import locate
 
 log = logging.getLogger(__name__)
@@ -517,6 +517,7 @@ def crown_columns(
         "height": _column(crowns.height, 2),
         "radius": _column(crowns.radius, 2),
         "scaleXZ": _column(instance_scale(crowns.height, crowns.radius)[1], 3),
+        "keep": [int(v) for v in np.floor(unit_float(hash_cells(ix, iz, 3)) * 100.0)],
         "variant": [int(v) for v in variant],
         "yaw": [int(v) for v in yaw],
         "ndvi": [None if math.isnan(v) else round(float(v), 3) for v in ndvi],
@@ -599,6 +600,113 @@ def detect(threshold: float = NDVI_ABSENT_THRESHOLD) -> Detection:
     )
 
 
+@dataclass(frozen=True)
+class Group:
+    """Instances drawn with one mesh set: positions (x, z), triangles per level (near, mid, far
+    card) and the distances at which the near and mid levels end and the far card ends."""
+
+    name: str
+    xz: Floats
+    triangles: tuple[int, int, int]
+    distances: tuple[float, float, float]
+
+
+@dataclass(frozen=True)
+class ViewCost:
+    triangles: int
+    calls: int  # one instanced draw per (group, level) that has an instance in view
+
+
+def estimate_view(viewer: tuple[float, float], groups: list[Group]) -> ViewCost:
+    """Triangles and draw calls of one colour pass seen from ``viewer`` in every direction."""
+    triangles = 0
+    calls = 0
+    for group in groups:
+        distance = np.hypot(group.xz[:, 0] - viewer[0], group.xz[:, 1] - viewer[1])
+        near, mid, far = group.distances
+        levels = (
+            distance < near,
+            (distance >= near) & (distance < mid),
+            (distance >= mid) & (distance < far),
+        )
+        for count, cost in zip((int(m.sum()) for m in levels), group.triangles, strict=True):
+            triangles += count * cost
+            calls += 1 if count else 0
+    return ViewCost(triangles, calls)
+
+
+def worst_view(route: shapely.LineString, groups: list[Group], spacing: float = 25.0) -> ViewCost:
+    """The most triangles and the most calls seen from points every ``spacing`` metres of the
+    route (an upper bound: it looks all around, the camera sees a fraction)."""
+    steps = np.arange(0.0, route.length, spacing)
+    costs = [
+        estimate_view((p.x, p.y), groups) for p in (route.interpolate(float(s)) for s in steps)
+    ]
+    return ViewCost(max(c.triangles for c in costs), max(c.calls for c in costs))
+
+
+TREE_DISTANCES = (30.0, 70.0, 120.0)  # lod0, lod1 and card end (ADR 0010 medium: 120 m)
+UNDERSTORY_DISTANCES = (12.0, 30.0, 60.0)
+MEDIUM_DENSITY = 0.7  # ADR 0010 medium tier
+
+
+def _triangles(manifest: dict[str, Any], prefix: str) -> tuple[int, int, int]:
+    by_name = {m["name"]: int(m["triangles"]) for m in manifest["meshes"]}
+    return by_name[f"{prefix}_lod0"], by_name[f"{prefix}_lod1"], by_name[f"{prefix}_card"]
+
+
+def budget_lines(found: "Detection", shrubs: dict[str, Any]) -> list[str]:
+    """Worst triangles and draw calls of the vegetation along the route at the medium tier."""
+    pine_json = PINE_GENERATED / "pine.json"
+    plants_json = PINE_GENERATED / "plants.json"
+    if not (pine_json.is_file() and plants_json.is_file()):
+        return ["budget: run `penyal pine` and `penyal plants` first to estimate it"]
+    pine_manifest = json.loads(pine_json.read_text(encoding="utf-8"))
+    plants_manifest = json.loads(plants_json.read_text(encoding="utf-8"))
+    at_apex = found.crowns.select(found.kept)
+    foot_x, foot_z = found.feet.x[found.kept], found.feet.z[found.kept]
+    feet = Crowns(foot_x, at_apex.y, foot_z, at_apex.height, at_apex.radius)
+    columns = crown_columns(feet, found.ndvi[found.kept], found.slope[found.kept])
+    keep, variant = np.array(columns["keep"]), np.array(columns["variant"])
+    limit = MEDIUM_DENSITY * 100.0
+    pine_tris = {m["name"]: int(m["triangles"]) for m in pine_manifest["meshes"]}
+    groups = []
+    for v in range(VARIANT_COUNT):
+        chosen = (variant == v) & (keep < limit)
+        groups.append(
+            Group(
+                f"pine_v{v}",
+                np.stack([foot_x[chosen], foot_z[chosen]], axis=1),
+                (
+                    pine_tris[f"pine_v{v}_lod0"],
+                    pine_tris[f"pine_v{v}_lod1"],
+                    pine_tris["pine_far_card"],
+                ),
+                TREE_DISTANCES,
+            )
+        )
+    model = np.array(shrubs["model"])
+    shrub_keep = np.array(shrubs["keep"])
+    sx, sz = np.array(shrubs["x"]), np.array(shrubs["z"])
+    for index, plant in enumerate(understory.MODELS):
+        chosen = (model == index) & (shrub_keep < limit)
+        groups.append(
+            Group(
+                plant.id,
+                np.stack([sx[chosen], sz[chosen]], axis=1),
+                _triangles(plants_manifest, plant.id),
+                UNDERSTORY_DISTANCES,
+            )
+        )
+    worst = worst_view(found.route, groups)
+    return [
+        f"budget at the medium tier (density {MEDIUM_DENSITY}, trees to {TREE_DISTANCES[2]:.0f} m, "
+        f"understory to {UNDERSTORY_DISTANCES[2]:.0f} m), worst view along the route, all around:",
+        f"  {worst.triangles:,} triangles (ADR 0010 row: 250,000) and {worst.calls} draw calls "
+        f"per colour pass (row: 40) with {len(groups)} instanced groups x 3 levels",
+    ]
+
+
 def ndvi_histogram(ndvi: Floats, edges: Floats) -> list[tuple[float, float, int]]:
     counts, _ = np.histogram(ndvi[~np.isnan(ndvi)], bins=edges)
     return [(float(edges[i]), float(edges[i + 1]), int(counts[i])) for i in range(len(counts))]
@@ -640,6 +748,10 @@ def analysis_report(found: Detection, threshold: float) -> str:
             f"  {low:3.0f}..{high:3.0f} {int(band_mask.sum()):5d} "
             f"{int((band_mask & found.absent).sum()):5d} {int((band_mask & found.cliff).sum()):5d}"
         )
+    exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
+    lines.extend(
+        budget_lines(found, understory.place(found.points, found.grid, found.area, exclusion))
+    )
     lines.append("crown radius (m): n / dropped by NDVI")
     for low, high in ((0.0, 1.0), (1.0, 2.0), (2.0, 3.0), (3.0, 7.0)):
         band_mask = (found.crowns.radius >= low) & (found.crowns.radius < high)

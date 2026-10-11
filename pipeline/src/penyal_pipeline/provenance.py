@@ -31,6 +31,7 @@ ARTEFACTS = (
     "trail.json",
     "vegetation.json",
     "vegetation/pine.json",
+    "vegetation/plants.json",
     "materials/manifest.json",
 )
 PYTHON_PACKAGES = ("bpy", "numpy", "rasterio", "shapely", "laspy", "pyproj")

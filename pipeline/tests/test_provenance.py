@@ -23,9 +23,9 @@ RAW_FILES = {
     "icv-lidar-2016-766-4282": "b.laz",
     "icv-lidar-2016-768-4280": "c.laz",
     "icv-lidar-2016-768-4282": "d.laz",
-    "polyhaven-shrub-04-gltf-1k": "shrub_04_1k.gltf",
-    "polyhaven-shrub-02-gltf-1k": "shrub_02_1k.gltf",
-    "polyhaven-grass-medium-02-gltf-1k": "grass_medium_02_1k.gltf",
+    "polyhaven-shrub-04-diff-1k": "shrub_04_diff_1k.jpg",
+    "polyhaven-shrub-02-diff-1k": "shrub_02_diff_1k.jpg",
+    "polyhaven-grass-medium-02-diff-1k": "grass_medium_02_diff_1k.jpg",
     "polyhaven-pine-tree-01-twig-diff-1k": "twig_diff.jpg",
     "polyhaven-pine-tree-01-twig-alpha-1k": "twig_alpha.jpg",
     "polyhaven-pine-tree-01-bark-diff-1k": "bark_diff.jpg",
@@ -39,6 +39,7 @@ ALL_JSON = {
     "materials/manifest.json",
     "vegetation.json",
     "vegetation/pine.json",
+    "vegetation/plants.json",
 }
 
 
@@ -103,6 +104,7 @@ def assets(repo: Path, tmp_path: Path) -> Path:
         ("trail.json", "trail"),
         ("vegetation.json", "vegetation"),
         ("vegetation/pine.json", "pine"),
+        ("vegetation/plants.json", "plants"),
     ):
         path = out / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -161,9 +163,15 @@ class TestInputs:
                     "icv-lidar-2016-766-4282",
                     "icv-lidar-2016-768-4280",
                     "icv-lidar-2016-768-4282",
-                    "polyhaven-shrub-04-gltf-1k",
-                    "polyhaven-shrub-02-gltf-1k",
-                    "polyhaven-grass-medium-02-gltf-1k",
+                },
+                False,
+            ),
+            (
+                "plants",
+                {
+                    "polyhaven-shrub-04-diff-1k",
+                    "polyhaven-shrub-02-diff-1k",
+                    "polyhaven-grass-medium-02-diff-1k",
                 },
                 False,
             ),
@@ -289,6 +297,7 @@ class TestVerify:
             "terrain/manifest.json",
             "materials/manifest.json",
             "vegetation/pine.json",
+            "vegetation/plants.json",
         }
         assert all("ktx" in p.message and "9.8.7" in p.message for p in problems)
 
@@ -301,6 +310,7 @@ class TestVerify:
             "terrain/manifest.json",
             "materials/manifest.json",
             "vegetation/pine.json",
+            "vegetation/plants.json",
         }
         assert all("ktx" in p.message for p in problems)
 

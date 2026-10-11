@@ -30,6 +30,7 @@ from penyal_pipeline.paths import (
     GENERATED_DIR,
     PINE_BUILD,
     PINE_GENERATED,
+    PLANTS_BUILD,
     SPIKE_GLB,
     TERRAIN_BUILD_DIR,
     TERRAIN_GENERATED_DIR,
@@ -276,6 +277,16 @@ def _cmd_pine(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_plants(args: argparse.Namespace) -> int:
+    from penyal_pipeline.blender import plants
+
+    document = plants.run_plants(args.out_dir, args.build_dir)
+    rows = [[m["name"], str(m["triangles"]), str(m["vertices"])] for m in document["meshes"]]
+    print(format_table(["MESH", "TRIANGLES", "VERTICES"], rows))
+    print(f"{plants.PLANTS_GLB}: {document['file']['bytes']} bytes in {args.out_dir}")
+    return 0
+
+
 def _cmd_verify_generated(args: argparse.Namespace) -> int:
     problems = provenance.verify_generated(args.assets_dir)
     for problem in problems:
@@ -403,6 +414,20 @@ def build_parser() -> argparse.ArgumentParser:
         "--build-dir", type=Path, default=PINE_BUILD, help="unoptimised GLB (%(default)s)"
     )
     pine_cmd.set_defaults(handler=_cmd_pine)
+
+    plants_cmd = commands.add_parser(
+        "plants", help="build the procedural understory GLB (lentisc, rosemary, grass)"
+    )
+    plants_cmd.add_argument(
+        "--out-dir",
+        type=Path,
+        default=PINE_GENERATED,
+        help="plants.glb + plants.json (%(default)s)",
+    )
+    plants_cmd.add_argument(
+        "--build-dir", type=Path, default=PLANTS_BUILD, help="unoptimised GLB (%(default)s)"
+    )
+    plants_cmd.set_defaults(handler=_cmd_plants)
 
     vegetation_cmd = commands.add_parser(
         "vegetation", help="build vegetation.json (LiDAR crowns, NDVI check, understory)"

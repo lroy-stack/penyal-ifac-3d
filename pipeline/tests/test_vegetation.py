@@ -328,9 +328,6 @@ DATA_PATTERNS = (
     "icv-orto-2024-0848-7-2/*.tif",
     "icv-lidar-2016-766-4282/*.laz",
     "icv-lidar-2016-768-4282/*.laz",
-    "polyhaven-shrub-04-gltf-1k/*.gltf",
-    "polyhaven-shrub-02-gltf-1k/*.gltf",
-    "polyhaven-grass-medium-02-gltf-1k/*.gltf",
 )
 
 
@@ -434,7 +431,7 @@ class TestWithData:
         )
         assert not shapely.contains_xy(corridor, x, z).any()
         assert set(shrubs["model"]) <= set(range(len(understory.MODELS)))
-        assert [m["id"] for m in shrubs["models"]] == ["shrub_04", "shrub_02", "grass_medium_02"]
+        assert [m["id"] for m in shrubs["models"]] == ["lentisc", "rosemary", "grass"]
 
     def test_no_understory_stands_on_a_cliff_in_the_silene_band(
         self, found: vegetation.Detection
@@ -937,3 +934,22 @@ class TestRunIsReproducible:
         assert document["inputs"]
         assert set(document["tools"]) == {"numpy", "rasterio", "shapely", "laspy"}
         assert provenance.verify_artefact(first, "vegetation.json", REPO_ROOT) == []
+
+
+# --- draw budget estimate -----------------------------------------------------------------------
+
+
+def test_the_budget_estimate_counts_triangles_by_distance_and_draw_calls_by_group() -> None:
+    meshes = {"tree": (1000, 100, 4), "bush": (50, 10, 4)}
+    trees = np.array([[0.0, 5.0], [0.0, 50.0], [0.0, 100.0], [0.0, 500.0]])  # x, z of 4 trees
+    bushes = np.array([[3.0, 0.0], [0.0, 20.0], [0.0, 200.0]])
+    estimate = vegetation.estimate_view(
+        viewer=(0.0, 0.0),
+        groups=[
+            vegetation.Group("tree", trees, meshes["tree"], (30.0, 70.0, 120.0)),
+            vegetation.Group("bush", bushes, meshes["bush"], (10.0, 30.0, 60.0)),
+        ],
+    )
+    # trees at 5 m (lod0), 50 m (lod1), 100 m (card), 500 m (out); bushes at 3 m, 20 m, out
+    assert estimate.triangles == 1000 + 100 + 4 + 50 + 10
+    assert estimate.calls == 5  # tree lod0, lod1, card + bush lod0, lod1

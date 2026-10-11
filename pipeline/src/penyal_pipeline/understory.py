@@ -5,7 +5,7 @@ chance of each grows with the number of class 3 and 4 points in the cell, and ev
 (slot, jitter, yaw, priority) is a hash of the cell id (``cellhash.hash_cells``), so the result
 does not depend on the order the cells are visited in. The model comes from the median height of
 the points. Nothing is placed on the walkable corridor (ADR 0006) or on paths, roads and buildings
-of OSM, and the three models are generic stand-ins: no protected species is represented
+of OSM, and the three plants are generic stand-ins: no protected species is represented
 (``docs/specs/002/vegetacion-especies.md`` §4).
 """
 
@@ -21,7 +21,6 @@ from shapely.geometry.base import BaseGeometry
 
 from penyal_pipeline import dem, trail
 from penyal_pipeline.cellhash import hash_cells, unit_float
-from penyal_pipeline.rawdata import locate
 
 if TYPE_CHECKING:
     from penyal_pipeline.vegetation import VegetationPoints
@@ -57,32 +56,23 @@ PROTECTED_SPECIES = (
 
 @dataclass(frozen=True)
 class Model:
+    """A procedural plant (``blender/plants.py``) with the size it is modelled at."""
+
     id: str
-    source_id: str
-    gltf: str
     stand_in: str
+    height: float  # metres, modelled
+    radius: float  # metres, modelled
 
 
-# Index in this tuple is the ``model`` column of the output.
+# Index in this tuple is the ``model`` column of the output. The three plants replace the Poly
+# Haven shrub_04 / shrub_02 / grass_medium_02 meshes: shrub_04 is a 0.22 m young plant with an
+# end pivot and 27k triangles (scaled 5-14x to a 1-3 m lentisc it was a caricature, and ten
+# instances already exceeded the 250k-triangle budget), and none of the three had LODs or cards.
+# Only their (CC0) leaf and blade textures are used.
 MODELS = (
-    Model(
-        "shrub_04",
-        "polyhaven-shrub-04-gltf-1k",
-        "shrub_04_1k.gltf",
-        "Pistacia lentiscus (lentisc), approximate",
-    ),
-    Model(
-        "shrub_02",
-        "polyhaven-shrub-02-gltf-1k",
-        "shrub_02_1k.gltf",
-        "Rosmarinus officinalis / Lavandula dentata, approximate",
-    ),
-    Model(
-        "grass_medium_02",
-        "polyhaven-grass-medium-02-gltf-1k",
-        "grass_medium_02_1k.gltf",
-        "scrub grasses, generic",
-    ),
+    Model("lentisc", "Pistacia lentiscus (lentisc), approximate", 2.0, 1.0),
+    Model("rosemary", "Rosmarinus officinalis / Lavandula dentata, approximate", 0.8, 0.5),
+    Model("grass", "scrub grasses, generic", 0.5, 0.25),
 )
 TALL, LOW, GRASS = 0, 1, 2
 
@@ -90,18 +80,14 @@ type Floats = npt.NDArray[np.float64]
 
 
 def model_description(model: Model) -> dict[str, Any]:
-    """Model id, what it stands for, how many glTF nodes (variants) it has and their mean height."""
-    raw = locate(model.source_id, model.gltf)
-    gltf = json.loads(raw.path.read_text(encoding="utf-8"))
-    heights = []
-    for mesh in gltf["meshes"]:
-        accessor = gltf["accessors"][mesh["primitives"][0]["attributes"]["POSITION"]]
-        heights.append(accessor["max"][1] - accessor["min"][1])
+    """What the app needs to instance ``model``: its meshes by level and its nominal size."""
     return {
         "id": model.id,
         "standsFor": model.stand_in,
-        "variants": len(gltf["nodes"]),
-        "nominalHeight": round(float(np.mean(heights)), 3),
+        "nominalHeight": model.height,
+        "nominalRadius": model.radius,
+        "file": "vegetation/plants.glb",
+        "meshes": {level: f"{model.id}_{level}" for level in ("lod0", "lod1", "card")},
         "licence": "CC0 1.0",
     }
 
@@ -214,6 +200,10 @@ def instances(
         "y": [round(float(v), 2) for v in ground[order]],
         "z": [round(float(v), 2) for v in z[order]],
         "height": [round(float(v), 2) for v in found["height"][order]],
+        "scale": [
+            round(float(h) / MODELS[int(m)].height, 3)
+            for h, m in zip(found["height"][order], found["model"][order], strict=True)
+        ],
         "yaw": [int(v) for v in found["yaw"][order]],
         "model": [int(v) for v in found["model"][order]],
         "keep": [int(v) for v in found["keep"][order]],
