@@ -48,3 +48,20 @@
 | Los anchos de camino son provisionales | Se marcan como aproximación y se sustituyen al llegar las medidas, con el paso del pipeline volviendo a generar la salida |
 | Rendimiento en móvil | La fila del ADR 0010 y la prueba por sistema. A7, la medición en el móvil, calibra los milisegundos |
 | **Memoria de GPU**, que el ADR 0010 no presupuesta: solo cubre llamadas de dibujo, triángulos y milisegundos | Añadir al presupuesto por sistema una columna con los MiB de textura estimados por formato y tamaño, con un tope provisional por nivel que se calibra en A7. Se propondrá como enmienda del ADR 0010 antes de E1.3 y E2.5 |
+
+## Progreso
+
+- [x] **E1.1, máscara de firmes** (`penyal surfaces`), integrada en `main` el 11/10/2026 (c9600ad, ba24f60, 2437b08).
+  - 8 teselas en KTX2 UASTC lineal, 0,18 MB en total.
+  - Cobertura: 2.288 m² de empedrado, 2.505 de compactado, 1.371 de adoquín y 2.602 de asfalto.
+  - Los anchos son provisionales y se marcan por vía (`widthSource`).
+  - Fuga entre canales medida: 48/255 como máximo.
+- [x] **E1.4, escaleras** (`penyal structures`), integrada en `main` (d559200, 3d0e43b, 0a5511c, a25a044).
+  - Tres vuelos con altura de peldaño uniforme que siguen el MDT tallado: centro con 30 peldaños de 0,166 m, escalera de 10 peldaños de 0,224 m y portal con 6 de 0,139 m.
+  - En total, 914 triángulos. La holgura de las huellas es de −6 mm como mínimo.
+  - Las medidas, el material y el lado de la barandilla son provisionales.
+  - Pasó tres rondas de revisión independiente.
+- [ ] E1.2, materiales: espera a las fotos y medidas del usuario.
+- [ ] E1.3, el terreno pinta los firmes: espera a B0.
+- [ ] E2.1–E2.4: segunda ronda de correcciones tras la revisión, en curso.
+- [ ] E2.5: espera a B0.
