@@ -149,6 +149,7 @@ test.describe("per-system budget", () => {
           const off = await cost(page);
           const offMs = useMetal ? await medianFrameMs(page) : 0;
           await toggle(page, id, true);
+          expect(await cost(page), `${id} restores the total when enabled again`).toEqual(total);
 
           const calls = total.calls - off.calls;
           const triangles = total.triangles - off.triangles;

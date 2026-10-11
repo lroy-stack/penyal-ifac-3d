@@ -100,6 +100,22 @@ export function createAtmosphere(initial: AtmosphereState): AtmosphereWriter {
 }
 
 /**
+ * What every system but `atmosphere` receives as `ctx.atmosphere`: the same live state, version and
+ * uniforms, without the writer's `set`. Enforced at runtime, not only by the type.
+ */
+export function readOnlyAtmosphere(writer: AtmosphereReader): AtmosphereReader {
+  return {
+    get state() {
+      return writer.state;
+    },
+    get version() {
+      return writer.version;
+    },
+    uniforms: writer.uniforms,
+  };
+}
+
+/**
  * Gives a lit material the shared atmosphere uniforms; idempotent. In B0 this only declares the
  * uniforms (the GLSL arrives with L1, which also bumps `ATMOSPHERE_PATCH_KEY`). A `ShaderMaterial`
  * takes them into its own `uniforms`, so a clone, which deep-copies them, must call this again.

@@ -11,6 +11,7 @@ export type FrameCallback = (deltaSeconds: number, rawMilliseconds: number | nul
 export type Loop = {
   readonly start: () => void;
   readonly stop: () => void;
+  readonly isRunning: () => boolean;
 };
 
 /**
@@ -58,6 +59,7 @@ export function createLoop(onFrame: FrameCallback): Loop {
   };
 
   return {
+    isRunning: () => running,
     start: () => {
       if (running) return;
       running = true;

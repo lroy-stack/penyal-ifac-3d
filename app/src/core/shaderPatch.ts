@@ -19,6 +19,12 @@ const patchesOf = new WeakMap<Material, ShaderPatch[]>();
  * the order they were added, and its program cache key is their keys joined by "|", so materials
  * with the same patches share one program (three's default key is the source of the callback,
  * which would be the same for every patch). Adding a key the material already has does nothing.
+ *
+ * Two things callers must know:
+ * - It replaces any `onBeforeCompile` and `customProgramCacheKey` the material already has: a
+ *   foreign hook (a wind or sway patch written by hand) is lost. Express it as a `ShaderPatch`.
+ * - `Material.clone()` copies neither the callback nor this table, so a clone is unpatched: call
+ *   `addShaderPatch` (and `attachAtmosphere`) again on every clone.
  */
 export function addShaderPatch(material: Material, patch: ShaderPatch): void {
   const patches = patchesOf.get(material) ?? [];

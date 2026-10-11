@@ -6,6 +6,7 @@ import {
   type AtmosphereState,
   attachAtmosphere,
   createAtmosphere,
+  readOnlyAtmosphere,
 } from "./atmosphere";
 import { createTerrainDetailUniforms, terrainDetailPatch } from "./terrain/material";
 
@@ -83,6 +84,19 @@ describe("createAtmosphere", () => {
     expect(values.sun.toArray()).toEqual([0, 1, 0]);
     expect(values.colour.toArray()).toEqual([2, 1, 0.5]);
     expect(values.fog.toArray()).toEqual([10, 100, 0.5, 0]);
+  });
+});
+
+describe("readOnlyAtmosphere", () => {
+  it("follows the writer live but offers no way to write", () => {
+    const writer = createAtmosphere(dayState());
+    const view = readOnlyAtmosphere(writer);
+    writer.set({ exposure: 2 });
+    expect(view.state.exposure).toBe(2);
+    expect(view.version).toBe(1);
+    expect(view.uniforms).toBe(writer.uniforms);
+    expect("set" in view).toBe(false);
+    expect((view as unknown as { set?: unknown }).set).toBeUndefined();
   });
 });
 

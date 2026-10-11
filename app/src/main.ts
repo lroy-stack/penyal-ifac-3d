@@ -1,6 +1,7 @@
 import { PerspectiveCamera, Scene, Vector2 } from "three";
 import { type AppState, createAppState } from "./appState";
 import { baseUrl, createAssetProvider } from "./core/assets";
+import { createWalkGate, runBoot } from "./core/boot";
 import { assertBudgeted } from "./core/budget";
 import { createFrameClock } from "./core/frameClock";
 import { type FrameSnapshot, FrameStats } from "./core/frameStats";
@@ -25,7 +26,7 @@ import { loadProgress } from "./ui/loadProgress";
 import { createPerfOverlay, isPerfRequested, type PerfOverlay } from "./ui/perfOverlay";
 import { createPoster } from "./ui/poster";
 import { t } from "./ui/strings";
-import { createAtmosphere } from "./world/atmosphere";
+import { createAtmosphere, readOnlyAtmosphere } from "./world/atmosphere";
 import { dayAtmosphere } from "./world/atmosphere/defaults";
 import { COLLISION_PATH, loadCollisionField } from "./world/collision";
 import { type HeightField, PolygonCorridor } from "./world/ground";
@@ -174,7 +175,8 @@ async function bootstrap(): Promise<void> {
     camera,
     renderer,
     assets,
-    atmosphere,
+    // The writer goes to the atmosphere system alone (createWorldSystems); the others get a view.
+    atmosphere: readOnlyAtmosphere(atmosphere),
     quality,
     ground,
     pois: pois.registry,
@@ -204,34 +206,36 @@ async function bootstrap(): Promise<void> {
   const start = startAnchor(trail, params.get("start"), corridor).anchor;
   const startYaw = headingAlongRoute(routePoints(trail), start);
   resolveRoute({ trail, corridor, start, startYaw });
-  await Promise.all([critical, beforeWalk]);
 
-  const systemStatus = world.status();
-  const terrainStatus = systemStatus.terrain;
-  if (terrainStatus?.state === "ready") {
-    state.terrain.status = "ready";
-    setStatus(t("loadingTerrain"));
-    poster.setMessage(t("loadingTerrain"));
-  } else if (terrainStatus?.state === "missing") {
-    state.terrain.status = "missing";
-    setStatus(t("terrainMissing"));
-  } else {
-    const message = handles.terrain.error() ?? terrainStatus?.state ?? "unknown";
-    state.terrain.status = "error";
-    state.terrain.message = message;
-    setStatus(`${t("terrainFailed")} ${message}`);
-  }
-  const tunnelStatus = systemStatus.tunnel;
-  if (tunnelStatus?.state === "ready" || tunnelStatus?.state === "degraded") {
-    state.tunnel.status = "ready";
-  } else if (tunnelStatus?.state === "missing") {
-    state.tunnel.status = "missing";
-  } else {
-    const message = handles.tunnel.error() ?? tunnelStatus?.state ?? "unknown";
-    state.tunnel.status = "error";
-    state.tunnel.message = message;
-    setStatus(`${t("tunnelFailed")} ${message}`);
-  }
+  /** Reads what the critical systems ended up as; the beforeWalk ones are not awaited yet. */
+  const applyCriticalStatus = (): void => {
+    const systemStatus = world.status();
+    const terrainStatus = systemStatus.terrain;
+    if (terrainStatus?.state === "ready") {
+      state.terrain.status = "ready";
+      setStatus(t("loadingTerrain"));
+      poster.setMessage(t("loadingTerrain"));
+    } else if (terrainStatus?.state === "missing") {
+      state.terrain.status = "missing";
+      setStatus(t("terrainMissing"));
+    } else {
+      const message = handles.terrain.error() ?? terrainStatus?.state ?? "unknown";
+      state.terrain.status = "error";
+      state.terrain.message = message;
+      setStatus(`${t("terrainFailed")} ${message}`);
+    }
+    const tunnelStatus = systemStatus.tunnel;
+    if (tunnelStatus?.state === "ready" || tunnelStatus?.state === "degraded") {
+      state.tunnel.status = "ready";
+    } else if (tunnelStatus?.state === "missing") {
+      state.tunnel.status = "missing";
+    } else {
+      const message = handles.tunnel.error() ?? tunnelStatus?.state ?? "unknown";
+      state.tunnel.status = "error";
+      state.tunnel.message = message;
+      setStatus(`${t("tunnelFailed")} ${message}`);
+    }
+  };
 
   const frameStats = new FrameStats();
   const perfOverlay: PerfOverlay | null = isPerfRequested(location.search)
@@ -243,14 +247,9 @@ async function bootstrap(): Promise<void> {
   let player: Player | null = null;
   let collisionLoaded = false;
   const terrainView: { outcome: TerrainGateOutcome } = { outcome: "waiting" };
-  let openWalkGate: () => void = () => undefined;
-  const walkGate = new Promise<void>((resolve) => {
-    openWalkGate = resolve;
+  const walkGate = createWalkGate(() => world.isSettled(), {
+    loopRunning: () => loop.isRunning(),
   });
-  const pollWalkGate = (): void => {
-    if (world.isSettled()) openWalkGate();
-  };
-  pollWalkGate();
 
   const progressNow = (stats: TerrainStats | null): number =>
     loadProgress({
@@ -419,7 +418,7 @@ async function bootstrap(): Promise<void> {
     if (player === null) previewFrame(info);
     else liveFrame(player, dt, info);
     showGateStep();
-    if (tick.frame % GATE_CHECK_FRAMES === 1) pollWalkGate();
+    if (tick.frame % GATE_CHECK_FRAMES === 1) walkGate.poll();
     if (frameStats.snapshot !== lastSnapshot) {
       lastSnapshot = frameStats.snapshot;
       state.frameStats = lastSnapshot;
@@ -427,7 +426,6 @@ async function bootstrap(): Promise<void> {
       perfOverlay?.update(lastSnapshot, state.render);
     }
   });
-  if (handles.terrain.available()) loop.start();
 
   stopRendering = () => {
     loop.stop();
@@ -440,6 +438,7 @@ async function bootstrap(): Promise<void> {
       if (!failed) loop.start();
     },
     dispose: () => {
+      walkGate.dispose();
       player?.dispose();
       world.dispose();
       perfOverlay?.dispose();
@@ -451,9 +450,19 @@ async function bootstrap(): Promise<void> {
   window.addEventListener("pagehide", lifecycle.onPageHide);
   window.addEventListener("pageshow", lifecycle.onPageShow);
 
-  // The walk starts only once every critical system has settled (the terrain is visible, or it
-  // has given up, or it is missing); then the collision field is fetched.
-  await walkGate;
+  // The preview starts as soon as the critical systems are in. The walk starts only once every
+  // critical and beforeWalk system has settled (the terrain is visible, or it has given up, or it
+  // is missing); then the collision field is fetched.
+  await runBoot({
+    critical,
+    beforeWalk,
+    walkGate: walkGate.opened,
+    startPreview: () => {
+      applyCriticalStatus();
+      if (handles.terrain.available()) loop.start();
+      walkGate.poll();
+    },
+  });
   let collision: Awaited<ReturnType<typeof loadCollisionField>>;
   try {
     collision = await loadCollisionField(assets.url(COLLISION_PATH));

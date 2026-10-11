@@ -59,6 +59,15 @@ describe("createLoop", () => {
     vi.unstubAllGlobals();
   });
 
+  it("says whether it is running", () => {
+    const loop = createLoop(() => undefined);
+    expect(loop.isRunning()).toBe(false);
+    loop.start();
+    expect(loop.isRunning()).toBe(true);
+    loop.stop();
+    expect(loop.isRunning()).toBe(false);
+  });
+
   it("reports the time between frames in seconds", () => {
     const deltas: number[] = [];
     const loop = createLoop((dt) => deltas.push(dt));
