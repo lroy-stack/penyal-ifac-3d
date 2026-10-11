@@ -12,6 +12,8 @@ const { port: PORT, outputDir, workers } = laneDefaults(import.meta.dirname, pro
 // visible window. They verify behaviour and correctness, not real-device performance.
 export default defineConfig({
   testDir: "e2e",
+  // Unit tests of the E2E helpers (e2e/support/*.test.ts) run under vitest.
+  testMatch: "**/*.spec.ts",
   outputDir,
   ...(workers === undefined ? {} : { workers }),
   timeout: 60_000,
