@@ -70,6 +70,12 @@ test("shows a poster at once and walks only after the terrain is visible, fetchi
 
 test("stops waiting and says so when the far mesh never loads", async ({ page }) => {
   await page.route("**/terrain/far.glb", (route) => route.fulfill({ status: 500, body: "" }));
+  // Hold the detail tiles back a little, so they are still arriving after the walk starts however
+  // fast the machine is (on a quiet one the whole terrain used to be in before the check below).
+  await page.route(/terrain\/tiles\/.*_lod[01]\.glb$/, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await route.continue();
+  });
 
   await page.goto("/?start=turnstile");
 
