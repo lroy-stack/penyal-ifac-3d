@@ -8,6 +8,7 @@ Source data for the terrain pipeline.
 | `manifest.lock.json` | yes | What was actually downloaded: per id the files (name, bytes, sha256), retrieval date, licence, attribution. |
 | `curated/tunnel.toml` | yes | Hand-curated, approximate tunnel data (portal floor heights, cross-section) with method, evidence numbers and sources. Read by `penyal trail`, `penyal tunnel`, `penyal dem` and `penyal terrain`. |
 | `raw/<id>/` | **no** (git-ignored) | The downloaded files. Large (about 1 GB for phase 1); recreated by `penyal fetch`. |
+| `manual/<vendor>/` | **no** (git-ignored) | Files a person must download by hand (store pages that block scripted downloads). See "Manual downloads". |
 
 ## Fetching
 
@@ -35,6 +36,23 @@ uv run --project pipeline penyal tunnel             # tunnel.json + tunnel.glb, 
 ```
 
 Run `penyal dem`, `penyal trail` and `penyal tunnel` (in this order) after changing the file; `penyal terrain` applies the same carve and openings to a full rebuild.
+
+## Manual downloads
+
+### Quaternius hiker (ADR 0008)
+
+itch.io blocks scripted downloads, so a person downloads these packs from a browser.
+They are pipeline inputs only: **never commit them, and never copy their files outside `data/manual/` or the build output** (ADR 0008: the Quaternius Asset License forbids redistributing the assets as a pack).
+
+| Pack | Page | Size (listing) | Put the zip in |
+|---|---|---|---|
+| Universal Animation Library, Standard (idle, walk, run clips) | https://quaternius.itch.io/universal-animation-library | 14.54 MB | `data/manual/quaternius/` |
+| Universal Base Characters, Standard (rigged humanoid mesh) | https://quaternius.itch.io/universal-base-characters | 122 MB | `data/manual/quaternius/` |
+
+- The pages are "pay what you want": choose the free or paid option you prefer, then download the **Standard** zip. The paid "Source" tier is not needed.
+- Keep each zip exactly as downloaded: do not unzip, rename or re-zip it.
+- The listing sizes come from `docs/specs/001-penyal-ifac-3d/assets.md` (store pages, 2026-10-10). If the file you get differs a lot, say so before using it.
+- Whoever integrates the hiker (phase B, lane L6) records each zip's sha256 and the licence file found inside it in `manifest.lock.json`, then reads that licence: if it is CC0, CC0 governs (ADR 0008, consequences).
 
 ## Licences
 
