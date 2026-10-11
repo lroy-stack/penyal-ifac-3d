@@ -6,6 +6,7 @@ import {
   type Scene,
   type WebGLRenderer,
 } from "three";
+import { JSON_TIMEOUT_MS } from "../../core/http";
 import type { AtmosphereState, AtmosphereWriter } from "../atmosphere";
 import { fogRangeFor } from "../sky";
 import type { WorldSystem } from "../systems";
@@ -45,6 +46,8 @@ export function createAtmosphereSystem(writer: AtmosphereWriter): WorldSystem {
     id: "atmosphere",
     phase: "prePlayer",
     load: "critical",
+    // It waits for trail.json, whose request has its own 30 s limit.
+    initTimeoutMs: JSON_TIMEOUT_MS + 5_000,
     async init(ctx) {
       target = { scene: ctx.scene, renderer: ctx.renderer };
       const route = await ctx.route;

@@ -1,11 +1,17 @@
 import { PerspectiveCamera, Scene, Vector2 } from "three";
 import { type AppState, createAppState } from "./appState";
-import { baseUrl, createAssetProvider, publicUrl } from "./core/assets";
+import { baseUrl, createAssetProvider } from "./core/assets";
 import { createFrameClock } from "./core/frameClock";
 import { type FrameSnapshot, FrameStats } from "./core/frameStats";
 import { createPageLifecycle } from "./core/lifecycle";
 import { createLoop } from "./core/loop";
-import { probeDevice, type QualityProfile, resolveInitialProfile } from "./core/quality";
+import {
+  probeDevice,
+  profileFor,
+  type QualityProfile,
+  type QualityTier,
+  resolveInitialProfile,
+} from "./core/quality";
 import { createRenderer } from "./core/renderer";
 import { TEST_HOOKS_ENABLED } from "./core/testHooks";
 import { parseTimescale, simulationSteps } from "./core/timescale";
@@ -21,24 +27,18 @@ import { t } from "./ui/strings";
 import { createAtmosphere } from "./world/atmosphere";
 import { dayAtmosphere } from "./world/atmosphere/defaults";
 import { COLLISION_PATH, loadCollisionField } from "./world/collision";
-import { createTrailDebug, type TrailDebug } from "./world/debugTrail";
 import { type HeightField, PolygonCorridor } from "./world/ground";
 import { createWorldSystems } from "./world/index";
-import { createGroundRegistry, createWorld, EMPTY_POIS, type FrameInfo } from "./world/systems";
 import {
-  createGltfTileLoader,
-  createTerrainStreamer,
-  loadTerrainManifest,
-  type TerrainStats,
-  type TerrainStreamer,
-  viewFromCamera,
-} from "./world/terrain";
-import {
-  INITIAL_TERRAIN_GATE,
-  stepTerrainGate,
-  type TerrainGateOutcome,
-} from "./world/terrain/gate";
-import { terrainOptions } from "./world/terrain/quality";
+  createGroundRegistry,
+  createWorld,
+  EMPTY_POIS,
+  type FrameInfo,
+  type Route,
+} from "./world/systems";
+import type { TerrainStats } from "./world/terrain";
+import type { TerrainGateOutcome } from "./world/terrain/gate";
+import { GATE_CHECK_FRAMES } from "./world/terrain/system";
 import {
   headingAlongRoute,
   loadTrail,
@@ -47,27 +47,14 @@ import {
   startAnchor,
   TRAIL_PATH,
 } from "./world/trail";
-import {
-  loadTunnel,
-  TUNNEL_DIRECTORY,
-  TUNNEL_PATH,
-  type Tunnel,
-  TunnelGroundSurface,
-} from "./world/tunnel";
-import { createTunnelLamp, loadTunnelView, type TunnelView } from "./world/tunnelView";
-import { cameraFar } from "./world/workArea";
+import { cameraFar, workAreaCentre } from "./world/workArea";
 
 /** Anchors count as reached within this horizontal distance (m). */
 const ANCHOR_REACH_RADIUS = 6;
 /** The terrain statistics are refreshed every N frames; they allocate. */
 const STATS_INTERVAL_FRAMES = 15;
-/** While the terrain loads, its readiness is checked every N frames. */
-const PREVIEW_CHECK_FRAMES = 6;
 /** How long "the terrain is available now" stays up after a late recovery. */
 const RECOVERED_NOTICE_MS = 5000;
-/** Longest frame the terrain gate counts, so one long stall (a debugger pause) does not end it. */
-const GATE_MAX_FRAME_MS = 1000;
-const TERRAIN_MANIFEST_PATH = "assets/generated/terrain/manifest.json";
 /** Auto-walk target of the P key. */
 const DEFAULT_AUTOWALK_TARGET = "summit";
 
@@ -108,18 +95,22 @@ function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function debugFlags(): ReadonlySet<string> {
-  const value = new URLSearchParams(location.search).get("debug");
+function debugFlags(params: URLSearchParams): ReadonlySet<string> {
+  const value = params.get("debug");
   return new Set(value === null ? [] : value.split(","));
 }
 
+/**
+ * The bootstrap: device probe, quality profile, renderer, camera and scene; the atmosphere and
+ * the list of world systems; the route; the loop and the walk gate; the collision field and the
+ * player. What is drawn, and how it loads, is in the systems (`world/index.ts`).
+ */
 async function bootstrap(): Promise<void> {
   const canvas = requireElement("scene", HTMLCanvasElement);
   const poster = createPoster();
   const hud = createHud();
   stopRendering = () => hud.notify(null);
-  const far = cameraFar();
-  const camera = new PerspectiveCamera(65, 1, 0.2, far);
+  const camera = new PerspectiveCamera(65, 1, 0.2, cameraFar());
 
   const device = probeDevice();
   const quality: { current: QualityProfile } = {
@@ -140,118 +131,104 @@ async function bootstrap(): Promise<void> {
   const { renderer } = handle;
 
   setStatus(t("loadingRoute"));
-  const base = baseUrl();
-  const manifestUrl = publicUrl(TERRAIN_MANIFEST_PATH, base);
-
-  // Small files first: they say what to fetch next. The collision field (about 1 MB) is not
-  // requested here: it competes for bandwidth with the terrain, which is what the visitor sees.
-  let trail: Awaited<ReturnType<typeof loadTrail>>;
-  let manifest: Awaited<ReturnType<typeof loadTerrainManifest>>;
-  let tunnelFile: Awaited<ReturnType<typeof loadTunnel>>;
-  try {
-    [trail, manifest, tunnelFile] = await Promise.all([
-      loadTrail(publicUrl(TRAIL_PATH, base)),
-      loadTerrainManifest(manifestUrl),
-      loadTunnel(publicUrl(TUNNEL_PATH, base)),
-    ]);
-  } catch (error) {
-    handle.dispose();
-    fail(`${t("routeDataFailed")} ${describeError(error)}`);
-    return;
-  }
-
   const params = new URLSearchParams(location.search);
-  const corridor = new PolygonCorridor(trail.corridor.polygon.map(([x, z]) => [x, z] as const));
-  const start = startAnchor(trail, params.get("start"), corridor).anchor;
-  const startYaw = headingAlongRoute(routePoints(trail), start);
-  const summit = trail.anchors.summit ?? start;
-
   const scene = new Scene();
-  const assets = createAssetProvider(renderer, base);
-  const atmosphere = createAtmosphere(dayAtmosphere(summit));
-  let resolveCollision: (field: HeightField) => void = () => undefined;
-  // Never settles when the collision field fails: the fatal screen has replaced the scene by then.
-  const collisionField = new Promise<HeightField>((resolve) => {
-    resolveCollision = resolve;
-  });
-  const world = createWorld(createWorldSystems({ atmosphere }), {
-    scene,
-    camera,
-    renderer,
-    assets,
-    atmosphere,
-    quality,
-    ground: createGroundRegistry(),
-    pois: EMPTY_POIS,
-    route: Promise.resolve({ trail, corridor, start, startYaw }),
-    collision: collisionField,
-    params,
-    testHooks: TEST_HOOKS_ENABLED,
-  });
-  await world.init("critical");
+  const assets = createAssetProvider(renderer, baseUrl());
+  const ground = createGroundRegistry();
 
   const state: AppState = createAppState();
+  state.quality = quality.current;
   if (TEST_HOOKS_ENABLED) {
     state.timescale = parseTimescale(location.search);
     window.__appState = state;
   }
   const clock = createFrameClock(() => state.timescale);
 
-  let tunnel: Tunnel | null = null;
-  let tunnelSurface: TunnelGroundSurface | null = null;
-  if (tunnelFile.status === "ready") {
-    tunnel = tunnelFile.tunnel;
-    tunnelSurface = new TunnelGroundSurface(tunnel);
-    state.tunnel.status = "ready";
-  } else if (tunnelFile.status === "missing") {
-    state.tunnel.status = "missing";
-  } else {
-    state.tunnel.status = "error";
-    state.tunnel.message = tunnelFile.message;
-  }
+  let resolveRoute: (route: Route) => void = () => undefined;
+  const route = new Promise<Route>((resolve) => {
+    resolveRoute = resolve;
+  });
+  let resolveCollision: (field: HeightField) => void = () => undefined;
+  // Never settles when the collision field fails: the fatal screen has replaced the scene by then.
+  const collisionField = new Promise<HeightField>((resolve) => {
+    resolveCollision = resolve;
+  });
 
-  let streamer: TerrainStreamer | null = null;
-  if (manifest.status === "ready") {
-    streamer = createTerrainStreamer({
-      manifest: manifest.manifest,
-      manifestUrl,
-      load: createGltfTileLoader(assets.gltf()),
-      ...terrainOptions(quality.current),
-      detailEnabled: false,
-    });
-    scene.add(streamer.root);
+  const atmosphere = createAtmosphere(dayAtmosphere(workAreaCentre()));
+  const { systems, handles } = createWorldSystems({
+    atmosphere,
+    debugTrail: debugFlags(params).has("trail"),
+  });
+  handles.tunnel.onMesh = (result) => {
+    if (result.ok) {
+      state.tunnel.meshLoaded = true;
+    } else {
+      state.tunnel.message = result.message;
+      setStatus(t("tunnelMissing"));
+    }
+  };
+  const world = createWorld(systems, {
+    scene,
+    camera,
+    renderer,
+    assets,
+    atmosphere,
+    quality,
+    ground,
+    pois: EMPTY_POIS,
+    route,
+    collision: collisionField,
+    params,
+    testHooks: TEST_HOOKS_ENABLED,
+  });
+
+  // Small files first: they say what to fetch next. trail.json and the critical systems (the
+  // terrain manifest, tunnel.json) are requested together; the collision field (about 1 MB) is
+  // not: it competes for bandwidth with the terrain, which is what the visitor sees.
+  const trailLoad = loadTrail(assets.url(TRAIL_PATH));
+  const critical = world.init("critical");
+  const beforeWalk = world.init("beforeWalk");
+  let trail: Awaited<typeof trailLoad>;
+  try {
+    trail = await trailLoad;
+  } catch (error) {
+    world.dispose();
+    assets.dispose();
+    handle.dispose();
+    fail(`${t("routeDataFailed")} ${describeError(error)}`);
+    return;
+  }
+  const corridor = new PolygonCorridor(trail.corridor.polygon.map(([x, z]) => [x, z] as const));
+  const start = startAnchor(trail, params.get("start"), corridor).anchor;
+  const startYaw = headingAlongRoute(routePoints(trail), start);
+  resolveRoute({ trail, corridor, start, startYaw });
+  await Promise.all([critical, beforeWalk]);
+
+  const systemStatus = world.status();
+  const terrainStatus = systemStatus.terrain;
+  if (terrainStatus?.state === "ready") {
     state.terrain.status = "ready";
     setStatus(t("loadingTerrain"));
     poster.setMessage(t("loadingTerrain"));
-  } else if (manifest.status === "missing") {
+  } else if (terrainStatus?.state === "missing") {
     state.terrain.status = "missing";
     setStatus(t("terrainMissing"));
   } else {
+    const message = handles.terrain.error() ?? terrainStatus?.state ?? "unknown";
     state.terrain.status = "error";
-    state.terrain.message = manifest.message;
-    setStatus(`${t("terrainFailed")} ${manifest.message}`);
+    state.terrain.message = message;
+    setStatus(`${t("terrainFailed")} ${message}`);
   }
-
-  let trailDebug: TrailDebug | null = null;
-
-  let tunnelView: TunnelView | null = null;
-  const tunnelLamp = createTunnelLamp();
-  if (tunnel !== null) {
-    scene.add(tunnelLamp.light);
-    const tunnelUrl = publicUrl(`${TUNNEL_DIRECTORY}${tunnel.mesh}`, base);
-    loadTunnelView(assets.gltf(), tunnelUrl).then(
-      (view) => {
-        tunnelView = view;
-        scene.add(view.object);
-        state.tunnel.meshLoaded = true;
-      },
-      (error: unknown) => {
-        state.tunnel.message = `The tunnel interior could not be loaded. ${describeError(error)}`;
-        setStatus(t("tunnelMissing"));
-      },
-    );
-  } else if (tunnelFile.status === "error") {
-    setStatus(`${t("tunnelFailed")} ${tunnelFile.message}`);
+  const tunnelStatus = systemStatus.tunnel;
+  if (tunnelStatus?.state === "ready" || tunnelStatus?.state === "degraded") {
+    state.tunnel.status = "ready";
+  } else if (tunnelStatus?.state === "missing") {
+    state.tunnel.status = "missing";
+  } else {
+    const message = handles.tunnel.error() ?? tunnelStatus?.state ?? "unknown";
+    state.tunnel.status = "error";
+    state.tunnel.message = message;
+    setStatus(`${t("tunnelFailed")} ${message}`);
   }
 
   const frameStats = new FrameStats();
@@ -263,15 +240,15 @@ async function bootstrap(): Promise<void> {
 
   let player: Player | null = null;
   let collisionLoaded = false;
-  let gateFrames = 0;
-  let gateElapsedMs = 0;
-  let gate = INITIAL_TERRAIN_GATE;
   const terrainView: { outcome: TerrainGateOutcome } = { outcome: "waiting" };
-  let terrainSettled: () => void = () => undefined;
-  const terrainGate = new Promise<void>((resolve) => {
-    terrainSettled = resolve;
+  let openWalkGate: () => void = () => undefined;
+  const walkGate = new Promise<void>((resolve) => {
+    openWalkGate = resolve;
   });
-  if (streamer === null) terrainSettled();
+  const pollWalkGate = (): void => {
+    if (world.isSettled()) openWalkGate();
+  };
+  pollWalkGate();
 
   const progressNow = (stats: TerrainStats | null): number =>
     loadProgress({
@@ -311,14 +288,12 @@ async function bootstrap(): Promise<void> {
         // One polite live region announces it: #notice (the visible message), not #status as well.
         hud.notify(t("terrainReady"));
       }
-      terrainSettled();
     } else if (outcome === "failed") {
       if (before !== "failed") {
         state.terrain.status = "error";
         state.terrain.message = stats.lastError ?? "The terrain did not load in time.";
         setStatus(`${t("terrainFailed")} ${stats.lastError ?? ""}`.trim());
         poster.setMessage(t("terrainFailed"));
-        terrainSettled();
         // Said once when it happens; a failure before the walk is announced when the walk starts.
         if (player !== null) hud.notify(t("terrainFailed"));
       }
@@ -332,38 +307,45 @@ async function bootstrap(): Promise<void> {
   };
 
   /**
-   * Until the terrain is visible (also after a failure: a slow link may still deliver it), every
-   * few frames the streamer's progress is fed to the stall gate with the real frame time, which is
-   * zero while the tab is hidden.
+   * Until the terrain is visible (also after a failure: a slow link may still deliver it), the
+   * terrain system feeds its progress to the stall gate every few frames, on the real frame time
+   * (capped per frame, zero while the tab is hidden), not on the simulation dt, which is clamped
+   * and would stretch the deadline at low frame rates. Each step is shown here.
    */
-  const checkTerrainGate = (dt: number): void => {
-    if (streamer === null || state.loading.terrainVisibleMs !== null) return;
-    gateElapsedMs += dt * 1000;
-    gateFrames++;
-    if (gateFrames % PREVIEW_CHECK_FRAMES !== 1) return;
-    const stats = streamer.stats();
-    state.terrain.stats = stats;
-    poster.setProgress(progressNow(stats));
-    const step = stepTerrainGate(
-      gate,
-      {
-        visible: stats.visible,
-        gaveUp: stats.gaveUp,
-        bytesLoaded: stats.bytesLoaded,
-        loadedTiles: stats.coverage.loaded,
-      },
-      gateElapsedMs,
-    );
-    gate = step.state;
-    gateElapsedMs = 0;
-    showTerrainOutcome(step.outcome, stats);
+  const showGateStep = (): void => {
+    const step = handles.terrain.takeGateStep();
+    if (step === null) return;
+    state.terrain.stats = step.stats;
+    poster.setProgress(progressNow(step.stats));
+    showTerrainOutcome(step.outcome, step.stats);
   };
+
+  const syncSystems = (): void => {
+    const status = world.status();
+    const cpu = world.cpuMs();
+    for (const [id, systemState] of Object.entries(status)) {
+      state.systems[id] = { status: systemState, cpuMs: cpu[id] ?? 0 };
+    }
+  };
+
+  if (TEST_HOOKS_ENABLED) {
+    window.__world = {
+      setEnabled: (id, enabled) => {
+        world.setEnabled(id, enabled);
+        syncSystems();
+      },
+      freezeTime: (seconds) => clock.freeze(seconds),
+      setQuality: (tier: QualityTier) => {
+        const next: QualityProfile = { ...profileFor(tier, device), source: "override" };
+        world.setQuality(next);
+        state.quality = next;
+      },
+    };
+  }
 
   const previewFrame = (info: FrameInfo): void => {
     world.update("prePlayer", info);
     world.update("postPlayer", info);
-    if (streamer === null) return;
-    streamer.update(viewFromCamera(camera, drawingBuffer.y));
     world.update("preRender", info);
     renderer.render(scene, camera);
   };
@@ -380,13 +362,7 @@ async function bootstrap(): Promise<void> {
         else startAutoWalk(DEFAULT_AUTOWALK_TARGET);
       }
     }
-    const feet = current.state.position;
-    tunnelLamp.update(
-      { x: feet.x, y: feet.y, z: feet.z },
-      tunnelSurface?.contains(feet.x, feet.y + 0.8, feet.z, 0) ?? false,
-    );
     world.update("postPlayer", info);
-    if (streamer !== null) streamer.update(viewFromCamera(camera, drawingBuffer.y));
     world.update("preRender", info);
     renderer.render(scene, camera);
 
@@ -414,9 +390,11 @@ async function bootstrap(): Promise<void> {
     state.render.programs = renderer.info.programs?.length ?? 0;
     hud.update(corridorHit, performance.now(), t("corridorNotice"));
 
-    if (streamer !== null && state.frames % STATS_INTERVAL_FRAMES === 1) {
-      state.terrain.stats = streamer.stats();
+    if (state.frames % STATS_INTERVAL_FRAMES === 1) {
+      const stats = handles.terrain.stats();
+      if (stats !== null) state.terrain.stats = stats;
     }
+    if (TEST_HOOKS_ENABLED) syncSystems();
     state.ready = true;
   };
 
@@ -431,9 +409,8 @@ async function bootstrap(): Promise<void> {
     };
     if (player === null) previewFrame(info);
     else liveFrame(player, dt, info);
-    // The gate runs on real elapsed time (capped per frame, zero while hidden), not on the
-    // simulation dt, which is clamped to 0.1 s and would stretch the deadline at low frame rates.
-    checkTerrainGate(rawMs === null ? 0 : Math.min(rawMs, GATE_MAX_FRAME_MS) / 1000);
+    showGateStep();
+    if (tick.frame % GATE_CHECK_FRAMES === 1) pollWalkGate();
     if (frameStats.snapshot !== lastSnapshot) {
       lastSnapshot = frameStats.snapshot;
       state.frameStats = lastSnapshot;
@@ -441,7 +418,7 @@ async function bootstrap(): Promise<void> {
       perfOverlay?.update(lastSnapshot, state.render);
     }
   });
-  if (streamer !== null) loop.start();
+  if (handles.terrain.available()) loop.start();
 
   stopRendering = () => {
     loop.stop();
@@ -455,13 +432,9 @@ async function bootstrap(): Promise<void> {
     },
     dispose: () => {
       player?.dispose();
-      streamer?.dispose();
-      trailDebug?.dispose();
+      world.dispose();
       perfOverlay?.dispose();
       hud.dispose();
-      tunnelView?.dispose();
-      tunnelLamp.light.dispose();
-      world.dispose();
       assets.dispose();
       handle.dispose();
     },
@@ -469,11 +442,12 @@ async function bootstrap(): Promise<void> {
   window.addEventListener("pagehide", lifecycle.onPageHide);
   window.addEventListener("pageshow", lifecycle.onPageShow);
 
-  // The walk starts only once the terrain is visible; then the collision field is fetched.
-  await terrainGate;
+  // The walk starts only once every critical system has settled (the terrain is visible, or it
+  // has given up, or it is missing); then the collision field is fetched.
+  await walkGate;
   let collision: Awaited<ReturnType<typeof loadCollisionField>>;
   try {
-    collision = await loadCollisionField(publicUrl(COLLISION_PATH, base));
+    collision = await loadCollisionField(assets.url(COLLISION_PATH));
   } catch (error) {
     fail(`${t("routeDataFailed")} ${describeError(error)}`);
     return;
@@ -481,19 +455,15 @@ async function bootstrap(): Promise<void> {
   collisionLoaded = true;
   resolveCollision(collision);
   poster.setProgress(progressNow(state.terrain.stats));
-  if (debugFlags().has("trail")) {
-    trailDebug = createTrailDebug(trail, collision);
-    scene.add(trailDebug.object);
-  }
 
-  const startFloor = tunnelSurface?.floorAt(start.x, start.z) ?? null;
+  const startFloor = ground.startFloor(start.x, start.z);
   const created = createPlayer({
     scene,
     camera,
     canvas,
     heightField: collision,
-    groundSurfaces: tunnelSurface === null ? [] : [tunnelSurface],
-    enclosures: tunnelSurface === null ? [] : [tunnelSurface],
+    groundSurfaces: ground.surfaces,
+    enclosures: ground.enclosures,
     corridor,
     start:
       startFloor === null ? { x: start.x, z: start.z } : { x: start.x, z: start.z, y: startFloor },
@@ -509,7 +479,6 @@ async function bootstrap(): Promise<void> {
   };
   player = created;
   world.startWalk();
-  streamer?.setDetailEnabled(true);
   state.loading.readyMs = Math.round(performance.now());
   poster.hide();
   if (terrainView.outcome === "failed") hud.notify(t("terrainFailed"));

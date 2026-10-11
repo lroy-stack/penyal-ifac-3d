@@ -1,5 +1,7 @@
 import type { FrameSnapshot } from "./core/frameStats";
+import type { QualityProfile, QualityTier } from "./core/quality";
 import type { CameraMode } from "./player/cameras";
+import type { SystemStatus } from "./world/systems";
 import type { TerrainStats } from "./world/terrain";
 
 export type TerrainStatus = "loading" | "ready" | "missing" | "error";
@@ -49,11 +51,26 @@ export type AppState = {
    * and the number of frames over 50 ms, recomputed every few frames. Null until measured.
    */
   frameStats: FrameSnapshot | null;
+  /** Status and rolling median CPU time (ms) of each world system's update; test hooks only. */
+  systems: Record<string, { status: SystemStatus; cpuMs: number }>;
+  /** The quality profile in use. */
+  quality: QualityProfile | null;
+};
+
+/** Test-only controls of the world, published as `window.__world` next to `__appState`. */
+export type WorldHooks = {
+  /** Switches a system's objects and effects off or on; throws for an unknown id. */
+  setEnabled(id: string, enabled: boolean): void;
+  /** Holds simulated time at `seconds` (and its step at 0); null releases it. */
+  freezeTime(seconds: number | null): void;
+  /** Applies a tier to the systems live; what only loads once keeps the tier it started with. */
+  setQuality(tier: QualityTier): void;
 };
 
 declare global {
   interface Window {
     __appState?: AppState;
+    __world?: WorldHooks;
   }
 }
 
@@ -81,5 +98,7 @@ export function createAppState(): AppState {
     timescale: 1,
     frameTimeP95Ms: null,
     frameStats: null,
+    systems: {},
+    quality: null,
   };
 }
