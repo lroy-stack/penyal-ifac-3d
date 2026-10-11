@@ -1,6 +1,6 @@
 # 0007. License the code under EUPL-1.2 and preserve every data licence
 
-- Status: accepted; amended by 0008 for the hiker character only
+- Status: accepted; amended by 0008 for the hiker character only, and by 0011 for CC BY-SA audio
 - Date: 2026-10-11
 - Deciders: lr0y (product owner)
 

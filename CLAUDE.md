@@ -41,7 +41,7 @@ A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Ca
 - Never adjust the terrain to match a published figure (summit is 332 m officially, ~326–328 m in the data). The only allowed terrain edits are evidence-backed local corrections of 2.5D limits (ADR 0009), defined in `data/curated/` and listed in `CREDITS.md`.
 - Every fact shown in the UI comes from `content/facts.json` with its sources and status.
 - Do not reveal locations of real Silene hifacensis plants.
-- Licences: CC0 / CC BY assets only; no Mixamo, no Google 3D Tiles, no CC BY-SA photos as textures; OSM-derived data stays in separate ODbL files (ADR 0007).
+- Licences: CC0 / CC BY assets only, with two exceptions: the Quaternius hiker under QAL (ADR 0008) and CC BY-SA audio kept as one separate share-alike file per recording (ADR 0011). No Mixamo, no Google 3D Tiles, no CC BY-SA photos as textures; OSM-derived data stays in separate ODbL files (ADR 0007).
 - Exact dependency versions (no `^`); verify APIs against installed packages, not memory.
 
 ## Gotchas
