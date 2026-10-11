@@ -61,6 +61,8 @@ const STATS_INTERVAL_FRAMES = 15;
 const PREVIEW_CHECK_FRAMES = 6;
 /** How long "the terrain is available now" stays up after a late recovery. */
 const RECOVERED_NOTICE_MS = 5000;
+/** Longest frame the terrain gate counts, so one long stall (a debugger pause) does not end it. */
+const GATE_MAX_FRAME_MS = 1000;
 const TERRAIN_MANIFEST_PATH = "assets/generated/terrain/manifest.json";
 /** Auto-walk target of the P key. */
 const DEFAULT_AUTOWALK_TARGET = "summit";
@@ -267,6 +269,9 @@ async function bootstrap(): Promise<void> {
 
   const showTerrainOutcome = (outcome: TerrainGateOutcome, stats: TerrainStats): void => {
     const before = terrainView.outcome;
+    // Once the walk has started, the streamer also loads detail tiles, so its progress no longer
+    // means the failed critical path is coming back: after a failure only visibility counts.
+    if (before === "failed" && player !== null && outcome !== "visible") return;
     terrainView.outcome = outcome;
     if (outcome === "visible") {
       state.loading.terrainVisibleMs = Math.round(performance.now());
@@ -288,9 +293,9 @@ async function bootstrap(): Promise<void> {
         setStatus(`${t("terrainFailed")} ${stats.lastError ?? ""}`.trim());
         poster.setMessage(t("terrainFailed"));
         terrainSettled();
+        // Said once when it happens; a failure before the walk is announced when the walk starts.
+        if (player !== null) hud.notify(t("terrainFailed"));
       }
-      // The walk may already have started over missing terrain: keep saying so until it shows.
-      if (player !== null) hud.notify(t("terrainFailed"));
     } else if (before === "failed") {
       state.terrain.status = "ready";
       state.terrain.message = null;
@@ -302,8 +307,8 @@ async function bootstrap(): Promise<void> {
 
   /**
    * Until the terrain is visible (also after a failure: a slow link may still deliver it), every
-   * few frames the streamer's progress is fed to the stall gate with the loop's own dt, which is
-   * zero-length while the tab is hidden.
+   * few frames the streamer's progress is fed to the stall gate with the real frame time, which is
+   * zero while the tab is hidden.
    */
   const checkTerrainGate = (dt: number): void => {
     if (streamer === null || state.loading.terrainVisibleMs !== null) return;
@@ -392,7 +397,9 @@ async function bootstrap(): Promise<void> {
     if (rawMs !== null) frameStats.push(rawMs);
     if (player === null) previewFrame();
     else liveFrame(player, dt);
-    checkTerrainGate(dt);
+    // The gate runs on real elapsed time (capped per frame, zero while hidden), not on the
+    // simulation dt, which is clamped to 0.1 s and would stretch the deadline at low frame rates.
+    checkTerrainGate(rawMs === null ? 0 : Math.min(rawMs, GATE_MAX_FRAME_MS) / 1000);
     if (frameStats.snapshot !== lastSnapshot) {
       lastSnapshot = frameStats.snapshot;
       state.frameStats = lastSnapshot;
