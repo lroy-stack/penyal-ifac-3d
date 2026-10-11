@@ -638,6 +638,58 @@
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_nor_gl_1k.jpg"
     },
+    "polyhaven-white-stucco-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 323604,
+          "name": "white_stucco_arm_1k.jpg",
+          "sha256": "f072f12ac50d667f23ec2c20dd03463923e405f109106cc7ad4d2d85eeb16bd6"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_stucco/white_stucco_arm_1k.jpg"
+    },
+    "polyhaven-white-stucco-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 557550,
+          "name": "white_stucco_diff_1k.jpg",
+          "sha256": "5f2d11f5675ffe679155d8e38ed8eaa9b9972126675641e4977c8a4f905f276b"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_stucco/white_stucco_diff_1k.jpg"
+    },
+    "polyhaven-white-stucco-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 932038,
+          "name": "white_stucco_nor_gl_1k.jpg",
+          "sha256": "f0d4f34b30093ceca5e58d5168fc06c2f0cd0b81289708aa3eac7d0801bd069d"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_stucco/white_stucco_nor_gl_1k.jpg"
+    },
+    "polyhaven-yellow-plaster-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 376961,
+          "name": "yellow_plaster_diff_1k.jpg",
+          "sha256": "5e67931012314b632569864200881850b67337360059f995e487f94f594c9353"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/yellow_plaster/yellow_plaster_diff_1k.jpg"
+    },
     "xenocanto-xc624044-larus-michahellis": {
       "attribution": "Giovanni Francesco Tartarelli, XC624044. Accessible at www.xeno-canto.org/624044 (CC BY 4.0)",
       "files": [
