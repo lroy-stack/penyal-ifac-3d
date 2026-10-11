@@ -631,14 +631,13 @@ class TestTunnelAgainstTheTerrain:
 FOOTPRINT_STEP = 0.1  # metres between the top-down samples
 PORTAL_REACH = 6.0  # metres from a portal that are checked
 # The shell is clipped to the carved DEM at its vertices (0.5 m rings) and then interpolated, so
-# across the steep edge of the west carve it can stand above the DEM by a chord error. Measured with
-# a 0.1 m step: 1.22 m west, 0 m east, for LOD 0, 1 and 2 alike (it is a property of the shell and
-# the carve, not of the mesh). The rock mesh may in addition lie up to ``Lod.max_error`` below the
-# DEM, so the allowed protrusion above the DEM is that LOD's maxError plus the chord allowance.
-CLIP_CHORD_ALLOWANCE = 1.5  # metres: measured 1.22 m plus 0.28 m of margin
-# Exposed area: measured 0.06 m2 (6 samples) west and <= 0.05 m2 east at every LOD; 0.2 m2 is 20
-# samples at FOOTPRINT_STEP, a sliver at the carve edge rather than a visible patch of wall.
-MAX_EXPOSED_AREA = 0.2  # m2
+# across the steep edge of the west carve (ADR 0009) a sliver of vault stands above the DEM.
+# Measured with a 0.1 m step against the DEM (so it is the same for every LOD): 1.22 m and
+# 0.06 m2 west, 0 m and <= 0.05 m2 east. That west sliver is a known approximation of the
+# placeholder section; these limits are a ratchet against it getting worse, not an allowance
+# derived from the mesh error.
+MAX_PROTRUSION = 1.3  # metres above the DEM: measured 1.22 m
+MAX_EXPOSED_AREA = 0.1  # m2: measured 0.06 m2 (6 samples at FOOTPRINT_STEP)
 
 
 def top_hits(
@@ -724,7 +723,7 @@ class TestShellSeenFromOutside:
             f"LOD{level} {'east' if end else 'west'}: exposed {area:.2f} m2, max {protrusion:.2f} m"
         )
         assert area <= MAX_EXPOSED_AREA, "wall or vault visible from above, outside the rock"
-        assert protrusion <= tiles.LODS[level].max_error + CLIP_CHORD_ALLOWANCE
+        assert protrusion <= MAX_PROTRUSION, "vault stands too far above the DEM near a portal"
 
     @pytest.mark.parametrize("end", [0, -1], ids=["west", "east"])
     @pytest.mark.parametrize("level", [0, 1])
