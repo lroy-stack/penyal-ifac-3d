@@ -84,9 +84,11 @@ NIR_BAND = 4
 # is therefore tied to the measured reference classes above: 0.07 is the 10th percentile of the
 # high vegetation of 2016 as seen in 2024, and sits above the medians of ground (0.06) and
 # buildings (0.03). A crown median below it looks more like ground or roof than canopy. It
-# excludes 128 of the 1441 crowns analysed (2 of the 185 in the pilot band);
+# excludes 54 of the 1441 crowns analysed (1 of the 185 in the pilot band);
 # ``penyal vegetation --analyse`` prints the histogram and the counts for any other threshold.
 NDVI_ABSENT_THRESHOLD = 0.07
+NDVI_MIN_DISK = 1.5  # metres, smallest disk a crown is judged on
+NDVI_SHIFT = 1.0  # metres, apex-to-canopy offset the ortho rectification can cause
 # Crowns taller than this are LiDAR/DEM mismatches on vertical rock (4 crowns, 23-94 m, on slopes
 # of 64-88 degrees), not trees: the tallest plausible tree of the park is a pine of ~20 m.
 MAX_CROWN_HEIGHT = 25.0
@@ -383,25 +385,44 @@ def read_ndvi(src: DatasetReader, bounds: tuple[float, float, float, float]) -> 
     )
 
 
-def crown_ndvi(raster: NdviRaster, crowns: Crowns) -> Floats:
-    """Median NDVI over the pixels whose centre is inside each crown disk (NaN if none valid)."""
-    out = np.full(len(crowns), np.nan)
+def _disk_median(raster: NdviRaster, cx: float, cz: float, radius: float) -> float:
     rows, cols = raster.values.shape
+    c0 = max(0, math.floor((cx - radius - raster.x_min) / raster.res))
+    c1 = min(cols, math.ceil((cx + radius - raster.x_min) / raster.res))
+    r0 = max(0, math.floor((cz - radius - raster.z_min) / raster.res))
+    r1 = min(rows, math.ceil((cz + radius - raster.z_min) / raster.res))
+    if c1 <= c0 or r1 <= r0:
+        return math.nan
+    px = raster.x_min + (np.arange(c0, c1) + 0.5) * raster.res - cx
+    pz = raster.z_min + (np.arange(r0, r1) + 0.5) * raster.res - cz
+    inside = (px[None, :] ** 2 + pz[:, None] ** 2) <= radius**2
+    values = raster.values[r0:r1, c0:c1][inside]
+    values = values[~np.isnan(values)]
+    return float(np.median(values)) if values.size else math.nan
+
+
+def crown_ndvi(raster: NdviRaster, crowns: Crowns) -> Floats:
+    """NDVI of each crown: the best median over disks of at least ``NDVI_MIN_DISK`` metres around
+    the apex and around four points ``NDVI_SHIFT`` metres away (NaN if no pixel is valid).
+
+    The orthophoto is rectified on the terrain, not on the canopy, so the top of a tall crown is
+    displaced from its image by about height x tan(view angle), roughly a metre; small crowns
+    (minimum radius 0.75 m) were dropped four times as often as wide ones when only the apex disk
+    was read.
+    """
+    offsets = (
+        (0.0, 0.0),
+        *((s * NDVI_SHIFT, 0.0) for s in (-1, 1)),
+        *((0.0, s * NDVI_SHIFT) for s in (-1, 1)),
+    )
+    out = np.full(len(crowns), np.nan)
     for i in range(len(crowns)):
-        cx, cz, radius = float(crowns.x[i]), float(crowns.z[i]), float(crowns.radius[i])
-        c0 = max(0, math.floor((cx - radius - raster.x_min) / raster.res))
-        c1 = min(cols, math.ceil((cx + radius - raster.x_min) / raster.res))
-        r0 = max(0, math.floor((cz - radius - raster.z_min) / raster.res))
-        r1 = min(rows, math.ceil((cz + radius - raster.z_min) / raster.res))
-        if c1 <= c0 or r1 <= r0:
-            continue
-        px = raster.x_min + (np.arange(c0, c1) + 0.5) * raster.res - cx
-        pz = raster.z_min + (np.arange(r0, r1) + 0.5) * raster.res - cz
-        inside = (px[None, :] ** 2 + pz[:, None] ** 2) <= radius**2
-        values = raster.values[r0:r1, c0:c1][inside]
-        values = values[~np.isnan(values)]
-        if values.size:
-            out[i] = float(np.median(values))
+        cx, cz = float(crowns.x[i]), float(crowns.z[i])
+        radius = max(float(crowns.radius[i]), NDVI_MIN_DISK)
+        medians = [_disk_median(raster, cx + dx, cz + dz, radius) for dx, dz in offsets]
+        valid = [m for m in medians if not math.isnan(m)]
+        if valid:
+            out[i] = max(valid)
     return out
 
 
@@ -548,6 +569,13 @@ def analysis_report(found: Detection, threshold: float) -> str:
         lines.append(
             f"  {low:3.0f}..{high:3.0f} {int(band_mask.sum()):5d} "
             f"{int((band_mask & found.absent).sum()):5d} {int((band_mask & found.cliff).sum()):5d}"
+        )
+    lines.append("crown radius (m): n / dropped by NDVI")
+    for low, high in ((0.0, 1.0), (1.0, 2.0), (2.0, 3.0), (3.0, 7.0)):
+        band_mask = (found.crowns.radius >= low) & (found.crowns.radius < high)
+        lines.append(
+            f"  {low:3.0f}..{high:3.0f} {int(band_mask.sum()):5d} "
+            f"{int((band_mask & found.absent).sum()):5d}"
         )
     return "\n".join(lines)
 

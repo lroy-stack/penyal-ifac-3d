@@ -464,3 +464,71 @@ def test_a_cliff_crown_without_a_measured_ndvi_is_dropped() -> None:
     crowns = crowns_with([2.0])
     keep = vegetation.cliff_keep(crowns, np.array([80.0]), np.array([np.nan]))
     assert keep.tolist() == [False]
+
+
+# --- NDVI sampling ------------------------------------------------------------------------------
+
+
+def write_half_nir(path: Path) -> Path:
+    """4 x 4 m image over local x 10..14, z -10..-6 (north up): near infrared high only in the
+    north half (z -10..-8), equal to red in the south half."""
+    size = 16
+    data = np.zeros((4, size, size), dtype=np.uint8)
+    data[0] = 100
+    data[3] = 100
+    data[3, : size // 2, :] = 200
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        width=size,
+        height=size,
+        count=4,
+        dtype="uint8",
+        crs="EPSG:25830",
+        transform=from_origin(ORIGIN_E + 10.0, ORIGIN_N + 10.0, 0.25, 0.25),
+    ) as dst:
+        dst.write(data)
+    return path
+
+
+def test_ndvi_is_high_in_the_north_half_and_low_in_the_south_half(
+    tmp_path: Path,
+) -> None:
+    path = write_half_nir(tmp_path / "half.tif")
+    with rasterio.open(path) as src:
+        raster = vegetation.read_ndvi(src, (10.0, -10.0, 14.0, -6.0))
+    crowns = Crowns(
+        x=np.array([12.0, 12.0]),
+        y=np.zeros(2),
+        z=np.array([-9.0, -6.5]),  # z grows southwards: -9 is the north half
+        height=np.full(2, 6.0),
+        radius=np.array([1.5, 1.5]),
+    )
+    ndvi = vegetation.crown_ndvi(raster, crowns)
+    assert ndvi[0] == pytest.approx(1.0 / 3.0)
+    assert ndvi[1] == pytest.approx(0.0, abs=0.05)
+
+
+def test_a_small_crown_whose_apex_is_shifted_off_its_canopy_is_still_measured() -> None:
+    """The orthophoto is rectified on the terrain, so a tall crown's apex lands about a metre
+    away from its canopy: the apex disk of a 0.75 m crown can be bare while the tree is there."""
+    values = np.zeros((80, 80), dtype=np.float32)  # 20 x 20 m at 0.25 m
+    values[:, 42:] = 0.4  # green from x = 10.5 m east
+    raster = NdviRaster(values, x_min=0.0, z_min=0.0, res=0.25)
+    crowns = Crowns(
+        x=np.array([10.0]),
+        y=np.zeros(1),
+        z=np.array([10.0]),
+        height=np.full(1, 5.0),
+        radius=np.array([0.75]),
+    )
+    assert vegetation.crown_ndvi(raster, crowns)[0] == pytest.approx(0.4)
+    far = Crowns(
+        x=np.array([8.0]),
+        y=np.zeros(1),
+        z=np.array([10.0]),
+        height=np.full(1, 5.0),
+        radius=np.array([0.75]),
+    )
+    assert vegetation.crown_ndvi(raster, far)[0] == pytest.approx(0.0)
