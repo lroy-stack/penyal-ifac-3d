@@ -1,5 +1,6 @@
-import type { IUniform, Material, Texture, WebGLProgramParametersWithUniforms } from "three";
+import type { IUniform, Material, Texture } from "three";
 import { MeshStandardMaterial } from "three";
+import { addShaderPatch, type ShaderPatch } from "../../core/shaderPatch";
 
 /**
  * Terrain detail shading, patched into the glTF `MeshStandardMaterial` of every tile with
@@ -307,18 +308,16 @@ export function patchTerrainShader(
   return { vertexShader: vertex, fragmentShader: fragment };
 }
 
+/** The terrain detail as a shader patch; with no other patch, the program key stays `TERRAIN_PROGRAM_KEY`. */
+export function terrainDetailPatch(uniforms: TerrainDetailUniforms): ShaderPatch {
+  return { key: TERRAIN_PROGRAM_KEY, uniforms, apply: patchTerrainShader };
+}
+
 /**
  * Adds the detail shading to a glTF tile material. Only `MeshStandardMaterial` is patched, and
  * only when it has a base colour texture (the cliff average needs it).
  */
 export function applyTerrainDetail(material: Material, uniforms: TerrainDetailUniforms): void {
   if (!(material instanceof MeshStandardMaterial)) return;
-  material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
-    Object.assign(shader.uniforms, uniforms);
-    const patched = patchTerrainShader(shader.vertexShader, shader.fragmentShader);
-    shader.vertexShader = patched.vertexShader;
-    shader.fragmentShader = patched.fragmentShader;
-  };
-  material.customProgramCacheKey = () => TERRAIN_PROGRAM_KEY;
-  material.needsUpdate = true;
+  addShaderPatch(material, terrainDetailPatch(uniforms));
 }

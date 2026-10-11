@@ -11,6 +11,7 @@ import {
   nearDetailWeight,
   patchTerrainShader,
   TERRAIN_PROGRAM_KEY,
+  terrainDetailPatch,
 } from "./material";
 
 const normalYAt = (degrees: number): number => Math.cos((degrees * Math.PI) / 180);
@@ -77,6 +78,20 @@ describe("patchTerrainShader", () => {
 
   it("fails loudly when a chunk it hooks into is missing", () => {
     expect(() => patchTerrainShader("void main() {}", fragmentShader)).toThrow(/common/);
+  });
+});
+
+describe("terrainDetailPatch", () => {
+  it("is the terrain shader transform under the terrain program key, with the shared uniforms", () => {
+    const uniforms = createTerrainDetailUniforms();
+    const patch = terrainDetailPatch(uniforms);
+    expect(patch.key).toBe(TERRAIN_PROGRAM_KEY);
+    expect(patch.key).toBe("penyal-terrain-detail-v4");
+    expect(patch.uniforms).toBe(uniforms);
+    const { vertexShader, fragmentShader } = ShaderLib.physical;
+    expect(patch.apply(vertexShader, fragmentShader)).toEqual(
+      patchTerrainShader(vertexShader, fragmentShader),
+    );
   });
 });
 
