@@ -16,6 +16,11 @@ export interface GroundSurface {
    * The caller passes `y = feetY + stepHeight`, so surfaces up to one step above the feet count.
    */
   surfaceBelow(x: number, y: number, z: number, maxDrop: number): number | null;
+  /**
+   * Floor height at (x, z) when the surface covers that spot, else null. Optional: the start of
+   * the walk uses it to stand on a surface (the tunnel) instead of on the terrain under it.
+   */
+  floorAt?(x: number, z: number): number | null;
 }
 
 /**
