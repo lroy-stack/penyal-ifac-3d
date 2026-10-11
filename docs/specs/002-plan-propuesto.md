@@ -40,13 +40,51 @@
 - A1: identidad de git local configurada; 7 commits por áreas; CI de GitHub Actions escrita (`.github/workflows/ci.yml`). **Pendiente:** el remoto privado necesita `gh auth login` del usuario desde una red con IPv4 (el punto de acceso actual no llega a GitHub). B1 resuelto: el fichero suelto ya no existe.
 - A2: T1.8b y T1.10 cerradas (túnel recorrible en ambas cámaras; paseo automático a la cima y a Carabiners). M5 corregido (commits b05d8dd, 9b3c2e7, 7d33ba4): las paredes y la bóveda se recortan contra el terreno tallado, sin tocar el suelo.
   - Superficie visible desde fuera, este: de 4,31 m² a 0,06 m². Protrusión máxima: de 3,05 m a 0,00 m.
-  - Oeste: queda un resto de 0,06 m² y 0,82 m en el escalón del tallado del ADR 0009.
+  - Oeste: queda un resto de 0,06 m² que sobresale 1,22 m (medido cada 0,1 m) en el escalón del tallado del ADR 0009.
+  - Es una aproximación conocida. La prueba la fija en ≤ 1,3 m y ≤ 0,1 m² para que no empeore (commit c07a0a4).
   - La boca queda irregular hasta tener las medidas reales del túnel (Q6).
-- A3: `CREDITS.md` al día (M2). La atribución en pantalla y el diálogo de créditos están hechos (commit d7bf9aa).
-  - Falta el orden de carga, que va con A4 y A6, en curso.
+- A3: hecho. `CREDITS.md` al día (M2); atribución permanente en pantalla y diálogo de créditos accesible (d7bf9aa).
+- A4: hecho (303293d, 6deb97a, 51dfcba).
+  - Controles: ← → giran, Q/E desplazan y el ratón mira arrastrando, sin bloqueo de puntero.
+  - Carga: pantalla de carga con progreso. Primero se piden la malla lejana y el LOD grueso cercano; se camina solo con el terreno visible.
+  - Ayudas: pistas de controles y aviso del corredor.
+  - Medido (SwiftShader, medianas de 3 ejecuciones):
+    - 4G rápido: terreno visible en 3,1–3,9 s (objetivo ≤ 10 s);
+    - 4G lento: aviso pintado en ~1 s (objetivo ≤ 2,5 s); se puede caminar a los 11,9 s con brotli.
+- A6: hecho (92cfcdf). Delta de rAF sin recortar; p50/p95/p99 y fotogramas > 50 ms; `?perf`.
+  - Los ganchos de prueba solo existen en el servidor de desarrollo o con `VITE_E2E=true`; comprobado en el build de producción.
 - A5: hecho (commits 3cdddbf, e6108e1): procedencia en manifiestos, `penyal verify-generated`, bloque ADR 0009 verificado sobre datos reales (39 celdas, 13,30 m) y `PENYAL_REQUIRE_DATA=1`. El manifiesto de materiales ya está regenerado: las 12 texturas KTX2 son idénticas byte a byte.
   - El terreno y el túnel están regenerados en su sitio, en ese orden. `penyal verify-generated` da "all 5 generated artefacts match their recorded inputs" y sale con 0.
 - A7: pendiente de los móviles de referencia.
+
+### Cierre de la Fase A (11/10/2026)
+- **Estado:** cerrada en lo técnico. Quedan dos tareas que dependen del usuario:
+  - A1, el remoto de GitHub y la CI: requiere `gh auth login` desde una red con IPv4;
+  - A7, la medición en los móviles de referencia.
+- **Revisión independiente:** tres rondas con el agente `code-reviewer`.
+  - Primera ronda, cerrada:
+    - la pantalla de carga podía quedarse para siempre si fallaba el terreno;
+    - no había timeouts en las peticiones;
+    - la procedencia del túnel no incluía el MDT;
+    - el error fatal quedaba tapado;
+    - las teclas seguían activas con el diálogo abierto;
+    - las pistas se solapaban con la atribución en móvil.
+  - Segunda ronda, cerrada: la espera del terreno pasa a ser un plazo de inactividad de 120 s sobre el reloj del bucle, con recuperación. La colisión tiene reintentos. Hay una única ruta de error fatal.
+  - Tercera ronda, cerrada (df946db): tras un fallo con el paseo en marcha, solo la visibilidad cambia el estado.
+- **Comprobaciones:**
+  - `pnpm lint`, `pnpm typecheck` y `pnpm test` en verde: 364 tests de vitest y 402 de pytest con `PENYAL_REQUIRE_DATA=1`.
+  - E2E completa (48/48) antes de la última tanda de arreglos, y E2E de las áreas tocadas después.
+  - `penyal verify-generated` sale con 0.
+- **Seguimientos** (no bloquean; van a la fase B o D):
+  - **Espera del terreno:** debe alimentarse solo con los bytes y teselas del camino crítico. Hoy usa el total, y tras un fallo con recuperación previa al paseo los bytes de detalle podrían ocultar un segundo fallo. Además:
+    - pruebas unitarias de la máquina de estados de la interfaz;
+    - rearmar los recursos críticos agotados con el evento `online`.
+  - **Colisión:** abortar la descarga hermana al reintentar y reintentar solo errores transitorios.
+  - **4G lento:** caminar a los 11,9 s exige menos bytes en la malla lejana y en la colisión. Va con B11 y la fase D.
+  - **Calidad visual:**
+    - costuras entre teselas (m13);
+    - en LOD1 la carcasa del túnel puede asomar hasta ~1 m;
+    - el hueco al mar que señalaba la auditoría no se ha reproducido.
 
 **Riesgos:** sin móviles de referencia no se puede cerrar A7; la fase se cierra igualmente, con la medición pendiente anotada.
 
