@@ -72,3 +72,18 @@ Coordenadas en WGS84, sacadas del sendero que genera el proyecto (`trail.json`, 
    - la silueta coincide dentro del error que fije L8 al construir la herramienta, que se documentará con el primer resultado;
    - el revisor no señala ninguna diferencia grave de forma, luz o color sin explicar.
    - Las diferencias que sí se encuentren se apuntan como tareas.
+
+## Fotos y medidas para modelar (spec 003, E1–E5)
+
+Estas fotos no se comparan con la app: sirven para modelar fachadas, escaleras y firmes. Se aplican las mismas reglas de cámara, envío, licencia y privacidad de arriba. Haz las fotos solo desde espacios públicos y sin salir del sendero.
+
+| Qué | Fotos | Medidas con cinta métrica (anótalas en cm) |
+|---|---|---|
+| **Los dos edificios del centro** (Centro de Información y Centro de Visitantes) | Cada fachada accesible de frente y a 45°, de lejos para que quepa entera; detalles de puerta, ventanas, aleros, remates y cualquier piedra vista | Alto de una puerta y de una ventana, de suelo a dintel; alto del zócalo si lo hay |
+| **Escalera de 30 peldaños** y **escalera de 10 peldaños** | De lado, con la cinta extendida en el encuadre; de frente desde abajo; un detalle de la barandilla | Alto de peldaño (contrahuella) y fondo (huella) en 3 peldaños; ancho de la escalera; alto de la barandilla; grosor del pasamanos |
+| **Empedrado del sendero** | Tres fotos en vertical, desde arriba, de 1 m² con la cinta en el encuadre: junto al centro, a media subida y al final del tramo piloto | Ancho del sendero en esos tres puntos |
+| **Bordillos, muretes y barandillas del sendero** | Un ejemplo de cada tipo distinto | Alto y grosor |
+| **Torniquete y control de reservas, fuentes, paneles y bancos** | Cada uno de frente y de lado | Alto y ancho de cada uno |
+| **Aparcamiento** junto al centro y el **acceso desde la rotonda del puerto** | Panorámicas desde el suelo; detalle del firme y de las marcas viales | Ancho de una plaza si está pintada |
+
+**Si no tienes cinta:** pon en la foto un objeto de tamaño conocido, como una hoja A4 o una botella de 1,5 l, y dilo en la nota.

@@ -1,6 +1,6 @@
 # 003 — Entorno construido y vegetación: propuesta
 
-- Estado: **propuesta para aprobar**, 11/10/2026.
+- Estado: **aprobada por el usuario el 11/10/2026**. Las decisiones están en §6.
 - Investigación en la que se basa:
   - `docs/research/003-inventario-datos-propios.md`: nuestros datos (OSM, CV05, LiDAR, ortofoto);
   - `docs/research/003-entorno-construido.md`: fuentes oficiales, "el museo", puntos de interés y preguntas;
@@ -103,3 +103,10 @@ La propuesta completa está en `003-entorno-construido.md` §4. Los primeros, po
    - Desbloquean la elección de materiales (E1), las fachadas (E3) y las medidas del kit (E4).
    - Si ya tienes fotos del acceso o del centro, también sirven como referencia.
 4. **Orden:** ¿apruebas E1 → E6 tal cual, empezando por E1 y E2, que no dependen de fachadas, en cuanto termine B0?
+
+## 6. Decisiones del usuario (11/10/2026)
+
+1. **"El museo"** son los edificios del Centro de Información y de Visitantes al inicio del sendero. Se modelan en E3. El Museu d'Història de Calp queda fuera.
+2. **Alcance:** el parque con detalle desde el centro, más el acceso desde la rotonda del puerto a baja resolución (E5): asfalto, aparcamiento, Club Náutico y marina. La ciudad de fondo no se modela.
+3. **Fotos:** las hace el usuario, siguiendo `docs/specs/002/protocolo-fotos.md`, ampliado con la sección "Fotos y medidas para modelar".
+4. **Orden aprobado:** E1 → E6. E1 (caminos) y E2 (árboles) empiezan cuando termine B0. Los demás pasos esperan a las fotos.
