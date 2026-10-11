@@ -1,6 +1,7 @@
 """The procedural Aleppo pine: geometry budgets, atlas, and a byte-reproducible GLB (E2.3)."""
 
 import hashlib
+import itertools
 import json
 import os
 import shutil
@@ -103,12 +104,33 @@ def test_tube_normals_point_away_from_the_axis_and_triangles_are_valid() -> None
     )
     assert triangles.max() == len(positions) - 1
     assert np.allclose(np.linalg.norm(normals, axis=1), 1.0)
-    rings = len(tube.points)
-    centres = np.repeat(tube.points, 7, axis=0)
-    assert rings * 7 == len(positions)
+    segments = np.stack([tube.points[:-1], tube.points[1:]], axis=1).reshape(-1, 3)
+    centres = np.repeat(segments, 7, axis=0)  # every segment owns its two rings (bark UVs)
+    assert len(positions) == len(centres)
     assert (np.einsum("ij,ij->i", positions - centres, normals) > 0).all()
     assert uvs[:, 0].min() >= 0.0
     assert uvs[:, 0].max() <= 0.5
+
+
+def test_bark_texels_are_square_on_every_segment() -> None:
+    """A trunk segment maps the cell once around and ``length / circumference`` along."""
+    tube = pine.skeleton(0).tubes[0]
+    sides = 8
+    positions, _, uvs, _ = pine.tube_mesh(
+        tube, sides, (0.0, 0.0, 0.5, 1.0), np.ones(len(tube.radii))
+    )
+    per_segment = 2 * (sides + 1)
+    for segment in range(len(tube.points) - 1):
+        start = segment * per_segment
+        bottom = positions[start : start + sides + 1]
+        circumference = float(np.linalg.norm(np.diff(bottom, axis=0), axis=1).sum())
+        length = float(np.linalg.norm(tube.points[segment + 1] - tube.points[segment]))
+        v = uvs[start : start + per_segment, 1]
+        du = 0.5  # the whole cell width is one circumference
+        expected = min(length / circumference * du, 1.0)
+        assert float(v.max() - v.min()) == pytest.approx(expected, rel=0.15, abs=0.02)
+        assert v.min() >= 0.0
+        assert v.max() <= 1.0
 
 
 def test_the_triangle_winding_faces_outwards() -> None:
@@ -135,6 +157,13 @@ def test_a_card_is_two_triangles_and_cards_cross_around_the_growth_direction() -
     assert np.allclose(stems[0][:, 1], 0.0)
     assert np.allclose(stems[1][:, 1], 0.0)
     assert positions[2::4][:, 1].min() > 1.0
+
+
+def test_the_far_card_is_shaded_like_the_crown_not_flat_up() -> None:
+    card = pine.far_card()
+    assert np.allclose(np.linalg.norm(card.normals, axis=1), 1.0, atol=1e-5)
+    assert card.normals[:, 1].min() > 0.3  # lit from above...
+    assert abs(card.normals[:, 0]).max() > 0.3  # ...and turned outwards at the sides
 
 
 def test_the_far_card_is_two_crossed_quads_of_four_triangles() -> None:
@@ -171,6 +200,46 @@ class TestWithTextures:
             assert 0.15 < (alpha > 127).mean() < 0.6
         transparent = rgba[rgba[..., 3] == 0]
         assert transparent[:, :3].mean(axis=0).min() > 40
+
+    def test_the_needles_are_a_bright_green_and_the_bark_a_grey(self, atlas: pine.Atlas) -> None:
+        x0, y0, x1, y1 = atlas.twig_a
+        needle = atlas.rgba[y0:y1, x0:x1].reshape(-1, 4)
+        needle = needle[needle[:, 3] > 200][:, :3].astype(np.float64)
+        red, green, blue = needle.mean(axis=0)
+        assert green > red * 1.15  # green, not olive
+        assert green > blue * 1.6
+        bx0, by0, bx1, by1 = pine.BARK_CELL
+        bark = atlas.rgba[by0:by1, bx0:bx1, :3].reshape(-1, 3).astype(np.float64)
+        assert (bark.max(axis=1) - bark.min(axis=1)).mean() < 22  # nearly neutral
+        assert bark.mean() > 70  # and not the near-black of the raw photograph
+
+    def test_the_crown_starts_at_half_the_height_and_the_foliage_sits_high(
+        self, atlas: pine.Atlas, meshes: list[pine.PineMesh]
+    ) -> None:
+        for variant in range(pine.VARIANT_COUNT):
+            skeleton = pine.skeleton(variant)
+            starts = [tube.points[0][1] for tube in skeleton.tubes if tube.main and not tube.trunk]
+            lowest = min(starts) * pine.variant_scale(variant, atlas)[1]
+            assert 0.45 * pine.NOMINAL_HEIGHT <= lowest <= 0.62 * pine.NOMINAL_HEIGHT
+            mesh = next(m for m in meshes if m.name == f"pine_v{variant}_lod0")
+            foliage = mesh.positions[mesh.uvs[:, 0] > 0.5]  # twig cards, not bark
+            assert (foliage[:, 1] > 0.5 * pine.NOMINAL_HEIGHT).mean() > 0.9
+
+    def test_the_foliage_is_denser_than_a_sparse_tree_but_inside_the_budget(
+        self, meshes: list[pine.PineMesh]
+    ) -> None:
+        for mesh in meshes:
+            if mesh.name.endswith("lod0"):
+                assert 4000 <= mesh.triangle_count <= pine.LOD0_MAX_TRIANGLES
+
+    def test_the_alpha_coverage_per_mip_level_is_recorded_and_not_zero(
+        self, atlas: pine.Atlas
+    ) -> None:
+        coverage = pine.alpha_coverage_by_level(atlas, levels=5)
+        assert len(coverage) == 5
+        assert coverage[0] > 0.15
+        assert all(b <= a * 1.05 for a, b in itertools.pairwise(coverage))
+        assert coverage[-1] > 0.02  # the needles do not vanish at the smallest mip
 
     def test_the_far_silhouette_has_a_crown_and_a_trunk(self, atlas: pine.Atlas) -> None:
         x0, y0, x1, y1 = pine.FAR_CELL
@@ -260,6 +329,8 @@ class TestExport:
         assert material["doubleSided"] is True
         assert len(gltf["images"]) == 1
         assert all(len(m["primitives"]) == 1 for m in gltf["meshes"])
+        assert gltf["samplers"][0]["wrapS"] == 33071  # CLAMP_TO_EDGE: no bleeding between cells
+        assert gltf["samplers"][0]["wrapT"] == 33071
         assert "animations" not in gltf
 
 

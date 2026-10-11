@@ -20,7 +20,7 @@ byte-reproducible. Frames are glTF (y up) until ``terrain.to_blender``.
 import importlib
 import json
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +49,15 @@ ROUGHNESS = 0.95
 
 TWIG_DIFFUSE, TWIG_ALPHA, BARK_DIFFUSE = artefacts.PINE_TEXTURES
 
+# Tints baked into the atlas (the glTF material has no colour factor to share between meshes):
+# the Poly Haven twig is an olive pine of northern Europe and its bark a near-black photograph;
+# the pines of the Penyal (docs/specs/003, reference photos 26 and 17) have bright green needle
+# masses and pale grey trunks.
+NEEDLE_TINT = (0.9, 1.45, 0.75)
+BARK_GREY_MIX = 0.9  # share of the luminance (the rest is the photograph's colour)
+BARK_BRIGHTNESS = 1.9
+TRUNK_TOP = 0.8  # fraction of the nominal height where the trunk ends; the tufts reach the rest
+CROWN_BASE = 0.72  # fraction of the trunk where the lowest branch starts (crown from ~50 % up)
 ATLAS_WIDTH, ATLAS_HEIGHT = 1024, 512
 # Rectangles (x0, y0, x1, y1) in atlas pixels, rows top-down.
 BARK_CELL = (0, 0, 512, 512)
@@ -94,10 +103,10 @@ class Lod:
 
 
 LOD0 = Lod(
-    trunk_sides=8, branch_sides=5, twig_sides=4, cards_per_tuft=4, tuft_stride=1, card_scale=1.0
+    trunk_sides=8, branch_sides=5, twig_sides=4, cards_per_tuft=6, tuft_stride=1, card_scale=1.0
 )
 LOD1 = Lod(
-    trunk_sides=5, branch_sides=3, twig_sides=0, cards_per_tuft=2, tuft_stride=2, card_scale=1.4
+    trunk_sides=5, branch_sides=3, twig_sides=0, cards_per_tuft=3, tuft_stride=2, card_scale=1.4
 )
 
 
@@ -207,11 +216,15 @@ def build_atlas() -> Atlas:
     bark = _read_rgb(BARK_DIFFUSE)
     atlas = np.zeros((ATLAS_HEIGHT, ATLAS_WIDTH, 4), dtype=np.float32)
     bx0, by0, bx1, by1 = BARK_CELL
-    atlas[by0:by1, bx0:bx1, :3] = resize(bark, by1 - by0, bx1 - bx0)
+    bark = resize(bark, by1 - by0, bx1 - bx0)
+    luminance = bark @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    bark = (BARK_GREY_MIX * luminance[..., None] + (1.0 - BARK_GREY_MIX) * bark) * BARK_BRIGHTNESS
+    atlas[by0:by1, bx0:bx1, :3] = np.clip(bark, 0.0, 1.0)
     atlas[by0:by1, bx0:bx1, 3] = 1.0
     twig_a, rect_a = twig_rgba(diffuse, alpha, TWIG_A_SOURCE, TWIG_A_CLEAR, TWIG_A_CELL)
     twig_b, rect_b = twig_rgba(diffuse, alpha, TWIG_B_SOURCE, TWIG_B_CLEAR, TWIG_B_CELL)
     for twig, (x0, y0, x1, y1) in ((twig_a, rect_a), (twig_b, rect_b)):
+        twig[..., :3] = np.clip(twig[..., :3] * np.array(NEEDLE_TINT, dtype=np.float32), 0.0, 1.0)
         atlas[y0:y1, x0:x1] = twig
     needle = atlas[rect_a[1] : rect_a[3], rect_a[0] : rect_a[2]]
     mean = needle[needle[..., 3] > 0.5][:, :3].mean(axis=0)
@@ -221,6 +234,23 @@ def build_atlas() -> Atlas:
     empty = atlas[..., 3] == 0.0
     atlas[empty, :3] = mean
     return Atlas(np.rint(atlas * 255.0).astype(np.uint8), rect_a, rect_b)
+
+
+def alpha_coverage_by_level(atlas: Atlas, levels: int = 5) -> list[float]:
+    """Share of the twig and silhouette texels that pass the alpha test (>= 0.5) at each mip level
+    (2 x 2 box filter of the alpha, as a GPU mip chain does). It falls as thin needles blur out:
+    the app should alpha-to-coverage or scale the alpha with distance (E2.5)."""
+    alpha = atlas.rgba[..., 3].astype(np.float64) / 255.0
+    mask = np.zeros(alpha.shape, dtype=bool)
+    for x0, y0, x1, y1 in (atlas.twig_a, atlas.twig_b, FAR_CELL):
+        mask[y0:y1, x0:x1] = True
+    coverage = []
+    for _ in range(levels):
+        coverage.append(float((alpha[mask] >= 0.5).mean()))
+        h, w = alpha.shape[0] // 2 * 2, alpha.shape[1] // 2 * 2
+        alpha = alpha[:h, :w].reshape(h // 2, 2, w // 2, 2).mean(axis=(1, 3))
+        mask = mask[:h, :w].reshape(h // 2, 2, w // 2, 2).all(axis=(1, 3))
+    return coverage
 
 
 # --- vector helpers -----------------------------------------------------------------------------
@@ -252,14 +282,15 @@ def frames(points: Vec) -> tuple[Vec, Vec, Vec]:
 
 
 def _trunk(rng: np.random.Generator, variant: int) -> Tube:
-    """A curved trunk: it bulges to one side and comes back, so its top is above its foot."""
-    rings = 12
+    """A sinuous trunk: it bulges to one side, swings back and returns to the axis, so its top is
+    above its foot (the app leans it to the measured apex)."""
+    rings = 14
     t = np.linspace(0.0, 1.0, rings)
-    bulge = rng.uniform(0.35, 0.8, size=2) * rng.choice([-1.0, 1.0], size=2)
-    second = rng.uniform(0.1, 0.3, size=2) * rng.choice([-1.0, 1.0], size=2)
+    bulge = rng.uniform(0.6, 1.2, size=2) * rng.choice([-1.0, 1.0], size=2)
+    second = rng.uniform(0.3, 0.6, size=2) * rng.choice([-1.0, 1.0], size=2)
     x = bulge[0] * np.sin(np.pi * t) + second[0] * np.sin(2.0 * np.pi * t)
     z = bulge[1] * np.sin(np.pi * t) + second[1] * np.sin(2.0 * np.pi * t)
-    y = t * NOMINAL_HEIGHT * 0.9
+    y = t * NOMINAL_HEIGHT * TRUNK_TOP
     base = rng.uniform(0.2, 0.28) * (1.0 + 0.1 * variant)
     radii = base * (1.0 - t) ** 0.85 + 0.03
     radii[0] *= 1.25  # root flare
@@ -315,51 +346,54 @@ def _along(tube: Tube, s: float) -> tuple[Vec, Vec]:
 
 
 def skeleton(variant: int) -> Skeleton:
-    """The tree of ``variant``: tubes and tufts, from its fixed seed."""
+    """The tree of ``variant``: tubes and tufts, from its fixed seed.
+
+    Bare trunk up to the crown base, then branches grouped in a few irregular clumps (each with
+    its own preferred direction and reach), longer and flatter towards the top (the umbrella
+    tendency of old Aleppo pines), with needle tufts along their outer half.
+    """
     rng = np.random.default_rng(VARIANT_SEEDS[variant])
     trunk = _trunk(rng, variant)
     tubes = [trunk]
     tufts: list[Tuft] = []
     if variant % 2 == 1:  # a second leader, as in the multi-stemmed pines of the slope
-        fork = 0.32
-        origin, _ = _along(trunk, fork)
-        leader = _branch(
-            rng, origin, rng.uniform(0.0, 2.0 * np.pi), 1.0, NOMINAL_HEIGHT * 0.55, 0.11
-        )
-        tubes.append(leader)
+        origin, _ = _along(trunk, 0.4)
+        leader = _branch(rng, origin, rng.uniform(0.0, 2.0 * np.pi), 1.0, NOMINAL_HEIGHT * 0.4, 0.1)
+        tubes.append(replace(leader, trunk=True))
+    clumps = rng.uniform(0.0, 2.0 * np.pi, size=3)
+    clump_reach = rng.uniform(0.7, 1.3, size=3)
     branch_count = 20
-    azimuth = rng.uniform(0.0, 2.0 * np.pi)
     for i in range(branch_count):
-        t = 0.36 + 0.6 * (i + rng.uniform(-0.3, 0.3)) / branch_count
-        t = float(np.clip(t, 0.34, 0.97))
+        t = CROWN_BASE + (0.96 - CROWN_BASE) * (i + rng.uniform(-0.3, 0.3)) / branch_count
+        t = float(np.clip(t, CROWN_BASE, 0.97))
+        height = (t - CROWN_BASE) / (0.97 - CROWN_BASE)  # 0 at the crown base, 1 at the top
         origin, _ = _along(trunk, t)
-        azimuth += 2.399963 + rng.normal(0.0, 0.3)  # golden angle, jittered
-        # long, flat umbrella branches low in the crown, shorter and steeper near the top
-        reach = NOMINAL_RADIUS * (0.55 + 0.75 * np.sin(np.pi * np.clip((t - 0.3) / 0.75, 0.0, 1.0)))
-        reach *= rng.uniform(0.8, 1.15)
-        elevation = 0.25 + 0.7 * (t - 0.34) + rng.normal(0.0, 0.08)
+        clump = int(rng.integers(0, 3))
+        azimuth = clumps[clump] + rng.normal(0.0, 0.45)
+        reach = NOMINAL_RADIUS * (0.7 + 0.6 * height) * clump_reach[clump] * rng.uniform(0.85, 1.15)
+        elevation = 0.55 - 0.3 * height + rng.normal(0.0, 0.1)
         radius = float(
             np.interp(t * (len(trunk.radii) - 1), np.arange(len(trunk.radii)), trunk.radii)
         )
         branch = _branch(rng, origin, azimuth, elevation, reach, max(radius * 0.4, 0.03))
         tubes.append(branch)
         for at, side in ((0.45, 1.0), (0.7, -1.0)):
-            twig = _twig(rng, branch, at, side * rng.choice([-1.0, 1.0]), reach * 0.38)
+            twig = _twig(rng, branch, at, side * rng.choice([-1.0, 1.0]), reach * 0.4)
             tubes.append(twig)
             for s in (0.65, 1.0):
                 position, direction = _along(twig, s)
                 tufts.append(
-                    Tuft(position, direction, rng.uniform(0.7, 1.0), bool(rng.random() < 0.3))
+                    Tuft(position, direction, rng.uniform(0.8, 1.2), bool(rng.random() < 0.3))
                 )
-        for s in (0.55, 0.75, 0.9, 1.0):
+        for s in (0.35, 0.5, 0.65, 0.8, 0.92, 1.0):
             position, direction = _along(branch, s)
-            size = rng.uniform(0.9, 1.3) if s == 1.0 else rng.uniform(0.7, 1.1)
+            size = rng.uniform(1.1, 1.6) if s == 1.0 else rng.uniform(0.8, 1.3)
             tufts.append(Tuft(position, direction, size, bool(rng.random() < 0.3)))
     top, direction = _along(trunk, 1.0)
     for k in range(3):
-        spread = unit(direction + rng.normal(0.0, 0.35, size=3))
-        tufts.append(Tuft(top, spread, rng.uniform(0.9, 1.2), k == 2))
-    crown = trunk.points[int(0.65 * (len(trunk.points) - 1))].copy()
+        spread = unit(direction + rng.normal(0.0, 0.4, size=3))
+        tufts.append(Tuft(top, spread, rng.uniform(1.1, 1.5), k == 2))
+    crown = trunk.points[int(0.75 * (len(trunk.points) - 1))].copy()
     return Skeleton(tubes, tufts, crown)
 
 
@@ -371,8 +405,10 @@ def tube_mesh(
 ) -> tuple[Vec, Vec, Vec, npt.NDArray[np.int64]]:
     """Positions, normals, UVs and triangles of a tapered tube (open at both ends).
 
-    ``jitter`` offsets each ring's radius a little (bark irregularity); UVs wrap around the tube
-    inside ``uv_cell`` (u0, v0, u1, v1 in atlas fractions).
+    Every segment owns its two rings so its bark UVs can restart: it maps the whole cell width
+    once around and ``length / circumference`` of the cell height along (square texels instead of
+    a trunk-long stretch), starting at a pseudo-random height of the cell so neighbours differ.
+    ``jitter`` offsets each ring's radius a little (bark irregularity).
     """
     _, normal, binormal = frames(tube.points)
     angles = np.linspace(0.0, 2.0 * np.pi, sides + 1)
@@ -381,23 +417,32 @@ def tube_mesh(
         + np.sin(angles)[None, :, None] * binormal[:, None, :]
     )
     radii = (tube.radii * jitter[: len(tube.radii)])[:, None, None]
-    positions = tube.points[:, None, :] + radial * radii
-    rings = len(tube.points)
-    along = np.linspace(0.0, 1.0, rings)
+    rings = tube.points[:, None, :] + radial * radii  # (k, sides + 1, 3)
     u0, v0, u1, v1 = uv_cell
-    u = u0 + (u1 - u0) * (np.arange(sides + 1) / sides)[None, :].repeat(rings, axis=0)
-    v = v0 + (v1 - v0) * along[:, None].repeat(sides + 1, axis=1)
-    index = np.arange(rings * (sides + 1)).reshape(rings, sides + 1)
-    v00, v01 = index[:-1, :-1].ravel(), index[:-1, 1:].ravel()
-    v10, v11 = index[1:, :-1].ravel(), index[1:, 1:].ravel()
-    triangles = np.concatenate(
-        [np.stack([v00, v01, v11], axis=1), np.stack([v00, v11, v10], axis=1)]
-    )
+    around = u0 + (u1 - u0) * np.arange(sides + 1) / sides
+    segments = len(tube.points) - 1
+    positions, normals, uvs, triangles = [], [], [], []
+    for s in range(segments):
+        ring_pair = rings[s : s + 2]
+        length = float(np.linalg.norm(tube.points[s + 1] - tube.points[s]))
+        circumference = float(np.linalg.norm(np.diff(ring_pair[0], axis=0), axis=1).sum())
+        span = min(length / max(circumference, 1e-9) * (u1 - u0), (v1 - v0) * 0.98)
+        start = v0 + (v1 - v0 - span) * ((s * 0.6180339887) % 1.0)
+        v = np.array([start, start + span])
+        base = s * 2 * (sides + 1)
+        positions.append(ring_pair.reshape(-1, 3))
+        normals.append(radial[s : s + 2].reshape(-1, 3))
+        uvs.append(np.stack([np.tile(around, 2), np.repeat(v, sides + 1)], axis=1))
+        index = base + np.arange(sides)
+        bottom0, bottom1 = index, index + 1
+        top0, top1 = index + sides + 1, index + sides + 2
+        triangles.append(np.stack([bottom0, bottom1, top1], axis=1))
+        triangles.append(np.stack([bottom0, top1, top0], axis=1))
     return (
-        positions.reshape(-1, 3),
-        radial.reshape(-1, 3),
-        np.stack([u.ravel(), v.ravel()], axis=1),
-        triangles,
+        np.concatenate(positions),
+        np.concatenate(normals),
+        np.concatenate(uvs),
+        np.concatenate(triangles),
     )
 
 
@@ -532,11 +577,13 @@ def far_card() -> PineMesh:
         uvs.append([(u0, v1), (u1, v1), (u1, v0), (u0, v0)])
         triangles.append(np.array([[0, 1, 2], [0, 2, 3]]) + 4 * k)
     flat = np.array(positions, dtype=np.float32).reshape(-1, 3)
-    normals = np.tile(np.array([0.0, 1.0, 0.0], dtype=np.float32), (len(flat), 1))
+    horizontal = flat.astype(np.float64)
+    horizontal[:, 1] = 0.0
+    normals = unit(unit(horizontal) + np.array([0.0, 0.8, 0.0]))  # outwards and lit from above
     return PineMesh(
         CARD_NAME,
         flat,
-        normals,
+        normals.astype(np.float32),
         np.array(uvs, dtype=np.float32).reshape(-1, 2),
         np.concatenate(triangles).astype(np.int32),
     )
@@ -592,6 +639,7 @@ def _make_material(bpy: Any, atlas: Atlas) -> Any:
     bsdf.inputs["Metallic"].default_value = 0.0
     texture = nodes.new("ShaderNodeTexImage")
     texture.image = image
+    texture.extension = "EXTEND"  # glTF CLAMP_TO_EDGE: cells must not bleed into each other
     rounding = nodes.new("ShaderNodeMath")
     rounding.operation = "ROUND"  # the glTF exporter reads Alpha -> Round as alphaMode MASK
     links.new(texture.outputs["Color"], bsdf.inputs["Base Color"])
@@ -630,7 +678,16 @@ def manifest(meshes: list[PineMesh], atlas: Atlas, glb_bytes: int) -> dict[str, 
         "attribution": "Textures: Rob Tuytel and Rico Cilliers, Poly Haven (polyhaven.com), CC0 "
         "(credited as courtesy); tree shape generated by the project",
         "nominal": {"height": NOMINAL_HEIGHT, "crownRadius": NOMINAL_RADIUS},
-        "instancing": "scale y by height / nominal.height and x, z by radius / nominal.crownRadius",
+        "instancing": "scale y by height / nominal.height and x, z by the crown's scaleXZ "
+        "(radius / crownRadius held within 0.6-1.6 x the vertical scale, see vegetation.json); "
+        "the model stands upright on its foot: lean it towards the crown's leanX, leanZ",
+        "notes": [
+            "y in vegetation.json is the uncarved 1 m DEM; resample the ground on the rendered "
+            "terrain tiles, which differ where ADR 0009 corrected it",
+            "the atlas alpha loses coverage in the mips (atlas.alphaCoverage): use "
+            "alpha-to-coverage or scale the alpha cut-off with distance",
+            "needle and bark tints are baked into the atlas (NEEDLE_TINT, BARK_*)",
+        ],
         "variants": VARIANT_COUNT,
         "seeds": list(VARIANT_SEEDS),
         "file": {"name": PINE_GLB, "bytes": glb_bytes},
@@ -644,6 +701,7 @@ def manifest(meshes: list[PineMesh], atlas: Atlas, glb_bytes: int) -> dict[str, 
             "twigUpright": list(atlas.twig_a),
             "twigSideways": list(atlas.twig_b),
             "farSilhouette": list(FAR_CELL),
+            "alphaCoverage": [round(c, 4) for c in alpha_coverage_by_level(atlas)],
         },
         "meshes": [
             {
