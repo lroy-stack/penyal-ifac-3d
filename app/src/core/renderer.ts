@@ -1,4 +1,5 @@
 import { ACESFilmicToneMapping, SRGBColorSpace, WebGLRenderer } from "three";
+import type { QualityProfile } from "./quality";
 
 export const WEBGL2_UNAVAILABLE_MESSAGE =
   "Tu navegador o dispositivo no admite WebGL 2, necesario para mostrar el Penyal en 3D. " +
@@ -16,8 +17,12 @@ export type RendererFailure = {
   readonly message: string;
 };
 
-export function maxPixelRatio(coarsePointer: boolean): number {
-  return coarsePointer ? 1.5 : 2;
+/** Device pixels per CSS pixel to render at: the screen's, capped, times the profile's scale. */
+export function pixelRatioFor(
+  devicePixelRatio: number,
+  resolution: QualityProfile["resolution"],
+): number {
+  return Math.min(devicePixelRatio, resolution.maxPixelRatio) * resolution.scale;
 }
 
 /**
@@ -31,15 +36,23 @@ export function isWebGL2Available(): boolean {
   return true;
 }
 
+export type RendererOptions = {
+  /** Multisampling is on for fine pointers only; it cannot change after creation. */
+  readonly coarsePointer: boolean;
+  /** Read on every resize, so a new profile applies at the next one. */
+  readonly quality: { readonly current: QualityProfile };
+};
+
 export function createRenderer(
   canvas: HTMLCanvasElement,
   onResize: (width: number, height: number) => void,
+  options: RendererOptions,
 ): RendererHandle | RendererFailure {
   if (!isWebGL2Available()) {
     return { ok: false, message: WEBGL2_UNAVAILABLE_MESSAGE };
   }
 
-  const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+  const { coarsePointer, quality } = options;
 
   let renderer: WebGLRenderer;
   try {
@@ -60,7 +73,7 @@ export function createRenderer(
   const resize = (): void => {
     const width = Math.max(1, canvas.clientWidth);
     const height = Math.max(1, canvas.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio(coarsePointer)));
+    renderer.setPixelRatio(pixelRatioFor(window.devicePixelRatio, quality.current.resolution));
     renderer.setSize(width, height, false);
     onResize(width, height);
   };

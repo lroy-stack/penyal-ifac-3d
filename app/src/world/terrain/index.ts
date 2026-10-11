@@ -6,7 +6,7 @@ export {
   type TerrainTile,
   type TileLod,
 } from "./manifest";
-export { sseThreshold, type View } from "./selection";
+export type { View } from "./selection";
 export {
   createGltfTileLoader,
   createTerrainStreamer,

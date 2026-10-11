@@ -15,7 +15,7 @@ import { fetchBuffer } from "../../core/http";
 import { createDetailTextures, type DetailSet, type DetailSource } from "./detailTextures";
 import { resolveAssetUrl, type TerrainManifest, type TerrainTile } from "./manifest";
 import { applyTerrainDetail, createTerrainDetailUniforms } from "./material";
-import { defaultDetailSet, defaultQualityTier, type QualityTier } from "./quality";
+import type { TerrainQuality } from "./quality";
 import {
   chooseEvictions,
   DEFAULT_BUDGET,
@@ -69,7 +69,7 @@ export type TerrainStreamerOptions = {
   /** URL the manifest was loaded from; tile URLs are relative to it. */
   readonly manifestUrl: string;
   readonly load: TileLoader;
-  /** Screen-space error budget in pixels (see `sseThreshold`). */
+  /** Screen-space error budget in pixels (`terrainOptions(profile).sseThreshold`). */
   readonly sseThreshold: number;
   readonly maxConcurrent?: number;
   readonly budget?: ResidentBudget;
@@ -80,15 +80,14 @@ export type TerrainStreamerOptions = {
   readonly maxRetries?: number;
   /**
    * `high` adds triplanar limestone on cliffs and a near-ground detail layer; `low` keeps the
-   * plain orthophoto. Defaults to `defaultQualityTier()` (URL override, pointer type, hardware).
+   * plain orthophoto. From `terrainOptions(profile)`.
    */
-  readonly quality?: QualityTier;
+  readonly quality: TerrainQuality;
   /**
-   * Marble map set for the `high` tier; default from `defaultDetailSet`. Maps load through the
-   * KTX2 loader of `load` (see `TileLoader`) from `materialsUrl`; without one the procedural
-   * noise stays in use.
+   * Marble map set of the `high` quality. Maps load through the KTX2 loader of `load` (see
+   * `TileLoader`) from `materialsUrl`; without one the procedural noise stays in use.
    */
-  readonly detailSet?: DetailSet;
+  readonly detailSet: DetailSet;
   /** Directory of the KTX2 maps, relative to the manifest; default `../materials/`. */
   readonly materialsPath?: string;
   /**
@@ -123,7 +122,7 @@ export type TerrainStats = {
   /** Loads that failed and are waiting to retry or have been given up. */
   readonly failed: number;
   readonly lastError: string | null;
-  readonly quality: QualityTier;
+  readonly quality: TerrainQuality;
   /** What the detail shading uses: procedural noise or the marble maps at this size. */
   readonly detail: DetailSource;
 };
@@ -217,7 +216,7 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
   const graceMs = options.evictionGraceMs ?? EVICTION_GRACE_MS;
   const clock = options.now ?? (() => performance.now());
   const maxLodStep = options.maxLodStep ?? DEFAULT_MAX_LOD_STEP;
-  const quality = options.quality ?? defaultQualityTier();
+  const { quality } = options;
   const detailUniforms = createTerrainDetailUniforms();
   const applyDetail =
     quality === "high" ? (m: Material) => applyTerrainDetail(m, detailUniforms) : null;
@@ -226,7 +225,7 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
     loader: quality === "high" ? (load.ktx2Loader ?? null) : null,
     urlFor: (fileName) => resolveAssetUrl(manifestUrl, `${materialsPath}${fileName}`),
     uniforms: detailUniforms,
-    set: quality === "high" ? (options.detailSet ?? defaultDetailSet(quality)) : "off",
+    set: quality === "high" ? options.detailSet : "off",
   });
   const retryDelayMs = options.retryDelayMs ?? 2000;
   const maxRetries = options.maxRetries ?? 3;

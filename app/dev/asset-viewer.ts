@@ -15,6 +15,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { createGltfLoader } from "../src/core/assets";
 import { createLoop } from "../src/core/loop";
+import { probeDevice, resolveInitialProfile } from "../src/core/quality";
 import { createRenderer } from "../src/core/renderer";
 
 const DEFAULT_SRC = "/assets/generated/spike/spike.glb";
@@ -140,10 +141,16 @@ async function main(): Promise<void> {
 
   const canvas = requireElement("scene", HTMLCanvasElement);
   const camera = new PerspectiveCamera(50, 1, 0.1, 5000);
-  const handle = createRenderer(canvas, (width, height) => {
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  });
+  const device = probeDevice();
+  const quality = { current: resolveInitialProfile(device, window.location.search) };
+  const handle = createRenderer(
+    canvas,
+    (width, height) => {
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    },
+    { coarsePointer: device.coarsePointer, quality },
+  );
   if (!handle.ok) {
     publish({ ...base, status: "error", error: handle.message, textures: [], extensionsUsed: [] });
     return;

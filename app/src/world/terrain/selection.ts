@@ -13,11 +13,6 @@ export type View = {
   readonly viewportHeight: number;
 };
 
-/** Screen-space error budget (px): 2 on fine pointers, 4 on coarse ones. */
-export function sseThreshold(coarsePointer: boolean): number {
-  return coarsePointer ? 4 : 2;
-}
-
 /** A coarser LOD is chosen only once its error is below `threshold / HYSTERESIS`. */
 export const HYSTERESIS = 1.5;
 /** Tiles entirely behind the camera and at least this far (m) stay at the coarsest LOD. */

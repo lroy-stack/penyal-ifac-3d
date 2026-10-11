@@ -4,6 +4,7 @@ import { baseUrl, createGltfLoader, type GltfLoaderHandle, publicUrl } from "./c
 import { type FrameSnapshot, FrameStats } from "./core/frameStats";
 import { createPageLifecycle } from "./core/lifecycle";
 import { createLoop } from "./core/loop";
+import { probeDevice, type QualityProfile, resolveInitialProfile } from "./core/quality";
 import { createRenderer } from "./core/renderer";
 import { TEST_HOOKS_ENABLED } from "./core/testHooks";
 import { parseTimescale, simulationSteps } from "./core/timescale";
@@ -25,7 +26,6 @@ import {
   createGltfTileLoader,
   createTerrainStreamer,
   loadTerrainManifest,
-  sseThreshold,
   type TerrainStats,
   type TerrainStreamer,
   viewFromCamera,
@@ -35,6 +35,7 @@ import {
   stepTerrainGate,
   type TerrainGateOutcome,
 } from "./world/terrain/gate";
+import { terrainOptions } from "./world/terrain/quality";
 import {
   headingAlongRoute,
   loadTrail,
@@ -117,10 +118,18 @@ async function bootstrap(): Promise<void> {
   const far = cameraFar();
   const camera = new PerspectiveCamera(65, 1, 0.2, far);
 
-  const handle = createRenderer(canvas, (width, height) => {
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  });
+  const device = probeDevice();
+  const quality: { current: QualityProfile } = {
+    current: resolveInitialProfile(device, location.search),
+  };
+  const handle = createRenderer(
+    canvas,
+    (width, height) => {
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    },
+    { coarsePointer: device.coarsePointer, quality },
+  );
   if (!handle.ok) {
     fail(handle.message);
     return;
@@ -128,7 +137,6 @@ async function bootstrap(): Promise<void> {
   const { renderer } = handle;
 
   setStatus(t("loadingRoute"));
-  const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
   const base = baseUrl();
   const manifestUrl = publicUrl(TERRAIN_MANIFEST_PATH, base);
 
@@ -189,7 +197,7 @@ async function bootstrap(): Promise<void> {
       manifest: manifest.manifest,
       manifestUrl,
       load: createGltfTileLoader(assets.loader),
-      sseThreshold: sseThreshold(coarsePointer),
+      ...terrainOptions(quality.current),
       detailEnabled: false,
     });
     scene.add(streamer.root);
@@ -482,7 +490,7 @@ async function bootstrap(): Promise<void> {
   setStatus(
     terrainView.outcome === "failed" ? `${t("walkReady")} ${t("terrainFailed")}` : t("walkReady"),
   );
-  hud.showHints(coarsePointer ? t("hintTouch") : t("hintKeyboard"));
+  hud.showHints(device.coarsePointer ? t("hintTouch") : t("hintKeyboard"));
   const requestedAutoWalk = params.get("autowalk");
   if (requestedAutoWalk !== null && requestedAutoWalk !== "") startAutoWalk(requestedAutoWalk);
   loop.start();

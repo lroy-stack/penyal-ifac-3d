@@ -13,11 +13,13 @@ import {
   requiredTiles,
   screenSpaceError,
   selectLod,
-  sseThreshold,
   tileNeighbours,
   type View,
 } from "./selection";
 
+/** Screen-space error budgets of the quality profile: touch devices tolerate twice as much. */
+const FINE_SSE = 2;
+const COARSE_SSE = 4;
 const FOV = (60 * Math.PI) / 180;
 const VIEW = { fovY: FOV, viewportHeight: 1080 };
 const camera = (x: number, y: number, z: number, forward = { x: 0, y: 0, z: -1 }): View => ({
@@ -39,13 +41,6 @@ describe("screenSpaceError", () => {
   it("is infinite at distance zero and halves when the distance doubles", () => {
     expect(screenSpaceError(1, 0, VIEW)).toBe(Number.POSITIVE_INFINITY);
     expect(screenSpaceError(1, 200, VIEW)).toBeCloseTo(screenSpaceError(1, 100, VIEW) / 2, 9);
-  });
-});
-
-describe("sseThreshold", () => {
-  it("is 2 px on fine pointers and 4 px on coarse ones", () => {
-    expect(sseThreshold(false)).toBe(2);
-    expect(sseThreshold(true)).toBe(4);
   });
 });
 
@@ -93,8 +88,8 @@ describe("selectLod", () => {
 
   it("tolerates twice the error on coarse pointers", () => {
     const d = distanceForSse(1, 4) * 1.01;
-    expect(selectLod(tile, d, VIEW, sseThreshold(true))).toBe(1);
-    expect(selectLod(tile, d, VIEW, sseThreshold(false))).toBe(0);
+    expect(selectLod(tile, d, VIEW, COARSE_SSE)).toBe(1);
+    expect(selectLod(tile, d, VIEW, FINE_SSE)).toBe(0);
   });
 
   it("refines immediately but coarsens only past the hysteresis band", () => {

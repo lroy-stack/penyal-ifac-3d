@@ -1,13 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isWebGL2Available, maxPixelRatio } from "./renderer";
+import { profileFor } from "./quality";
+import { isWebGL2Available, pixelRatioFor } from "./renderer";
 
-describe("maxPixelRatio", () => {
-  it("caps coarse-pointer devices at 1.5", () => {
-    expect(maxPixelRatio(true)).toBe(1.5);
+describe("pixelRatioFor", () => {
+  const resolution = profileFor("medium", {
+    coarsePointer: true,
+    softwareRenderer: false,
+  }).resolution;
+
+  it("caps the screen's ratio at the profile's maximum", () => {
+    expect(pixelRatioFor(3, resolution)).toBe(1.5);
+    expect(pixelRatioFor(1, resolution)).toBe(1);
   });
 
-  it("caps other devices at 2", () => {
-    expect(maxPixelRatio(false)).toBe(2);
+  it("keeps the ratio exactly when the scale is 1", () => {
+    expect(pixelRatioFor(2.625, { ...resolution, maxPixelRatio: 2 })).toBe(2);
+  });
+
+  it("multiplies by the scale the governor chose", () => {
+    expect(pixelRatioFor(2, { maxPixelRatio: 2, scale: 0.8, minScale: 0.7 })).toBeCloseTo(1.6, 9);
   });
 });
 

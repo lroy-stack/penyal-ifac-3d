@@ -11,6 +11,7 @@ import {
   Scene,
 } from "three";
 import { createLoop } from "../src/core/loop";
+import { probeDevice, resolveInitialProfile } from "../src/core/quality";
 import { createRenderer } from "../src/core/renderer";
 import { createPlayer, type PlayerState } from "../src/player";
 import {
@@ -184,10 +185,16 @@ function bootstrap(): void {
   const canvas = requireElement("scene", HTMLCanvasElement);
   const hud = requireElement("hud", HTMLPreElement);
   const camera = new PerspectiveCamera(70, 1, 0.05, 300);
-  const handle = createRenderer(canvas, (width, height) => {
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  });
+  const device = probeDevice();
+  const quality = { current: resolveInitialProfile(device, window.location.search) };
+  const handle = createRenderer(
+    canvas,
+    (width, height) => {
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    },
+    { coarsePointer: device.coarsePointer, quality },
+  );
   if (!handle.ok) {
     hud.textContent = handle.message;
     return;

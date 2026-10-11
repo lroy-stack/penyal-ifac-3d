@@ -71,6 +71,8 @@ function setup(overrides: Partial<TerrainStreamerOptions> = {}, tileCount = 1) {
     manifestUrl: "/assets/generated/terrain/manifest.json",
     load: loader.load,
     sseThreshold: 2,
+    quality: "high",
+    detailSet: "2k",
     now: () => time,
     ...overrides,
   });
@@ -367,6 +369,7 @@ describe("createTerrainStreamer LOD step constraint", () => {
       sseThreshold: 2,
       maxConcurrent: 8,
       quality: "low",
+      detailSet: "off",
       ...(maxLodStep === undefined ? {} : { maxLodStep }),
     });
     const view = viewAt(128, 128);
