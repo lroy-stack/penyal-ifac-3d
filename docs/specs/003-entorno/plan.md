@@ -63,5 +63,17 @@
   - Pasó tres rondas de revisión independiente.
 - [ ] E1.2, materiales: espera a las fotos y medidas del usuario.
 - [ ] E1.3, el terreno pinta los firmes: espera a B0.
-- [ ] E2.1–E2.4: segunda ronda de correcciones tras la revisión, en curso.
+- [x] **E2.1–E2.4, árboles y matorral** (`penyal vegetation`, `penyal pine` y `penyal plants`), integrados en `main` el 11/10/2026 (6fdc30f) tras dos rondas de revisión.
+  - 1.224 árboles en el parque, 178 de ellos en el tramo piloto, y 6.547 matas.
+  - `verify-generated`: 10 artefactos al día.
+  - Pendiente antes de E2.5:
+    - la cota de la copa en los árboles inclinados;
+    - un control automático del presupuesto;
+    - excluir el matorral de los firmes y de los aparcamientos;
+    - romper el patrón regular del matorral;
+    - un tinte de follaje sacado de las fotos.
+- **Vista previa fuera de la app** (11/10/2026): `docs/research/003-capturas/preview-e2-aereo.jpg` y `preview-e2-torniquete.jpg`.
+  - Render de Blender con las teselas del terreno, los árboles y el matorral en sus posiciones medidas, y las escaleras.
+  - Aún no lleva las máscaras de firmes ni la inclinación de los troncos, y el terreno no tiene las texturas de detalle de la app.
+  - Terreno y ortofoto: © Institut Cartogràfic Valencià, CC BY 4.0. Posiciones de árboles derivadas del LiDAR 2016 del ICV (CC BY 4.0). Modelos generados por el proyecto con texturas CC0 de Poly Haven.
 - [ ] E2.5: espera a B0.
