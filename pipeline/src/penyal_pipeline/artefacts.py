@@ -46,7 +46,8 @@ def _inputs(kind: str, root: Path) -> list[Input]:
         case "collision" | "trail":
             return [*_dem_inputs(root), _osm_input(root), curated_input(root)]
         case "tunnel":
-            return [_osm_input(root), curated_input(root)]
+            # the shell is clipped against the carved DEM (run_tunnel), so the DEM is an input
+            return [*_dem_inputs(root), _osm_input(root), curated_input(root)]
     raise ProvenanceError(f"unknown artefact kind {kind!r}")
 
 

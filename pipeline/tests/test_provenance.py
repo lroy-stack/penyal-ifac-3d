@@ -132,7 +132,7 @@ class TestInputs:
             ),
             ("collision", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
             ("trail", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
-            ("tunnel", {"osm-penyal"}, True),
+            ("tunnel", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
         ],
     )
     def test_each_artefact_lists_every_input_that_changes_it(
@@ -142,6 +142,14 @@ class TestInputs:
         listed = block["inputs"]
         assert {i["id"] for i in listed if "id" in i} == ids
         assert any(i["file"] == "data/curated/tunnel.toml" for i in listed) is curated
+
+    def test_the_tunnel_shell_is_clipped_against_the_carved_dem_so_a_dem_change_makes_it_stale(
+        self, repo: Path, assets: Path
+    ) -> None:
+        shas = {source_id: sha(source_id) for source_id in RAW_FILES}
+        shas["icv-mdt-2016-0848"] = sha("new mdt")
+        write_lock(repo, shas)
+        assert "tunnel.json" in flagged(provenance.verify_generated(assets, repo))
 
     def test_unknown_kind_is_rejected(self, repo: Path) -> None:
         with pytest.raises(ProvenanceError, match="unknown"):
