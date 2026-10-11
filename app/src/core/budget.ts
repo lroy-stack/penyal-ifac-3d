@@ -60,7 +60,7 @@ export const SYSTEM_BUDGETS: Readonly<Record<QualityTier, Readonly<Record<string
       tunnel: b(3, 10_000, 0.5, 1),
       sea: b(1, 2, 3, 1),
       vegetation: b(20, 100_000, 6, 2),
-      structures: b(15, 60_000, 1, 3),
+      structures: b(15, 60_000, 1, 1),
       character: b(5, 20_000, 1, 1),
       shadows: b(0, 0, 0, 0),
       poi: b(2, 2_000, 0.2, 1),
