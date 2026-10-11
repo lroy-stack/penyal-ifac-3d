@@ -1,6 +1,6 @@
 # 0010. Compose the world from registered systems that share atmosphere, quality, budget and POI contracts
 
-- Status: accepted
+- Status: accepted; amendment 1 (2026-10-11) adds a GPU texture-memory budget
 - Date: 2026-10-11
 - Deciders: tech lead (architect); accepted by lr0y (product owner) on 2026-10-11
 - Scope: B0 of `docs/specs/002-fase-b-paralelizacion.md`; implemented after phase A closes.
@@ -310,3 +310,20 @@ Precondition: main is green and `uv run --project pipeline penyal verify-generat
   - That `cp -c` clones on this APFS volume; otherwise it makes a full copy of about 125 MB.
 - **Content problem found.** The ficha-piloto fails rule 4 twice. "en 1282 Pere III…" rests on the fact-level note of `pobla-founding`, and "inauguradas en 1992" on the note of `centre-name`. The content owner must turn each into a sourced value or drop it; commit 9 leaves both out of the drafts and says so.
 - **Open.** Which `viewpoint-*` anchor is the Mirador de Ponent is pending the park; `pobla` is the site, not the viewpoint.
+
+## Amendment 1 (2026-10-11): GPU texture-memory budget
+- **Why.** §4 budgets draw calls, triangles and ms, not memory. E1 (surface masks) and E2 (vegetation atlases) add textures, and on phones texture memory, not triangles, is what kills a WebGL context.
+- **Decision.** `SystemBudget` gains `textureMiB`: the estimated resident texture memory, including mips (×4/3). Bytes per pixel follow the mobile transcode target: ETC1S RGB → ETC1/ETC2 0.5 B/px; ETC1S RGBA and UASTC → ETC2 RGBA8 or ASTC 4×4, 1 B/px; uncompressed RGBA8 → 4 B/px.
+  - `FRAME_BUDGET` gains `textureMiBCap` per tier: `low` 32, `medium` 48, `high` 160 MiB. High is desktop, with 2k detail.
+  - These caps are **provisional until A7.** WebGL exposes no GPU-memory query and the phones' limits are not documented, so the caps are a design ceiling, not a measured limit.
+- **Estimate today** (2026-10-11; dimensions and formats read from the generated KTX2 headers and the terrain manifest):
+  - terrain near tiles: 10.7 MiB if all 16 are at LOD0 1024² ETC1S, 2.4 typical;
+  - far ring 2.7;
+  - detail at 1k: 5.3 on phones, 21.3 at 2k on desktop;
+  - surface masks: 10.7 worst, with 8 resident UASTC tiles;
+  - pine atlas 0.7.
+  - Totals on a phone: about 15 MiB typical and 30 MiB worst, under the 48 MiB `medium` cap.
+- **Measurement.** `budget.spec.ts` sums the estimate over the textures in use. It reads each texture's dimensions and format from three's texture objects and uses a pure `textureBytes(width, height, format, mips)` helper, unit-tested per format. The spec asserts the sum per system and in total against the tier row.
+  - Production code still never reads the budget (§4).
+- **Rule for lanes.** A system that streams textures, such as the masks or terrain tiles, loads them only for resident tiles and disposes them on eviction.
+  - The budget row covers its worst resident set, not the whole map.
