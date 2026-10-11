@@ -56,6 +56,7 @@ A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Ca
 - The built-in browser pane pauses `requestAnimationFrame` while hidden; for automated visual checks use `pnpm --filter @penyal/app e2e` (Playwright, headless shell + SwiftShader). The Playwright MCP needs a system Chrome and is not used.
 - Vite answers `504 Outdated Optimize Dep` after new imports; reload the page.
 - Test hooks (`window.__appState`, `?timescale`) exist only in the dev server and in builds made with `VITE_E2E=true` (`app/src/core/testHooks.ts`); a plain `pnpm --filter @penyal/app build` has none. E2E runs on the dev server (`app/playwright.config.ts`); `measure-load.mjs --build` builds with the flag.
+- `verify-generated` checks data inputs (hashes) and recorded tool versions, not pipeline code: after changing generation code (`tunnel*.py`, `tiles.py`, `trail.py`, Blender scripts...), regenerate the affected artefacts yourself; nothing flags them. It also does not check that a manifest lists every input its generator now needs (see `artefacts.py`): regenerate after adding an input.
 - GVA park pages were read from Internet Archive copies; re-check live before release.
 
 ## Definition of Done

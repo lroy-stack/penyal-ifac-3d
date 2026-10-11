@@ -214,6 +214,22 @@ class TestVerify:
         write_lock(repo, shas)
         assert flagged(provenance.verify_generated(assets, repo)) == {"materials/manifest.json"}
 
+    def test_a_tool_whose_installed_version_differs_from_the_recorded_one_flags_the_artefact(
+        self, repo: Path, assets: Path
+    ) -> None:
+        write_script(repo / "tools" / "bin" / "ktx", "ktx version: v9.9.0")
+        problems = provenance.verify_generated(assets, repo)
+        assert flagged(problems) == {"terrain/manifest.json", "materials/manifest.json"}
+        assert all("ktx" in p.message and "9.8.7" in p.message for p in problems)
+
+    def test_a_recorded_tool_that_can_no_longer_be_read_flags_the_artefact(
+        self, repo: Path, assets: Path
+    ) -> None:
+        (repo / "tools" / "bin" / "ktx").unlink()
+        problems = provenance.verify_generated(assets, repo)
+        assert flagged(problems) == {"terrain/manifest.json", "materials/manifest.json"}
+        assert all("ktx" in p.message for p in problems)
+
     def test_an_artefact_without_a_provenance_block_is_reported(
         self, repo: Path, assets: Path
     ) -> None:

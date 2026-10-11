@@ -2,7 +2,9 @@
 
 Every generated manifest carries ``inputs: [{id?, file, sha256}]`` (what its content was computed
 from) and ``tools: {name: version}`` (what computed it). ``verify_generated`` recomputes the
-inputs and reports the artefacts whose recorded inputs no longer match.
+inputs and the installed tool versions and reports the artefacts where either no longer matches.
+It checks data and tools, not the pipeline code: after changing generation code, regenerate the
+affected artefacts by hand.
 
 Inputs with an ``id`` are catalogue sources: their hash is the one in ``data/manifest.lock.json``
 (``penyal fetch --verify`` checks the lock against the disk). Inputs without an ``id`` (curated
@@ -130,6 +132,22 @@ def _check_input(entry: dict[str, Any], root: Path) -> str | None:
     return None
 
 
+def _check_tools(document: dict[str, Any], root: Path) -> list[str]:
+    recorded = document.get("tools")
+    if not isinstance(recorded, dict):
+        return []
+    messages = []
+    for name, version in recorded.items():
+        try:
+            current = tool_versions((str(name),), root)[str(name)]
+        except ProvenanceError as exc:
+            messages.append(f"tool {name}: {exc}")
+            continue
+        if current != version:
+            messages.append(f"tool {name}: recorded version {version} but now {current}")
+    return messages
+
+
 def verify_artefact(path: Path, name: str, root: Path) -> list[Problem]:
     if not path.is_file():
         return [Problem(name, "missing: generate it with the penyal pipeline")]
@@ -145,6 +163,8 @@ def verify_artefact(path: Path, name: str, root: Path) -> list[Problem]:
         message = _check_input(entry, root)
         if message is not None:
             problems.append(Problem(name, f"stale, {message}"))
+    for message in _check_tools(document, root):
+        problems.append(Problem(name, f"stale, {message}"))
     return problems
 
 
