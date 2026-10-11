@@ -81,7 +81,8 @@ export function attachKeyboard(
     sync();
   };
 
-  // Keys held when a dialog opens would otherwise keep walking behind it: their keyup goes to the dialog.
+  // Keys held when a dialog opens would keep the walker moving behind the modal: the visitor
+  // lets go while the dialog has focus, and the release is not a reliable signal to stop on.
   const stopWatching = dialogs.onOpen(onBlur);
   target.addEventListener("keydown", onKeyDown);
   target.addEventListener("keyup", onKeyUp);

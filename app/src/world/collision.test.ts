@@ -40,7 +40,7 @@ describe("loadCollisionField", () => {
   });
 
   it("rejects with the last error once every attempt failed", async () => {
-    const fetchMock = vi.fn(async () => new Response("", { status: 503 }));
+    const fetchMock = vi.fn(async (_url: string) => new Response("", { status: 503 }));
     vi.stubGlobal("fetch", fetchMock);
 
     const loading = loadCollisionField("/collision");
@@ -54,7 +54,7 @@ describe("loadCollisionField", () => {
   });
 
   it("does not retry once the caller aborted", async () => {
-    const fetchMock = vi.fn(async () => new Response("", { status: 500 }));
+    const fetchMock = vi.fn(async (_url: string) => new Response("", { status: 500 }));
     vi.stubGlobal("fetch", fetchMock);
     const controller = new AbortController();
     controller.abort();

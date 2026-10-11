@@ -96,3 +96,27 @@ test("a failed collision field leaves only the fatal message on top, with no not
   );
   expect(topmost).toBe("fatal");
 });
+
+test.describe("on a touch device", () => {
+  test.use({ hasTouch: true, isMobile: true });
+
+  test("the fatal screen covers the touch controls", async ({ page }) => {
+    await page.goto("/?start=turnstile");
+    await expect.poll(async () => (await readState(page))?.ready, { timeout: 60_000 }).toBe(true);
+    const button = page.getByRole("button", { name: "Cambiar cámara" });
+    await expect(button).toBeVisible();
+    const box = await button.boundingBox();
+    expect(box).not.toBeNull();
+
+    await page.evaluate(() => {
+      const fatal = document.getElementById("fatal");
+      if (fatal !== null) fatal.dataset.visible = "true";
+    });
+
+    const topmost = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id, {
+      x: (box?.x ?? 0) + (box?.width ?? 0) / 2,
+      y: (box?.y ?? 0) + (box?.height ?? 0) / 2,
+    });
+    expect(topmost).toBe("fatal");
+  });
+});
