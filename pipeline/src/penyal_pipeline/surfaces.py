@@ -356,7 +356,11 @@ def build_manifest(
             "rows": "row 0 is the tile's north edge (z_min), column 0 its west edge (x_min)",
             "uv": "the tile mesh UV: u = (x - x_min) / tileSize, v = (z - z_min) / tileSize, "
             "x_min = tileSize * i - 0.5, z_min = tileSize * j - 0.5; load with flipY = false",
-            "channelSum": "at most 255 per pixel; 255 - sum is bare terrain",
+            "channelSum": "at most 255 per pixel before encoding; 255 - sum is bare terrain",
+            "consumerRequirement": "clamp the sum of the four channels to 1 after sampling: "
+            "UASTC leaks coverage into the channels of neighbouring classes at transitions",
+            "measuredLeak": {"maxChannelLeak": 48, "maxChannelSumExcess": 57},
+            "measuredLeakUnit": "of 255, over the 8 tiles, after transcoding to RGBA8",
         },
         "surfaceClasses": dict(sorted(SURFACE_CLASS.items())),
         "widths": {"status": WIDTHS_STATUS, "highway": HIGHWAY_WIDTHS},

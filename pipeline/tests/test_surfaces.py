@@ -4,11 +4,12 @@ import hashlib
 import json
 import subprocess
 from pathlib import Path
+from typing import ClassVar
 
 import numpy as np
 import pytest
 import rasterio
-from conftest import raw_marks
+from conftest import data_gate, raw_marks
 from shapely.geometry import LineString, Point
 from shapely.ops import unary_union
 
@@ -22,12 +23,15 @@ pytestmark = pytest.mark.filterwarnings("ignore::rasterio.errors.NotGeoreference
 
 CHANNELS = len(surfaces.CLASSES)
 KTX = REPO_ROOT / "tools" / "bin" / "ktx"
-needs_ktx = pytest.mark.skipif(not KTX.exists(), reason="tools/bin/ktx is needed (tools/README.md)")
+needs_ktx = data_gate([] if KTX.exists() else [str(KTX)], "tools/ (see tools/README.md)")
 ON, OFF = 235, 20  # UASTC is near-lossless, not lossless: a class is "on" above ON, "off" below OFF
 
 
 def decode_ktx2(path: Path, work: Path) -> np.ndarray:
-    """Top mip level of a KTX2 file as an (h, w, 4) uint8 array, through ``ktx extract``."""
+    """Top mip level of a KTX2 file as an (h, w, 4) uint8 array, through ``ktx extract``.
+
+    ``ktx extract`` may write a palettised PNG (a nearly empty tile): its palette is expanded.
+    """
     out = work / f"{path.stem}.decoded.png"
     done = subprocess.run(
         [str(KTX), "extract", "--transcode", "rgba8", str(path), str(out)],
@@ -37,7 +41,12 @@ def decode_ktx2(path: Path, work: Path) -> np.ndarray:
     )
     assert done.returncode == 0, done.stderr
     with rasterio.open(out) as src:
-        return np.moveaxis(src.read(), 0, -1)
+        bands = src.read()
+        palette = src.colormap(1) if src.count == 1 else None
+    if palette is None:
+        return np.moveaxis(bands, 0, -1)
+    table = np.array([palette.get(k, (0, 0, 0, 0)) for k in range(256)], dtype=np.uint8)
+    return table[bands[0]]
 
 
 def assert_only_class(values: list[int], channel: int | None) -> None:
@@ -277,9 +286,8 @@ def class_at(out: Path, work: Path, x: float, z: float) -> list[int]:
 
 
 @pytest.mark.data
-@needs_ktx
 class TestRealExtract:
-    pytestmark = pytestmark_data
+    pytestmark: ClassVar = [*pytestmark_data, *needs_ktx]
 
     def test_the_pilot_trail_is_cobblestone(
         self, osm: OsmData, run_a: tuple[Path, dict[str, object]], tmp_path: Path
@@ -320,18 +328,38 @@ class TestRealExtract:
         assert every_way.distance(Point(x, z)) > 10.0
         assert_only_class(class_at(run_a[0], tmp_path, x, z), None)
 
-    def test_the_decoded_tile_matches_the_rasterised_mask(
+    def test_every_decoded_tile_matches_the_rasterised_mask(
         self, osm: OsmData, run_a: tuple[Path, dict[str, object]], tmp_path: Path
     ) -> None:
         ways, _ = surfaces.select_ways(osm)
-        decoded = decode_ktx2(run_a[0] / "t_2_-4.ktx2", tmp_path)
-        expected = surfaces.rasterise_tile(ways, 2, -4)
-        difference = np.abs(decoded.astype(int) - expected.astype(int))
-        assert decoded.shape == expected.shape
-        assert float(difference.mean()) < 0.5
-        assert int(difference.max()) <= 80
-        covered = expected[..., 0] == 255
-        assert float((decoded[..., 0][covered] >= ON).mean()) > 0.99
+        for tile in sorted(run_a[0].glob("t_*.ktx2")):
+            i, j = (int(v) for v in tile.stem.split("_")[1:])
+            decoded = decode_ktx2(tile, tmp_path).astype(int)
+            expected = surfaces.rasterise_tile(ways, i, j).astype(int)
+            assert decoded.shape == expected.shape
+            difference = np.abs(decoded - expected)
+            # Measured over the 8 tiles: mean <= 0.018, max <= 59.
+            assert float(difference.mean()) < 0.1, tile.name
+            assert int(difference.max()) <= 64, tile.name
+
+    def test_uastc_leaks_into_other_channels_so_consumers_must_clamp_the_sum(
+        self, osm: OsmData, run_a: tuple[Path, dict[str, object]], tmp_path: Path
+    ) -> None:
+        ways, _ = surfaces.select_ways(osm)
+        worst_leak = worst_excess = 0
+        for tile in sorted(run_a[0].glob("t_*.ktx2")):
+            i, j = (int(v) for v in tile.stem.split("_")[1:])
+            decoded = decode_ktx2(tile, tmp_path).astype(int)
+            expected = surfaces.rasterise_tile(ways, i, j)
+            worst_leak = max(worst_leak, int(decoded[expected == 0].max()))
+            worst_excess = max(worst_excess, int(decoded.sum(axis=2).max()) - 255)
+        # Measured: 48 and 57 of 255. The bounds are the contract the E1.3 shader relies on.
+        assert worst_leak <= 64
+        assert worst_excess <= 64
+        encoding = run_a[1]["encoding"]
+        assert isinstance(encoding, dict)
+        assert "clamp" in encoding["consumerRequirement"]
+        assert encoding["measuredLeak"] == {"maxChannelLeak": 48, "maxChannelSumExcess": 57}
 
     def test_the_manifest_exposes_widths_coverage_encoding_and_tiles(
         self, run_a: tuple[Path, dict[str, object]]
