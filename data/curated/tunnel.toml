@@ -1,0 +1,90 @@
+# Tunnel of the Penyal d'Ifac (Ruta Roja): curated, APPROXIMATE data. Nothing here is measured on site.
+#
+# Every number states its method and evidence. The evidence blocks are recomputed from the ICV
+# DEM and the 2016 LiDAR by `penyal tunnel --analyse`; tests/test_tunnel.py fails if they drift.
+# Open question: spec.md Q2 (cross-section measurements or a phone-LiDAR scan) and Q6 (portal
+# floor heights: confirm with the park or a site visit before phase F2 closes).
+# Consumers: pipeline/src/penyal_pipeline/{tunnel,trail}.py -> trail.json, tunnel.json, tunnel.glb.
+
+status = "approximate"
+open_question = "spec.md Q2 (cross-section) and Q6 (portal floor heights): measure on site or obtain from the park (ifac_cma@gva.es) before F2 closes."
+
+[approach]
+# Distance along the OSM steps way (way 862108208) before the climb to the west floor starts: the
+# stretch where DEM and LiDAR agree on a footpath at 168-170 m. After it the DEM is the rock wall.
+steps_ramp_start_m = 8.0
+# Metres of the path leaving the east portal over which the DEM is blended to the east floor.
+east_blend_m = 5.0
+# Rise of one step, to turn the OSM step_count (6) into a height. Not in OSM: typical footpath
+# steps are 0.15-0.20 m. Assumption, not a measurement.
+riser_m = 0.18
+riser_range_m = [0.15, 0.20]
+
+[portals.west]
+floor_m = 171.0
+range_m = [170.0, 172.5]
+method = """The DEM at the portal (182.87 m) is the rock wall, not the floor. Two independent estimates bracket the floor. (1) Approach plus steps: the footpath before the steps is at 168-170 m in both the DEM and the ground LiDAR (median of the two, first 8 m of the steps way), plus 6 steps (OSM step_count) of 0.18 m each: about 169.9 m. (2) The lowest LiDAR return within 3 m outside the portal is 172.1 m, within 5 m 168.7 m; returns are sparse (0.5 pt/m2) and include rock and vegetation above the floor. The curated 171.0 m is the working value between (1) and (2), range 170.0-172.5 m."""
+status = "approximate"
+
+[portals.west.evidence]
+dem_at_portal = 182.87
+approach_dem_min = 168.21
+approach_dem_median = 168.89
+approach_dem_max = 169.85
+approach_lidar_ground_count = 8.0
+approach_lidar_ground_median = 168.74
+approach_lidar_ground_p90 = 170.02
+step_count = 6.0
+steps_rise = 1.08
+approach_plus_steps = 169.89
+lowest_return_within_3m = 172.09
+lowest_return_within_5m = 168.68
+
+[portals.east]
+floor_m = 193.0
+range_m = [192.3, 193.7]
+method = """The DEM at the portal (193.12 m) is consistent with the ground LiDAR: along the first 5 m of the path leaving the portal the DEM ranges 192.5-193.7 m (median 193.1 m) and the LiDAR medians are 192.3 m (all returns) and 192.7 m (ground), 193.1 m for the ground returns within 3 m outside the portal. The curated 193.0 m is the working value, range 192.3-193.7 m (+-0.7 m)."""
+status = "approximate"
+
+[portals.east.evidence]
+dem_at_portal = 193.12
+exit_dem_min = 192.47
+exit_dem_median = 193.12
+exit_dem_max = 193.73
+exit_lidar_ground_median = 192.67
+exit_lidar_all_median = 192.3
+outside_ground_median_within_3m = 193.08
+
+[section]
+width_m = 2.0
+height_m = 2.6
+width_range_m = [1.5, 2.5]
+height_range_m = [2.2, 3.2]
+basis = "Placeholder walkable section, not measured: no published dimensions exist (spec Q2). The Wikimedia Commons photos 'Calpe - tunel del Penon de Ifac - Spain.jpg', 'Dans le tunnel de ifach - panoramio.jpg' and 'Calpe Tunel JMM.JPG' show a narrow arched bore with a rope along one wall but no person or other object of known size, so they only support a section roughly one to two people wide and a little taller than a standing adult."
+
+[[section.photos]]
+file = "Calpe - túnel del Peñón de Ifac - Spain.jpg"
+author = "Spotter2"
+licence = "GFDL 1.2+ / CC BY-SA 3.0 (own work, 2008-10-04)"
+url = "https://commons.wikimedia.org/wiki/File:Calpe_-_t%C3%BAnel_del_Pe%C3%B1%C3%B3n_de_Ifac_-_Spain.jpg"
+observation = "Looking along the bore from inside: an irregular, roughly oval vault narrowing towards the far opening, hand-worked rock, rope fixed along the walls. No person; the only scale cue is the rope knot (a hand span) and a stone block at the foot of the left wall (about 0.4 m, uncertain). Width cannot be derived."
+
+[[section.photos]]
+file = "Dans le tunnel de ifach - panoramio.jpg"
+author = "chisloup"
+licence = "CC BY 3.0 (2014-05-27)"
+url = "https://commons.wikimedia.org/wiki/File:Dans_le_tunnel_de_ifach_-_panoramio.jpg"
+observation = "Looking back out of the west portal over the bay of Calp: a tall, narrow arched opening with a rope on the left wall, and outside it a rocky stepped path with a low dry-stone wall. No person. The opening reads taller than wide, consistent with a width of about 2 m and a height of 2.5-3 m, but nothing in the frame fixes the scale."
+
+[[section.photos]]
+file = "Calpe Tunel JMM.JPG"
+author = "Josemanuel"
+licence = "CC BY-SA 2.5 (2005-10-04)"
+url = "https://commons.wikimedia.org/wiki/File:Calpe_Tunel_JMM.JPG"
+observation = "Silhouetted west portal towards the bay of Calp, a rope on the left wall. No person. Same qualitative reading as above."
+
+[sources]
+axis = "OpenStreetMap way 26330275 (ODbL 1.0), portal nodes 288471873 (west) and 288471874 (east)"
+steps = "OpenStreetMap way 862108208 (steps to the west portal, step_count=6, handrail)"
+terrain = "ICV MDT 1 m 2016 sheet 0848 (CC BY 4.0) and ICV LiDAR 2016 point clouds (CC BY 4.0)"
+official_text = "Generalitat Valenciana: tunnel about 50 m, polished slippery rock, two ropes, built 1918 (content/facts.json tunnel-*). No width or height is published."

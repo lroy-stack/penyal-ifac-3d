@@ -1,0 +1,303 @@
+# Source catalogue for penyal-ifac-3d. Validated by penyal_pipeline.catalog.
+#
+# Common fields: id, phase, kind (file | wfs | osm), description, used_for, licence, attribution.
+# Optional: optional (default false), share_alike (default false).
+# kind = "file": url, expected_bytes, size_tolerance (default 0.01; a fraction of expected_bytes).
+#   Sizes below come from HTTP Content-Length observed on 2026-10-10 and are rounded, hence the
+#   wider tolerance. Replace expected_bytes with the exact size after the first download.
+# kind = "wfs": endpoint, version, bbox (minx, miny, maxx, maxy), crs, output_format, page_size,
+#   sort_by (optional WFS sortBy; changing it reorders features and so changes the locked files),
+#   and one [[source.layers]] table per feature type (confirmed = false: failures are skipped).
+# kind = "osm": url (OSM API map call; bbox order is min_lon,min_lat,max_lon,max_lat).
+
+[[source]]
+id = "icv-mdt-2016-0848"
+phase = 1
+kind = "file"
+description = "ICV 1 m digital terrain model, sheet 0848, derived from LiDAR-PNOA 2016."
+used_for = "Heightfield and terrain mesh."
+url = "https://descargas.icv.gva.es/dcd/03_mde/02_mdt/2016_PALI_0100/01_Malla/01_25830_01_Hoja_CV50_03_TIF/030201_MDT_2016PALI0100_25830_01_Hoja_CV50_0848.tif"
+expected_bytes = 825075138
+size_tolerance = 0.0
+licence = "CC BY 4.0"
+attribution = "Producte derivat de LIDAR-PNOA 2016 CC-BY 4.0 scne.es · Institut Cartogràfic Valencià"
+
+[[source]]
+id = "icv-orto-2024-0848-7-2"
+phase = 1
+kind = "file"
+description = "ICV 2024 orthophoto at 25 cm (RGBI), sheet 0848_7-2."
+used_for = "Terrain texture and land-cover classification."
+url = "https://descargas.icv.gva.es/dcd/02_imagen/02_ortofoto/2024_CVAL_0025/01_Imagen/01_25830_01_8bits_02_RGBI_02_TIFJPG/020201_2024CVAL0025_25830_8bits_RGBI_0848_7-2.tif"
+expected_bytes = 172829467
+size_tolerance = 0.0
+licence = "CC BY 4.0"
+attribution = "Ortofoto 2024 25 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0)"
+
+[[source]]
+id = "icv-lidar-2016-766-4282"
+phase = 1
+kind = "file"
+description = "ICV LiDAR 2016 point-cloud tile 766-4282 (LAZ)."
+used_for = "Cliff and tunnel-area detail beyond the 1 m DTM."
+url = "https://descargas.icv.gva.es/dcd/03_mde/01_lidar/2016_PALI_0005/01_Nube/01_25830_05_CP_03_IRG_13_LAZ/030101_2016PALI0005_25830_CP_IRG_766-4282.laz"
+expected_bytes = 9939697
+size_tolerance = 0.0
+licence = "CC BY 4.0"
+attribution = "Conté dades modificades de PNOA-LiDAR 2016 CC BY 4.0 www.scne.es · Institut Cartogràfic Valencià"
+
+[[source]]
+id = "icv-lidar-2016-768-4282"
+phase = 1
+kind = "file"
+description = "ICV LiDAR 2016 point-cloud tile 768-4282 (LAZ)."
+used_for = "Cliff and tunnel-area detail beyond the 1 m DTM."
+url = "https://descargas.icv.gva.es/dcd/03_mde/01_lidar/2016_PALI_0005/01_Nube/01_25830_05_CP_03_IRG_13_LAZ/030101_2016PALI0005_25830_CP_IRG_768-4282.laz"
+expected_bytes = 6472537
+size_tolerance = 0.0
+licence = "CC BY 4.0"
+attribution = "Conté dades modificades de PNOA-LiDAR 2016 CC BY 4.0 www.scne.es · Institut Cartogràfic Valencià"
+
+[[source]]
+id = "icv-lidar-2016-766-4280"
+phase = 1
+kind = "file"
+description = "ICV LiDAR 2016 point-cloud tile 766-4280 (LAZ)."
+used_for = "Cliff and tunnel-area detail beyond the 1 m DTM."
+url = "https://descargas.icv.gva.es/dcd/03_mde/01_lidar/2016_PALI_0005/01_Nube/01_25830_05_CP_03_IRG_13_LAZ/030101_2016PALI0005_25830_CP_IRG_766-4280.laz"
+expected_bytes = 1840704
+size_tolerance = 0.0
+licence = "CC BY 4.0"
+attribution = "Conté dades modificades de PNOA-LiDAR 2016 CC BY 4.0 www.scne.es · Institut Cartogràfic Valencià"
+
+[[source]]
+id = "icv-lidar-2016-768-4280"
+phase = 1
+kind = "file"
+description = "ICV LiDAR 2016 point-cloud tile 768-4280 (LAZ)."
+used_for = "Cliff and tunnel-area detail beyond the 1 m DTM."
+url = "https://descargas.icv.gva.es/dcd/03_mde/01_lidar/2016_PALI_0005/01_Nube/01_25830_05_CP_03_IRG_13_LAZ/030101_2016PALI0005_25830_CP_IRG_768-4280.laz"
+expected_bytes = 1677394
+size_tolerance = 0.0
+licence = "CC BY 4.0"
+attribution = "Conté dades modificades de PNOA-LiDAR 2016 CC BY 4.0 www.scne.es · Institut Cartogràfic Valencià"
+
+[[source]]
+id = "icv-cv05-penyal"
+phase = 1
+kind = "wfs"
+description = "ICV CV05 1:5000 vector cartography (WFS) clipped to the Penyal area."
+used_for = "Contours, spot heights, buildings, roads, tree cover, hydrography."
+endpoint = "https://terramapas.icv.gva.es/0101_BCV05"
+version = "2.0.0"
+bbox = [766400, 4279450, 769000, 4282000]
+crs = "EPSG:25830"
+output_format = "application/json; subtype=geojson"
+page_size = 1000
+licence = "CC BY 4.0"
+attribution = "Cartografia CV05 1:5000 © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0)"
+
+[[source.layers]]
+name = "CurvasNivelBCV05"
+
+[[source.layers]]
+name = "PuntosCotaBCV05"
+
+[[source.layers]]
+name = "EdificacionesBCV05"
+
+[[source.layers]]
+name = "RedComunicacionesBCV05"
+
+[[source.layers]]
+name = "ZonasArboladasBCV05"
+
+[[source.layers]]
+name = "OrografiaLineasBCV05"
+
+[[source.layers]]
+name = "HidrografiaBCV05"
+confirmed = true
+
+[[source]]
+id = "osm-penyal"
+phase = 1
+kind = "osm"
+description = "OpenStreetMap extract (API map call) around the Penyal d'Ifac."
+used_for = "Trails, POIs and place names; cross-check for the CV05 data."
+url = "https://api.openstreetmap.org/api/0.6/map.json?bbox=0.0680,38.6290,0.0840,38.6420"
+licence = "ODbL 1.0"
+attribution = "© OpenStreetMap contributors (ODbL)"
+share_alike = true
+
+[[source]]
+id = "icv-mdsnv-2016-0848"
+phase = 3
+kind = "file"
+description = "ICV 1 m vegetation-height model (MDSnV), sheet 0848."
+used_for = "Vegetation placement and canopy height."
+url = "https://descargas.icv.gva.es/dcd/03_mde/05_mdsn/2016_PALI_0100/22_MallaVege/01_25830_01_Hoja_CV50_03_TIF/030522_MDSnV_2016PALI0100_25830_01_Hoja_CV50_0848.tif"
+expected_bytes = 491000000
+size_tolerance = 0.10
+licence = "CC BY 4.0"
+attribution = "Producte derivat de LIDAR-PNOA 2016 CC-BY 4.0 scne.es · Institut Cartogràfic Valencià"
+
+[[source]]
+id = "miteco-ecocartografia-alicante-batimetria"
+phase = 3
+kind = "file"
+description = "MITECO ecocartography bathymetry for Alicante (zip)."
+used_for = "Sea floor around the rock."
+url = "https://www.miteco.gob.es/content/dam/miteco/es/costas/temas/proteccion-costa/BATIMETRIA_tcm30-288107.zip"
+expected_bytes = 7000000
+size_tolerance = 0.10
+optional = true
+licence = "unknown — ask before use"
+attribution = "Ecocartografía del litoral de Alicante © Ministerio para la Transición Ecológica y el Reto Demográfico (licence to be confirmed with MITECO before use)"
+
+# --- Phase 2: CC0 textures from Poly Haven (approved by the user on 2026-10-11, see docs/specs/001-penyal-ifac-3d/assets.md).
+# Sizes and URLs from api.polyhaven.com/files/<id> on 2026-10-11. The 2k set is for desktop, loaded after the first step.
+
+[[source]]
+id = "polyhaven-marble-cliff-05-diff-1k"
+phase = 2
+kind = "file"
+description = "Poly Haven marble_cliff_05 albedo, 1k JPEG. Limestone-like rock for triplanar cliffs and near-ground detail (closest light warm-grey match; it is a marble, not a nummulitic limestone: visual stand-in)."
+used_for = "T2.2 terrain material."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_cliff_05/marble_cliff_05_diff_1k.jpg"
+expected_bytes = 987798
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-marble-cliff-05-diff-2k"
+phase = 2
+kind = "file"
+description = "Poly Haven marble_cliff_05 albedo, 2k JPEG. Limestone-like rock for triplanar cliffs and near-ground detail (closest light warm-grey match; it is a marble, not a nummulitic limestone: visual stand-in)."
+used_for = "T2.2 terrain material."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_cliff_05/marble_cliff_05_diff_2k.jpg"
+expected_bytes = 3540217
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-marble-cliff-05-nor-gl-1k"
+phase = 2
+kind = "file"
+description = "Poly Haven marble_cliff_05 OpenGL normal map, 1k JPEG. Limestone-like rock for triplanar cliffs and near-ground detail (closest light warm-grey match; it is a marble, not a nummulitic limestone: visual stand-in)."
+used_for = "T2.2 terrain material."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_cliff_05/marble_cliff_05_nor_gl_1k.jpg"
+expected_bytes = 997297
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-marble-cliff-05-nor-gl-2k"
+phase = 2
+kind = "file"
+description = "Poly Haven marble_cliff_05 OpenGL normal map, 2k JPEG. Limestone-like rock for triplanar cliffs and near-ground detail (closest light warm-grey match; it is a marble, not a nummulitic limestone: visual stand-in)."
+used_for = "T2.2 terrain material."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_cliff_05/marble_cliff_05_nor_gl_2k.jpg"
+expected_bytes = 3524582
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-marble-cliff-05-arm-1k"
+phase = 2
+kind = "file"
+description = "Poly Haven marble_cliff_05 AO/roughness/metalness packed map, 1k JPEG. Limestone-like rock for triplanar cliffs and near-ground detail (closest light warm-grey match; it is a marble, not a nummulitic limestone: visual stand-in)."
+used_for = "T2.2 terrain material."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_cliff_05/marble_cliff_05_arm_1k.jpg"
+expected_bytes = 652831
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-marble-cliff-05-arm-2k"
+phase = 2
+kind = "file"
+description = "Poly Haven marble_cliff_05 AO/roughness/metalness packed map, 2k JPEG. Limestone-like rock for triplanar cliffs and near-ground detail (closest light warm-grey match; it is a marble, not a nummulitic limestone: visual stand-in)."
+used_for = "T2.2 terrain material."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_cliff_05/marble_cliff_05_arm_2k.jpg"
+expected_bytes = 2330430
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rocks-ground-05-diff-1k"
+phase = 2
+kind = "file"
+description = "Poly Haven rocks_ground_05 albedo, 1k JPEG. Worn rocky ground for the trail surface."
+used_for = "T2.3 trail surface."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocks_ground_05/rocks_ground_05_diff_1k.jpg"
+expected_bytes = 756710
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rocks-ground-05-diff-2k"
+phase = 2
+kind = "file"
+description = "Poly Haven rocks_ground_05 albedo, 2k JPEG. Worn rocky ground for the trail surface."
+used_for = "T2.3 trail surface."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rocks_ground_05/rocks_ground_05_diff_2k.jpg"
+expected_bytes = 2880723
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rocks-ground-05-nor-gl-1k"
+phase = 2
+kind = "file"
+description = "Poly Haven rocks_ground_05 OpenGL normal map, 1k JPEG. Worn rocky ground for the trail surface."
+used_for = "T2.3 trail surface."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocks_ground_05/rocks_ground_05_nor_gl_1k.jpg"
+expected_bytes = 1387386
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rocks-ground-05-nor-gl-2k"
+phase = 2
+kind = "file"
+description = "Poly Haven rocks_ground_05 OpenGL normal map, 2k JPEG. Worn rocky ground for the trail surface."
+used_for = "T2.3 trail surface."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rocks_ground_05/rocks_ground_05_nor_gl_2k.jpg"
+expected_bytes = 5212576
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rocks-ground-05-arm-1k"
+phase = 2
+kind = "file"
+description = "Poly Haven rocks_ground_05 AO/roughness/metalness packed map, 1k JPEG. Worn rocky ground for the trail surface."
+used_for = "T2.3 trail surface."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocks_ground_05/rocks_ground_05_arm_1k.jpg"
+expected_bytes = 235027
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rocks-ground-05-arm-2k"
+phase = 2
+kind = "file"
+description = "Poly Haven rocks_ground_05 AO/roughness/metalness packed map, 2k JPEG. Worn rocky ground for the trail surface."
+used_for = "T2.3 trail surface."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rocks_ground_05/rocks_ground_05_arm_2k.jpg"
+expected_bytes = 947022
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"

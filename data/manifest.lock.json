@@ -1,0 +1,318 @@
+{
+  "sources": {
+    "icv-cv05-penyal": {
+      "attribution": "Cartografia CV05 1:5000 © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0)",
+      "files": [
+        {
+          "bytes": 1716322,
+          "name": "CurvasNivelBCV05.geojson",
+          "sha256": "2a6ee59acf3e2fd6f1245f903671a632bbed47e619d0e04f50b7339967e50016"
+        },
+        {
+          "bytes": 131433,
+          "name": "PuntosCotaBCV05.geojson",
+          "sha256": "31708f1ecae2ecab242b624e650aaee5f86154502a181121a1086bdb8b93023b"
+        },
+        {
+          "bytes": 230767,
+          "name": "EdificacionesBCV05.geojson",
+          "sha256": "14fb67fd33b8c2929959c7f3c4640dbdcfde17eff4ba31046c4f08b7b20539c6"
+        },
+        {
+          "bytes": 266724,
+          "name": "RedComunicacionesBCV05.geojson",
+          "sha256": "326cd605f54f159944cf3d3693d79f14555f084b05c3c7661b7a6fca3d9ce533"
+        },
+        {
+          "bytes": 24673,
+          "name": "ZonasArboladasBCV05.geojson",
+          "sha256": "398f9b6107ae2c7cfc69bc814b60976bfa4a0c31902eba969756cb2644b00ede"
+        },
+        {
+          "bytes": 166713,
+          "name": "OrografiaLineasBCV05.geojson",
+          "sha256": "ed05eb035f2e9e5309d85b3cc7ad6be7440cc7a6df597c78c6cc9a1a336f0be7"
+        },
+        {
+          "bytes": 7339456,
+          "name": "HidrografiaBCV05.geojson",
+          "sha256": "a6db51cab396d69229feefabc29f37d926de81a0a88bba12e3d0752276cca0a8"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "request": {
+        "bbox": [
+          766400.0,
+          4279450.0,
+          769000.0,
+          4282000.0
+        ],
+        "crs": "EPSG:25830",
+        "outputFormat": "application/json; subtype=geojson",
+        "typeNames": [
+          "CurvasNivelBCV05",
+          "PuntosCotaBCV05",
+          "EdificacionesBCV05",
+          "RedComunicacionesBCV05",
+          "ZonasArboladasBCV05",
+          "OrografiaLineasBCV05",
+          "HidrografiaBCV05"
+        ],
+        "version": "2.0.0"
+      },
+      "retrieved": "2026-10-11",
+      "url": "https://terramapas.icv.gva.es/0101_BCV05"
+    },
+    "icv-lidar-2016-766-4280": {
+      "attribution": "Conté dades modificades de PNOA-LiDAR 2016 CC BY 4.0 www.scne.es · Institut Cartogràfic Valencià",
+      "files": [
+        {
+          "bytes": 1840704,
+          "name": "030101_2016PALI0005_25830_CP_IRG_766-4280.laz",
+          "sha256": "9cf56b1a1b2d946f76be255e0d0f6235abe764d44d3a9b1912001b07831e1c94"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "retrieved": "2026-10-11",
+      "url": "https://descargas.icv.gva.es/dcd/03_mde/01_lidar/2016_PALI_0005/01_Nube/01_25830_05_CP_03_IRG_13_LAZ/030101_2016PALI0005_25830_CP_IRG_766-4280.laz"
+    },
+    "icv-lidar-2016-766-4282": {
+      "attribution": "Conté dades modificades de PNOA-LiDAR 2016 CC BY 4.0 www.scne.es · Institut Cartogràfic Valencià",
+      "files": [
+        {
+          "bytes": 9939697,
+          "name": "030101_2016PALI0005_25830_CP_IRG_766-4282.laz",
+          "sha256": "3afaf3ffc03837c0a8ee0c511c32167ab1edda702eaee727c92c7084442fc131"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "retrieved": "2026-10-11",
+      "url": "https://descargas.icv.gva.es/dcd/03_mde/01_lidar/2016_PALI_0005/01_Nube/01_25830_05_CP_03_IRG_13_LAZ/030101_2016PALI0005_25830_CP_IRG_766-4282.laz"
+    },
+    "icv-lidar-2016-768-4280": {
+      "attribution": "Conté dades modificades de PNOA-LiDAR 2016 CC BY 4.0 www.scne.es · Institut Cartogràfic Valencià",
+      "files": [
+        {
+          "bytes": 1677394,
+          "name": "030101_2016PALI0005_25830_CP_IRG_768-4280.laz",
+          "sha256": "cb234fd764321513b9b223baec13f414243ed817d5e57a75e8657e8c039ab8ff"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "retrieved": "2026-10-11",
+      "url": "https://descargas.icv.gva.es/dcd/03_mde/01_lidar/2016_PALI_0005/01_Nube/01_25830_05_CP_03_IRG_13_LAZ/030101_2016PALI0005_25830_CP_IRG_768-4280.laz"
+    },
+    "icv-lidar-2016-768-4282": {
+      "attribution": "Conté dades modificades de PNOA-LiDAR 2016 CC BY 4.0 www.scne.es · Institut Cartogràfic Valencià",
+      "files": [
+        {
+          "bytes": 6472537,
+          "name": "030101_2016PALI0005_25830_CP_IRG_768-4282.laz",
+          "sha256": "93265ea704c64fbfcd3633011ca71c1d4744ebfaad421428a6b3726d0e4b2503"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "retrieved": "2026-10-11",
+      "url": "https://descargas.icv.gva.es/dcd/03_mde/01_lidar/2016_PALI_0005/01_Nube/01_25830_05_CP_03_IRG_13_LAZ/030101_2016PALI0005_25830_CP_IRG_768-4282.laz"
+    },
+    "icv-mdt-2016-0848": {
+      "attribution": "Producte derivat de LIDAR-PNOA 2016 CC-BY 4.0 scne.es · Institut Cartogràfic Valencià",
+      "files": [
+        {
+          "bytes": 825075138,
+          "name": "030201_MDT_2016PALI0100_25830_01_Hoja_CV50_0848.tif",
+          "sha256": "1959d23a7394b7918512b2fb5c5334832296e678dc5e34590b8022c0feb0591b"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "retrieved": "2026-10-11",
+      "url": "https://descargas.icv.gva.es/dcd/03_mde/02_mdt/2016_PALI_0100/01_Malla/01_25830_01_Hoja_CV50_03_TIF/030201_MDT_2016PALI0100_25830_01_Hoja_CV50_0848.tif"
+    },
+    "icv-orto-2024-0848-7-2": {
+      "attribution": "Ortofoto 2024 25 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0)",
+      "files": [
+        {
+          "bytes": 172829467,
+          "name": "020201_2024CVAL0025_25830_8bits_RGBI_0848_7-2.tif",
+          "sha256": "3af2d076c7abdf2137254b56dd4c5c6090ebf1ce7e2d6b0061f46f42ba118e29"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "retrieved": "2026-10-11",
+      "url": "https://descargas.icv.gva.es/dcd/02_imagen/02_ortofoto/2024_CVAL_0025/01_Imagen/01_25830_01_8bits_02_RGBI_02_TIFJPG/020201_2024CVAL0025_25830_8bits_RGBI_0848_7-2.tif"
+    },
+    "osm-penyal": {
+      "attribution": "© OpenStreetMap contributors (ODbL)",
+      "files": [
+        {
+          "bytes": 2135700,
+          "name": "osm-penyal.json",
+          "sha256": "78495e132614311e9fe74e7c1c6add117811b59cd8d1a597af17b633ba426cc3"
+        }
+      ],
+      "licence": "ODbL 1.0",
+      "request": {
+        "url": "https://api.openstreetmap.org/api/0.6/map.json?bbox=0.0680,38.6290,0.0840,38.6420"
+      },
+      "retrieved": "2026-10-11",
+      "url": "https://api.openstreetmap.org/api/0.6/map.json?bbox=0.0680,38.6290,0.0840,38.6420"
+    },
+    "polyhaven-marble-cliff-05-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 652831,
+          "name": "marble_cliff_05_arm_1k.jpg",
+          "sha256": "b7586751ee1742b12b1611c22241b8cd0ee33e61f0b403cf0e5b2cd5d6da0ef7"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_cliff_05/marble_cliff_05_arm_1k.jpg"
+    },
+    "polyhaven-marble-cliff-05-arm-2k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 2330430,
+          "name": "marble_cliff_05_arm_2k.jpg",
+          "sha256": "fce24f3c8de2096d58da03f2e1cd22cfe65af97de81247c23db03e7334cda7b0"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_cliff_05/marble_cliff_05_arm_2k.jpg"
+    },
+    "polyhaven-marble-cliff-05-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 987798,
+          "name": "marble_cliff_05_diff_1k.jpg",
+          "sha256": "06d39eeb7243e5dd1aa8a5e2f4acb6e62fc3457ceb066bfa73743c977336baa4"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_cliff_05/marble_cliff_05_diff_1k.jpg"
+    },
+    "polyhaven-marble-cliff-05-diff-2k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 3540217,
+          "name": "marble_cliff_05_diff_2k.jpg",
+          "sha256": "3b3cc8260290b381a0625047d8c6220f2a4ce7b1d1c7613c41cf2180288e7518"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_cliff_05/marble_cliff_05_diff_2k.jpg"
+    },
+    "polyhaven-marble-cliff-05-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 997297,
+          "name": "marble_cliff_05_nor_gl_1k.jpg",
+          "sha256": "9ab8f503f45331a9ff9c25270a04cde988d2e0e2d1374f8378d915ca5af0d934"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_cliff_05/marble_cliff_05_nor_gl_1k.jpg"
+    },
+    "polyhaven-marble-cliff-05-nor-gl-2k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 3524582,
+          "name": "marble_cliff_05_nor_gl_2k.jpg",
+          "sha256": "98ba11141e4d6e7e12430ac1c88f388935736b68e35b7db63db9d377e9b035a3"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_cliff_05/marble_cliff_05_nor_gl_2k.jpg"
+    },
+    "polyhaven-rocks-ground-05-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 235027,
+          "name": "rocks_ground_05_arm_1k.jpg",
+          "sha256": "27dd58035d27cc9e97e1eeefbcba78dec327ae0793969982ef4218419b2182e8"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocks_ground_05/rocks_ground_05_arm_1k.jpg"
+    },
+    "polyhaven-rocks-ground-05-arm-2k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 947022,
+          "name": "rocks_ground_05_arm_2k.jpg",
+          "sha256": "c56d65338454d2ae9ec4ae8c960ba5891bbd355cd1c6af7615aef1498688bacd"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rocks_ground_05/rocks_ground_05_arm_2k.jpg"
+    },
+    "polyhaven-rocks-ground-05-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 756710,
+          "name": "rocks_ground_05_diff_1k.jpg",
+          "sha256": "7dc4eb1e511588238368c5af73cd38bba528f02f4dff941da8282963c15b325d"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocks_ground_05/rocks_ground_05_diff_1k.jpg"
+    },
+    "polyhaven-rocks-ground-05-diff-2k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 2880723,
+          "name": "rocks_ground_05_diff_2k.jpg",
+          "sha256": "7a719374e628507e05961f26215052d892ed5b23d69d0b5b635e09e5dbacbcfc"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rocks_ground_05/rocks_ground_05_diff_2k.jpg"
+    },
+    "polyhaven-rocks-ground-05-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 1387386,
+          "name": "rocks_ground_05_nor_gl_1k.jpg",
+          "sha256": "5ee17fa20945e535e748b8ed9a9239d940644aec4b5421340c8bfb58537c7210"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocks_ground_05/rocks_ground_05_nor_gl_1k.jpg"
+    },
+    "polyhaven-rocks-ground-05-nor-gl-2k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 5212576,
+          "name": "rocks_ground_05_nor_gl_2k.jpg",
+          "sha256": "7566bbd0a130171d307292b150501122cbdb02b2d1feff21f35aec61c4a7b843"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rocks_ground_05/rocks_ground_05_nor_gl_2k.jpg"
+    }
+  },
+  "version": 1
+}

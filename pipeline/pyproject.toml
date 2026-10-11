@@ -1,0 +1,43 @@
+[project]
+name = "penyal-pipeline"
+version = "0.1.0"
+description = "Data and terrain pipeline for penyal-ifac-3d"
+requires-python = "==3.13.*"
+dependencies = [
+    "bpy==5.2.2",
+    "laspy[lazrs]==2.7.0",
+    "numpy==2.5.4",
+    "pyproj==3.8.0",
+    "rasterio==1.5.2",
+    "shapely==2.2.0",
+]
+
+[project.scripts]
+penyal = "penyal_pipeline.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.24,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "C4", "RUF", "PT"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.basedpyright]
+include = ["src", "tests"]
+typeCheckingMode = "standard"
+pythonVersion = "3.13"
+
+[dependency-groups]
+dev = [
+    "basedpyright==1.40.2",
+    "pytest==9.1.1",
+    "ruff==0.17.0",
+]
