@@ -1,6 +1,12 @@
 import { Timer } from "three";
 
-export type FrameCallback = (deltaSeconds: number) => void;
+/**
+ * `deltaSeconds` is the simulation step, clamped to MAX_FRAME_DELTA. `rawMilliseconds` is the
+ * real interval between the last two `requestAnimationFrame` timestamps, never clamped, for
+ * frame statistics; it is null for the first frame after a start or after the tab was hidden,
+ * where there is no previous frame to measure against.
+ */
+export type FrameCallback = (deltaSeconds: number, rawMilliseconds: number | null) => void;
 
 export type Loop = {
   readonly start: () => void;
@@ -23,11 +29,14 @@ export function createLoop(onFrame: FrameCallback): Loop {
   const timer = new Timer();
   let handle: number | null = null;
   let running = false;
+  let lastTimestamp: number | null = null;
 
   const tick = (timestamp: number): void => {
     handle = requestAnimationFrame(tick);
     timer.update(timestamp);
-    onFrame(Math.min(timer.getDelta(), MAX_FRAME_DELTA));
+    const raw = lastTimestamp === null ? null : timestamp - lastTimestamp;
+    lastTimestamp = timestamp;
+    onFrame(Math.min(timer.getDelta(), MAX_FRAME_DELTA), raw);
   };
 
   const schedule = (): void => {
@@ -35,6 +44,7 @@ export function createLoop(onFrame: FrameCallback): Loop {
   };
 
   const cancel = (): void => {
+    lastTimestamp = null;
     if (handle !== null) {
       cancelAnimationFrame(handle);
       handle = null;

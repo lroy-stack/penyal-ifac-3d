@@ -74,6 +74,44 @@ describe("createLoop", () => {
     loop.stop();
   });
 
+  it("reports the raw frame interval in ms, unclamped and null for the first frame", () => {
+    const raw: Array<number | null> = [];
+    const clamped: number[] = [];
+    const loop = createLoop((dt, rawMs) => {
+      clamped.push(dt);
+      raw.push(rawMs);
+    });
+    loop.start();
+    vi.advanceTimersByTime(16);
+    runFrame();
+    vi.advanceTimersByTime(2500);
+    runFrame();
+
+    expect(raw).toEqual([null, 2500]);
+    expect(clamped[1]).toBe(MAX_FRAME_DELTA);
+    loop.stop();
+  });
+
+  it("does not count the time the tab was hidden as a slow frame", () => {
+    const raw: Array<number | null> = [];
+    const loop = createLoop((_dt, rawMs) => raw.push(rawMs));
+    loop.start();
+    vi.advanceTimersByTime(16);
+    runFrame();
+    vi.advanceTimersByTime(16);
+    runFrame();
+    doc.setHidden(true);
+    vi.advanceTimersByTime(60_000);
+    doc.setHidden(false);
+    vi.advanceTimersByTime(16);
+    runFrame();
+    vi.advanceTimersByTime(17);
+    runFrame();
+
+    expect(raw).toEqual([null, 16, null, 17]);
+    loop.stop();
+  });
+
   it("clamps a long stall to MAX_FRAME_DELTA", () => {
     const deltas: number[] = [];
     const loop = createLoop((dt) => deltas.push(dt));

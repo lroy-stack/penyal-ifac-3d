@@ -1,3 +1,4 @@
+import type { FrameSnapshot } from "./core/frameStats";
 import type { CameraMode } from "./player/cameras";
 import type { TerrainStats } from "./world/terrain";
 
@@ -34,8 +35,13 @@ export type AppState = {
   autowalk: { active: boolean; target: string | null; progress: number };
   /** Test-only simulation speed (`?timescale=N`); 1 in normal use. */
   timescale: number;
-  /** 95th percentile of the last 120 frame times (ms), null before the first frame. */
+  /** p95 of the raw requestAnimationFrame interval (ms), null before the first measured frame. */
   frameTimeP95Ms: number | null;
+  /**
+   * Rolling statistics of the raw frame interval (not the clamped simulation step): p50/p95/p99
+   * and the number of frames over 50 ms, recomputed every few frames. Null until measured.
+   */
+  frameStats: FrameSnapshot | null;
 };
 
 declare global {
@@ -66,5 +72,6 @@ export function createAppState(): AppState {
     autowalk: { active: false, target: null, progress: 0 },
     timescale: 1,
     frameTimeP95Ms: null,
+    frameStats: null,
   };
 }

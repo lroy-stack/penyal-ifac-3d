@@ -1,7 +1,7 @@
 import { Color, PerspectiveCamera, Scene, Vector2 } from "three";
 import { type AppState, createAppState } from "./appState";
 import { baseUrl, createGltfLoader, type GltfLoaderHandle, publicUrl } from "./core/assets";
-import { FrameTimeWindow } from "./core/frameStats";
+import { type FrameSnapshot, FrameStats } from "./core/frameStats";
 import { createPageLifecycle } from "./core/lifecycle";
 import { createLoop } from "./core/loop";
 import { createRenderer } from "./core/renderer";
@@ -9,6 +9,7 @@ import { parseTimescale, simulationSteps } from "./core/timescale";
 import { createPlayer } from "./player";
 import { buildAutoWalkRoute } from "./player/autowalk";
 import { MAX_FRAME_DT } from "./player/controller";
+import { createPerfOverlay, isPerfRequested, type PerfOverlay } from "./ui/perfOverlay";
 import { COLLISION_PATH, loadCollisionField } from "./world/collision";
 import { createTrailDebug, type TrailDebug } from "./world/debugTrail";
 import { PolygonCorridor } from "./world/ground";
@@ -216,11 +217,15 @@ async function bootstrap(): Promise<void> {
   if (requestedAutoWalk !== null && requestedAutoWalk !== "") startAutoWalk(requestedAutoWalk);
 
   const reached = new Set<string>();
-  const frameTimes = new FrameTimeWindow(120);
+  const frameStats = new FrameStats();
+  const perfOverlay: PerfOverlay | null = isPerfRequested(location.search)
+    ? createPerfOverlay()
+    : null;
+  let lastSnapshot: FrameSnapshot | null = null;
   const drawingBuffer = new Vector2();
   let terrainAnnounced = false;
 
-  const loop = createLoop((dt) => {
+  const loop = createLoop((dt, rawMs) => {
     for (const step of simulationSteps(dt, state.timescale, MAX_FRAME_DT)) {
       player.update(step);
       if (player.state.autowalkTogglePressed) {
@@ -241,7 +246,6 @@ async function bootstrap(): Promise<void> {
     renderer.render(scene, camera);
 
     state.frames++;
-    frameTimes.push(dt * 1000);
     const { position, grounded, cameraMode, yaw, corridorHit, elapsed } = player.state;
     Object.assign(state.player, {
       x: position.x,
@@ -262,7 +266,13 @@ async function bootstrap(): Promise<void> {
     state.camera.z = camera.position.z;
     state.render.calls = renderer.info.render.calls;
     state.render.triangles = renderer.info.render.triangles;
-    state.frameTimeP95Ms = frameTimes.percentile(95);
+    if (rawMs !== null) frameStats.push(rawMs);
+    if (frameStats.snapshot !== lastSnapshot) {
+      lastSnapshot = frameStats.snapshot;
+      state.frameStats = lastSnapshot;
+      state.frameTimeP95Ms = lastSnapshot?.p95 ?? null;
+      perfOverlay?.update(lastSnapshot, state.render);
+    }
 
     if (streamer !== null && state.frames % STATS_INTERVAL_FRAMES === 1) {
       state.terrain.stats = streamer.stats();
@@ -283,6 +293,7 @@ async function bootstrap(): Promise<void> {
       player.dispose();
       streamer?.dispose();
       trailDebug?.dispose();
+      perfOverlay?.dispose();
       tunnelView?.dispose();
       tunnelLamp.light.dispose();
       sky.dispose();
