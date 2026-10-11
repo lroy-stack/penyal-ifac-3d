@@ -44,6 +44,6 @@
 | Riesgo | Respuesta |
 |---|---|
 | El LiDAR es de 2016 y hay árboles que ya no existen | E2.2 los descarta con el NDVI de la ortofoto 2024 |
-| La banda 4 de la ortofoto no es infrarroja | Se comprueba con los metadatos del ICV antes de E2.2. Si no lo es, E2.2 se apoya en la comparación visual y se registra |
+| La banda 4 de la ortofoto no es infrarroja | **Resuelto el 11/10/2026** comparando 5.000 puntos LiDAR por clase con la ortofoto. Se comporta como infrarroja, con NDVI mediano de +0,29 en vegetación alta, +0,20 en baja, +0,06 en suelo y +0,03 en edificios. Los metadatos del ICV no eran accesibles |
 | Los anchos de camino son provisionales | Se marcan como aproximación y se sustituyen al llegar las medidas, con el paso del pipeline volviendo a generar la salida |
 | Rendimiento en móvil | La fila del ADR 0010 y la prueba por sistema. A7, la medición en el móvil, calibra los milisegundos |
