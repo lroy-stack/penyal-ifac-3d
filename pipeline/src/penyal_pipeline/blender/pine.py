@@ -29,7 +29,7 @@ import numpy.typing as npt
 import rasterio
 from rasterio.errors import NotGeoreferencedWarning
 
-from penyal_pipeline import artefacts, budget, tiles
+from penyal_pipeline import artefacts, budget, foliage_tint, tiles
 from penyal_pipeline.blender.spike import export_glb
 from penyal_pipeline.blender.terrain import blender_uvs, to_blender
 from penyal_pipeline.paths import PINE_BUILD, PINE_GENERATED
@@ -49,11 +49,10 @@ ROUGHNESS = 0.95
 
 TWIG_DIFFUSE, TWIG_ALPHA, BARK_DIFFUSE = artefacts.PINE_TEXTURES
 
-# Tints baked into the atlas (the glTF material has no colour factor to share between meshes):
-# the Poly Haven twig is an olive pine of northern Europe and its bark a near-black photograph;
-# the pines of the Penyal (docs/specs/003, reference photos 26 and 17) have bright green needle
-# masses and pale grey trunks.
-NEEDLE_TINT = (0.9, 1.45, 0.75)
+# The bark of the Poly Haven photograph is near black; the trunks of the Penyal are pale grey
+# (reference photos 26 and 17), so the bark cell is greyed and brightened in the atlas. The
+# needle colour is NOT baked: it is a per-vertex multiplier derived from the photographs
+# (``foliage_tint``), so the atlas keeps the texture's own colours.
 BARK_GREY_MIX = 0.9  # share of the luminance (the rest is the photograph's colour)
 BARK_BRIGHTNESS = 1.9
 TRUNK_TOP = 0.8  # fraction of the nominal height where the trunk ends; the tufts reach the rest
@@ -86,6 +85,7 @@ class PineMesh:
     normals: Floats
     uvs: Floats
     triangles: Ints
+    colours: Floats | None = None  # (n, 3) linear multiplier of the base colour (COLOR_0)
 
     @property
     def triangle_count(self) -> int:
@@ -224,7 +224,6 @@ def build_atlas() -> Atlas:
     twig_a, rect_a = twig_rgba(diffuse, alpha, TWIG_A_SOURCE, TWIG_A_CLEAR, TWIG_A_CELL)
     twig_b, rect_b = twig_rgba(diffuse, alpha, TWIG_B_SOURCE, TWIG_B_CLEAR, TWIG_B_CELL)
     for twig, (x0, y0, x1, y1) in ((twig_a, rect_a), (twig_b, rect_b)):
-        twig[..., :3] = np.clip(twig[..., :3] * np.array(NEEDLE_TINT, dtype=np.float32), 0.0, 1.0)
         atlas[y0:y1, x0:x1] = twig
     needle = atlas[rect_a[1] : rect_a[3], rect_a[0] : rect_a[2]]
     mean = needle[needle[..., 3] > 0.5][:, :3].mean(axis=0)
@@ -546,6 +545,23 @@ def variant_scale(variant: int, atlas: Atlas) -> tuple[float, float]:
     )
 
 
+def needle_linear_mean(atlas: Atlas) -> npt.NDArray[np.float64]:
+    """Mean linear RGB of the opaque upright-twig pixels: the colour the multiplier acts on."""
+    x0, y0, x1, y1 = atlas.twig_a
+    pixels = atlas.rgba[y0:y1, x0:x1].reshape(-1, 4)
+    opaque = pixels[pixels[:, 3] > 127][:, :3].astype(np.float64) / 255.0
+    return np.asarray(foliage_tint.srgb_to_linear(opaque).mean(axis=0))
+
+
+def foliage_colours(
+    uvs: Floats, foliage: npt.NDArray[np.bool_], factor: tuple[float, ...]
+) -> Floats:
+    """White for bark, ``factor`` for foliage vertices."""
+    colours = np.ones((len(uvs), 3), dtype=np.float32)
+    colours[foliage] = np.array(factor, dtype=np.float32)
+    return colours
+
+
 def build_variant(variant: int, lod: Lod, name: str, atlas: Atlas) -> PineMesh:
     """The mesh of one variant at one level of detail, at the nominal size."""
     positions, normals, uvs, triangles = _raw_variant(variant, lod, atlas)
@@ -557,6 +573,9 @@ def build_variant(variant: int, lod: Lod, name: str, atlas: Atlas) -> PineMesh:
         unit(normals / factors).astype(np.float32),
         uvs.astype(np.float32),
         triangles.astype(np.int32),
+        foliage_colours(
+            uvs.astype(np.float32), uvs[:, 0] > 0.5, foliage_tint.FOLIAGE_FACTORS["pine"]
+        ),
     )
 
 
@@ -586,6 +605,7 @@ def far_card() -> PineMesh:
         normals.astype(np.float32),
         np.array(uvs, dtype=np.float32).reshape(-1, 2),
         np.concatenate(triangles).astype(np.int32),
+        np.tile(np.array(foliage_tint.FOLIAGE_FACTORS["pine"], dtype=np.float32), (len(flat), 1)),
     )
 
 
@@ -618,12 +638,15 @@ def _make_object(bpy: Any, bmesh: Any, item: PineMesh, material: Any) -> None:
     uvs = blender_uvs(item.uvs)
     builder = bmesh.new()
     layer = builder.loops.layers.uv.new("UVMap")
+    colour_layer = builder.loops.layers.color.new("Color")
+    colours = np.ones((len(positions), 3)) if item.colours is None else item.colours
     verts = [builder.verts.new(tuple(float(c) for c in p)) for p in positions]
     for a, b, c in item.triangles:
         face = builder.faces.new((verts[a], verts[b], verts[c]))
         face.smooth = True
         for loop, index in zip(face.loops, (a, b, c), strict=True):
             loop[layer].uv = tuple(float(v) for v in uvs[index])
+            loop[colour_layer] = (*(float(c) for c in colours[index]), 1.0)
     builder.to_mesh(mesh)
     builder.free()
     mesh.normals_split_custom_set_from_vertices(to_blender(item.normals).tolist())
@@ -647,7 +670,15 @@ def _make_material(bpy: Any, atlas: HasRgba, name: str = MATERIAL_NAME) -> Any:
     texture.extension = "EXTEND"  # glTF CLAMP_TO_EDGE: cells must not bleed into each other
     rounding = nodes.new("ShaderNodeMath")
     rounding.operation = "ROUND"  # the glTF exporter reads Alpha -> Round as alphaMode MASK
-    links.new(texture.outputs["Color"], bsdf.inputs["Base Color"])
+    vertex_colour = nodes.new("ShaderNodeVertexColor")
+    vertex_colour.layer_name = "Color"
+    multiply = nodes.new("ShaderNodeMix")
+    multiply.data_type = "RGBA"
+    multiply.blend_type = "MULTIPLY"  # the exporter reads texture x colour attribute as COLOR_0
+    multiply.inputs["Factor"].default_value = 1.0
+    links.new(texture.outputs["Color"], multiply.inputs["A"])
+    links.new(vertex_colour.outputs["Color"], multiply.inputs["B"])
+    links.new(multiply.outputs["Result"], bsdf.inputs["Base Color"])
     links.new(texture.outputs["Alpha"], rounding.inputs[0])
     links.new(rounding.outputs["Value"], bsdf.inputs["Alpha"])
     return material
@@ -703,7 +734,8 @@ def manifest(meshes: list[PineMesh], atlas: Atlas, glb_bytes: int) -> dict[str, 
             "terrain tiles, which differ where ADR 0009 corrected it",
             "the atlas alpha loses coverage in the mips (atlas.alphaCoverage): use "
             "alpha-to-coverage or scale the alpha cut-off with distance",
-            "needle and bark tints are baked into the atlas (NEEDLE_TINT, BARK_*)",
+            "foliage colour is a per-vertex multiplier (COLOR_0, linear) from the reference photos "
+            "(foliage_tint.py); the bark grey is baked into the atlas (BARK_*)",
         ],
         "variants": VARIANT_COUNT,
         "seeds": list(VARIANT_SEEDS),

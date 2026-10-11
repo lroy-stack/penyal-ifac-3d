@@ -25,7 +25,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from penyal_pipeline import artefacts, budget, tiles, understory
+from penyal_pipeline import artefacts, budget, foliage_tint, tiles, understory
 from penyal_pipeline.blender import pine
 from penyal_pipeline.blender.pine import PineMesh, Tube, Tuft, unit
 from penyal_pipeline.paths import PINE_GENERATED, PLANTS_BUILD
@@ -48,8 +48,6 @@ ROSEMARY_LEAVES = ((270, 848, 240, 330, 110), (583, 845, 570, 330, 105), (835, 8
 LENTISC_STEM_PIXELS = (860, 450, 880, 800)  # a stretch of the red-brown twig in shrub_04
 GRASS_CROP = (30, 20, 430, 995)  # three clean blades of grass_medium_02
 GRASS_BLACK = 0.12  # brightness under which a grass pixel is background
-LENTISC_TINT = (0.72, 1.0, 0.62)  # glossy dark green instead of pale grey-green
-ROSEMARY_TINT = (0.85, 0.97, 0.82)
 
 CELLS = {
     "lentisc": (0, 0, 256, 512),
@@ -60,6 +58,7 @@ CELLS = {
     "stem": (768, 448, 1024, 512),  # a solid stem colour for the stem tubes
 }
 ATLAS_SIZE = (1024, 512)
+STEM_V_MIN = CELLS["stem"][1] / ATLAS_SIZE[1]  # UV rows from here down are the stem patch
 
 type Floats = npt.NDArray[np.float32]
 type Vec = npt.NDArray[np.float64]
@@ -140,12 +139,10 @@ def draw_stem(
         canvas[hit, 3] = 1.0
 
 
-def lentisc_sprite(source: Floats) -> Floats:
+def lentisc_sprite(source: Floats, stem_colour: Vec) -> Floats:
     """A twig: a stem with alternate leaves, shorter and more upright towards the tip."""
     width, height = SPRITE
     canvas = np.zeros((height, width, 4), dtype=np.float32)
-    x0, y0, x1, y1 = LENTISC_STEM_PIXELS
-    stem_colour = source[y0:y1, x0:x1].reshape(-1, 3).mean(axis=0).astype(np.float64)
     top = (width / 2.0 + 14.0, 30.0)
     bottom = (width / 2.0, height - 8.0)
     draw_stem(canvas, [bottom, top], 3.0, stem_colour)
@@ -212,19 +209,17 @@ def blob_silhouette(
 def build_atlas() -> Atlas:
     shrub_04 = pine._read_rgb(SHRUB_04)
     sx0, sy0, sx1, sy1 = LENTISC_STEM_PIXELS
-    stem_colour = shrub_04[sy0:sy1, sx0:sx1].reshape(-1, 3).mean(axis=0)
+    stem_colour = shrub_04[sy0:sy1, sx0:sx1].reshape(-1, 3).mean(axis=0).astype(np.float64)
     shrub_02 = pine._read_rgb(SHRUB_02)
     grass = pine._read_rgb(GRASS_02)
     atlas = np.zeros((ATLAS_SIZE[1], ATLAS_SIZE[0], 4), dtype=np.float32)
     sprites = {
-        "lentisc": lentisc_sprite(shrub_04),
+        "lentisc": lentisc_sprite(shrub_04, stem_colour),
         "rosemary": rosemary_sprite(shrub_02),
         "grass": grass_sprite(grass),
     }
-    tints = {"lentisc": LENTISC_TINT, "rosemary": ROSEMARY_TINT, "grass": (1.0, 1.0, 1.0)}
     means = {}
     for name, sprite in sprites.items():
-        sprite[..., :3] = np.clip(sprite[..., :3] * np.array(tints[name], dtype=np.float32), 0, 1)
         means[name] = sprite[sprite[..., 3] > 0.5][:, :3].mean(axis=0).astype(np.float64)
         x0, y0, x1, y1 = CELLS[name]
         atlas[y0:y1, x0:x1] = sprite
@@ -246,6 +241,14 @@ def build_atlas() -> Atlas:
             far = atlas[fy0:fy1, fx0:fx1]
             far[far[..., 3] == 0.0, :3] = means[name]
     return Atlas(np.rint(atlas * 255.0).astype(np.uint8), dict(CELLS))
+
+
+def sprite_linear_mean(atlas: Atlas, name: str) -> npt.NDArray[np.float64]:
+    """Mean linear RGB of the opaque pixels of a sprite: the colour its multiplier acts on."""
+    x0, y0, x1, y1 = atlas.cells[name]
+    pixels = atlas.rgba[y0:y1, x0:x1].reshape(-1, 4)
+    opaque = pixels[pixels[:, 3] > 127][:, :3].astype(np.float64) / 255.0
+    return np.asarray(foliage_tint.srgb_to_linear(opaque).mean(axis=0))
 
 
 def _uv(cell: tuple[int, int, int, int]) -> tuple[float, float, float, float]:
@@ -375,12 +378,14 @@ def build_plant(name: str, level: str, atlas: Atlas) -> PlantMesh:
     factors = np.array([horizontal, vertical, horizontal])
     positions = positions * factors
     positions[:, 1] = np.maximum(positions[:, 1], 0.0)
+    uv_out = uvs.astype(np.float32)
     return PlantMesh(
         f"{name}_{level}",
         positions.astype(np.float32),
         unit(normals / factors).astype(np.float32),
-        uvs.astype(np.float32),
+        uv_out,
         triangles.astype(np.int32),
+        pine.foliage_colours(uv_out, uv_out[:, 1] < STEM_V_MIN, foliage_tint.FOLIAGE_FACTORS[name]),
     )
 
 
@@ -412,6 +417,7 @@ def far_card(name: str, atlas: Atlas) -> PlantMesh:
         normals.astype(np.float32),
         np.array(uvs, dtype=np.float32).reshape(-1, 2),
         np.concatenate(triangles).astype(np.int32),
+        np.tile(np.array(foliage_tint.FOLIAGE_FACTORS[name], dtype=np.float32), (len(flat), 1)),
     )
 
 
@@ -458,6 +464,8 @@ def manifest(meshes: list[PlantMesh], atlas: Atlas, glb_bytes: int) -> dict[str,
         "notes": [
             "the leaf outlines are analytic: the source JPEGs have no alpha channel",
             "the atlas alpha loses coverage in the mips: use alpha-to-coverage (E2.5)",
+            "foliage colour is a per-vertex multiplier (COLOR_0, linear) from the reference photos "
+            "(foliage_tint.py); the textures are untinted",
         ],
     }
 

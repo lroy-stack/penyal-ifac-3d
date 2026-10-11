@@ -201,13 +201,7 @@ class TestWithTextures:
         transparent = rgba[rgba[..., 3] == 0]
         assert transparent[:, :3].mean(axis=0).min() > 40
 
-    def test_the_needles_are_a_bright_green_and_the_bark_a_grey(self, atlas: pine.Atlas) -> None:
-        x0, y0, x1, y1 = atlas.twig_a
-        needle = atlas.rgba[y0:y1, x0:x1].reshape(-1, 4)
-        needle = needle[needle[:, 3] > 200][:, :3].astype(np.float64)
-        red, green, blue = needle.mean(axis=0)
-        assert green > red * 1.15  # green, not olive
-        assert green > blue * 1.6
+    def test_the_bark_is_a_pale_grey_not_the_near_black_photograph(self, atlas: pine.Atlas) -> None:
         bx0, by0, bx1, by1 = pine.BARK_CELL
         bark = atlas.rgba[by0:by1, bx0:bx1, :3].reshape(-1, 3).astype(np.float64)
         assert (bark.max(axis=1) - bark.min(axis=1)).mean() < 22  # nearly neutral
