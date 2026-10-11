@@ -35,6 +35,7 @@ import {
   requiredTiles,
   type View,
 } from "./selection";
+import { createSurfaceMasks, type SurfaceStats } from "./surfaces";
 
 export type LoadedTile = {
   /** Scene content of the glTF; the streamer owns and eventually disposes it. */
@@ -125,6 +126,8 @@ export type TerrainStats = {
   readonly quality: TerrainQuality;
   /** What the detail shading uses: procedural noise or the marble maps at this size. */
   readonly detail: DetailSource;
+  /** Painted-surface masks (E1.3). */
+  readonly surfaces: SurfaceStats;
 };
 
 export type TerrainStreamer = {
@@ -227,6 +230,15 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
     uniforms: detailUniforms,
     set: quality === "high" ? options.detailSet : "off",
   });
+  const surfaceLoader = load.ktx2Loader ?? null;
+  const surfaces =
+    surfaceLoader === null
+      ? null
+      : createSurfaceMasks({
+          loader: surfaceLoader,
+          manifestUrl: resolveAssetUrl(manifestUrl, "../surfaces/manifest.json"),
+          detail: quality === "high",
+        });
   const retryDelayMs = options.retryDelayMs ?? 2000;
   const maxRetries = options.maxRetries ?? 3;
 
@@ -267,12 +279,14 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
   const remove = (entry: Entry): void => {
     root.remove(entry.object);
     disposeObject(entry.object);
+    if (entry.id !== FAR_ID) surfaces?.release(entry.id, entry.level);
     entries.delete(keyOf(entry.id, entry.level));
     track(entry.id, entry.level, false);
   };
 
   const onLoaded = (request: LoadRequest, loaded: LoadedTile): void => {
     prepareTerrainObject(loaded.object, applyDetail);
+    if (request.id !== FAR_ID) surfaces?.attach(request.id, request.level, loaded.object);
     loaded.object.visible = request.id === FAR_ID;
     root.add(loaded.object);
     entries.set(keyOf(request.id, request.level), {
@@ -420,6 +434,7 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
       lastError: lastError ?? detailTextures.lastError(),
       quality,
       detail: detailTextures.source(),
+      surfaces: surfaces?.stats() ?? { resident: 0, loaded: 0, detail: false, error: null },
     };
   };
 
@@ -433,6 +448,7 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
     dispose: () => {
       disposed = true;
       detailTextures.dispose();
+      surfaces?.dispose();
       for (const flight of inFlight.values()) flight.controller.abort();
       inFlight.clear();
       for (const entry of [...entries.values()]) remove(entry);

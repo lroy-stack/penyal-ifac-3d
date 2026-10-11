@@ -30,6 +30,7 @@ function stats(overrides: Partial<TerrainStats> = {}): TerrainStats {
     lastError: null,
     quality: "low",
     detail: "procedural",
+    surfaces: { resident: 0, loaded: 0, detail: false, error: null },
     ...overrides,
   };
 }
