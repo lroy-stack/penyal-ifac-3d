@@ -33,6 +33,10 @@ export function createGltfLoader(renderer: WebGLRenderer): GltfLoaderHandle {
   const ktx2Loader = new KTX2Loader();
   ktx2Loader.setTranscoderPath(BASIS_TRANSCODER_PATH);
   ktx2Loader.detectSupport(renderer);
+  // Fetch the transcoder now instead of when the first tile is parsed: it downloads alongside
+  // the far mesh and no round trip is spent waiting for it. Failures surface when a texture is
+  // parsed, so the rejection is not handled here.
+  ktx2Loader.init().catch(() => undefined);
 
   const loader = new GLTFLoader();
   loader.setKTX2Loader(ktx2Loader);

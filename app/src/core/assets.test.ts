@@ -27,6 +27,23 @@ describe("createGltfLoader", () => {
     dispose();
   });
 
+  it("starts downloading the transcoder at once, and a failed download is not an unhandled rejection", async () => {
+    const init = vi
+      .spyOn(KTX2Loader.prototype, "init")
+      .mockReturnValue(Promise.reject(new Error("offline")) as ReturnType<KTX2Loader["init"]>);
+    const unhandled = vi.fn();
+    process.on("unhandledRejection", unhandled);
+
+    const { dispose } = createGltfLoader(fakeRenderer);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(init).toHaveBeenCalledOnce();
+    expect(unhandled).not.toHaveBeenCalled();
+    process.off("unhandledRejection", unhandled);
+    init.mockRestore();
+    dispose();
+  });
+
   it("wires the meshopt decoder", () => {
     const { loader, dispose } = createGltfLoader(fakeRenderer);
 

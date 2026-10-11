@@ -9,6 +9,8 @@ import {
   isBehindCamera,
   loadRequests,
   planTiles,
+  REQUIRED_RADIUS,
+  requiredTiles,
   screenSpaceError,
   selectLod,
   sseThreshold,
@@ -147,6 +149,24 @@ describe("planTiles", () => {
 
     expect(sticky[0]?.wanted).toBe(0);
     expect(fresh[0]?.wanted).toBe(1);
+  });
+});
+
+describe("requiredTiles", () => {
+  const tiles = [makeTile(0, 0), makeTile(1, 0), makeTile(4, 0), makeTile(0, 3)];
+
+  it("is the tiles within one tile size of the camera, whichever way it looks", () => {
+    expect(REQUIRED_RADIUS).toBe(256);
+    const ids = requiredTiles(tiles, camera(128, 50, 128)).sort();
+    expect(ids).toEqual(["t_0_0", "t_1_0"]);
+    const facingAway = requiredTiles(tiles, camera(128, 50, 128, { x: 0, y: 0, z: 1 })).sort();
+    expect(facingAway).toEqual(ids);
+  });
+
+  it("follows the camera and honours a custom radius", () => {
+    expect(requiredTiles(tiles, camera(1100, 50, 128)).sort()).toEqual(["t_4_0"]);
+    expect(requiredTiles(tiles, camera(128, 50, 128), 10_000)).toHaveLength(4);
+    expect(requiredTiles(tiles, camera(5000, 50, 5000))).toEqual([]);
   });
 });
 

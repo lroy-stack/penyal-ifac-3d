@@ -32,6 +32,7 @@ import {
   type LoadRequest,
   loadRequests,
   planTiles,
+  requiredTiles,
   type View,
 } from "./selection";
 
@@ -90,6 +91,12 @@ export type TerrainStreamerOptions = {
   readonly detailSet?: DetailSet;
   /** Directory of the KTX2 maps, relative to the manifest; default `../materials/`. */
   readonly materialsPath?: string;
+  /**
+   * When false, only the critical path is fetched: the far mesh and the coarse LOD of the tiles
+   * around the camera. Everything else waits for `setDetailEnabled(true)`, so the walk can start
+   * before the rest of the terrain competes for the connection. Default true.
+   */
+  readonly detailEnabled?: boolean;
   /** Largest LOD-level difference allowed between edge-adjacent tiles; default 1. */
   readonly maxLodStep?: number;
 };
@@ -100,6 +107,15 @@ export type TerrainStats = {
   /** Tiles shown per LOD level. */
   readonly displayed: Readonly<Record<number, number>>;
   readonly farLoaded: boolean;
+  /**
+   * Near tiles that must be showing for the terrain to count as visible (those within
+   * `REQUIRED_RADIUS` of the camera at the last update) and how many already have a LOD.
+   */
+  readonly coverage: { readonly required: number; readonly loaded: number };
+  /** The far mesh and every required tile are loaded: the visitor sees terrain, not sky and sea. */
+  readonly visible: boolean;
+  /** Loading stopped (every retry failed) before the terrain became visible. */
+  readonly gaveUp: boolean;
   readonly bytesLoaded: number;
   /** Requests in flight plus those waiting for a free slot. */
   readonly pending: number;
@@ -117,6 +133,8 @@ export type TerrainStreamer = {
   readonly root: Group;
   /** Call once per frame. */
   readonly update: (view: View) => void;
+  /** Releases (or holds again) the loads that are not on the critical path; see the option. */
+  readonly setDetailEnabled: (enabled: boolean) => void;
   readonly stats: () => TerrainStats;
   readonly dispose: () => void;
 };
@@ -227,6 +245,8 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
   let queued = 0;
   let lastError: string | null = null;
   let disposed = false;
+  let required: readonly string[] = [];
+  let detailEnabled = options.detailEnabled ?? true;
 
   const isResident = (id: string, level: number): boolean => entries.has(keyOf(id, level));
 
@@ -287,6 +307,15 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
     );
   };
 
+  /** The far mesh and the coarsest LOD of a tile near the camera. */
+  const isCritical = (request: LoadRequest, requiredSet: ReadonlySet<string>): boolean => {
+    if (request.id === FAR_ID) return true;
+    const tile = tileById.get(request.id);
+    return (
+      tile !== undefined && requiredSet.has(request.id) && request.level === coarsestLevel(tile)
+    );
+  };
+
   const canRequest = (request: LoadRequest, now: number): boolean => {
     const key = keyOf(request.id, request.level);
     if (inFlight.has(key)) return false;
@@ -300,6 +329,7 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
     const selected = planTiles(tiles, view, sseThreshold, wantedPrevious);
     const plans = constrainLodSteps(tiles, selected, maxLodStep);
     const inUse = new Set<string>();
+    required = requiredTiles(tiles, view);
 
     for (const plan of selected) wantedPrevious.set(plan.id, plan.wanted);
     for (const plan of plans) {
@@ -337,8 +367,10 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
     );
     queued = outstanding.length;
     detailTextures.settled(farEntry !== undefined && inFlight.size === 0 && queued === 0);
+    const requiredSet = new Set(required);
     for (const request of outstanding) {
       if (inFlight.size >= maxConcurrent) break;
+      if (!detailEnabled && !isCritical(request, requiredSet)) continue;
       if (canRequest(request, now)) start(request);
     }
 
@@ -361,12 +393,19 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
     }
     const shown: Record<number, number> = {};
     for (const level of displayed.values()) shown[level] = (shown[level] ?? 0) + 1;
+    const farLoaded = entries.has(keyOf(FAR_ID, 0));
+    const loaded = required.filter((id) => (residentLevels.get(id)?.size ?? 0) > 0).length;
+    const visible = farLoaded && loaded === required.length;
+    const pending = Math.max(queued, inFlight.size);
     return {
       resident,
       displayed: shown,
-      farLoaded: entries.has(keyOf(FAR_ID, 0)),
+      farLoaded,
+      coverage: { required: required.length, loaded },
+      visible,
+      gaveUp: !visible && pending === 0 && failures.size > 0,
       bytesLoaded,
-      pending: Math.max(queued, inFlight.size),
+      pending,
       inFlight: inFlight.size,
       failed: failures.size,
       lastError: lastError ?? detailTextures.lastError(),
@@ -378,6 +417,9 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
   return {
     root,
     update,
+    setDetailEnabled: (enabled) => {
+      detailEnabled = enabled;
+    },
     stats,
     dispose: () => {
       disposed = true;

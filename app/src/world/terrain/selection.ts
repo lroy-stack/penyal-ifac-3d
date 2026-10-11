@@ -131,6 +131,23 @@ export function planTiles(
   });
 }
 
+/**
+ * Tiles within this distance (m) of the camera must have some LOD on screen before the terrain
+ * counts as visible; farther ones are covered by the far mesh until their coarse LOD arrives.
+ */
+export const REQUIRED_RADIUS = 256;
+
+/** Ids of the near tiles that must be showing for the terrain to count as visible. */
+export function requiredTiles(
+  tiles: readonly TerrainTile[],
+  view: Pick<View, "position">,
+  radius: number = REQUIRED_RADIUS,
+): string[] {
+  return tiles
+    .filter((tile) => distanceToBounds(view.position, tile.bounds) <= radius)
+    .map((tile) => tile.id);
+}
+
 /** Adjacent tiles may differ by at most this many LOD levels (one texel-density doubling). */
 export const DEFAULT_MAX_LOD_STEP = 1;
 

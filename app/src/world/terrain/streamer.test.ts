@@ -386,3 +386,114 @@ describe("createTerrainStreamer LOD step constraint", () => {
     expect(await requestedUrls(Number.POSITIVE_INFINITY)).not.toContain("t_1_0_lod1.glb");
   });
 });
+
+describe("createTerrainStreamer visibility", () => {
+  it("is not visible until the far mesh and the coarse LOD of the tiles around the camera are in", async () => {
+    const { streamer, requests } = setup({}, 3);
+    const view = viewAt(128, 128);
+    streamer.update(view);
+
+    expect(streamer.stats().visible).toBe(false);
+    expect(streamer.stats().coverage).toEqual({ required: 2, loaded: 0 });
+
+    requests.find((r) => r.url.endsWith("far.glb"))?.resolve();
+    await flush();
+    streamer.update(view);
+    expect(streamer.stats().visible).toBe(false);
+    expect(streamer.stats().coverage).toEqual({ required: 2, loaded: 0 });
+
+    for (let round = 0; round < 8 && !streamer.stats().visible; round++) {
+      for (const request of requests) request.resolve();
+      await flush();
+      streamer.update(view);
+    }
+
+    expect(streamer.stats().visible).toBe(true);
+    expect(streamer.stats().coverage).toEqual({ required: 2, loaded: 2 });
+    expect(streamer.stats().gaveUp).toBe(false);
+  });
+
+  it("does not need tiles that are far from the camera", async () => {
+    const { streamer, requests } = setup({}, 6);
+    const view = viewAt(128, 128);
+    const settle = async (suffix: string): Promise<void> => {
+      requests.find((r) => r.url.endsWith(suffix))?.resolve();
+      await flush();
+      streamer.update(view);
+    };
+    streamer.update(view);
+    expect(streamer.stats().coverage.required).toBe(2);
+
+    await settle("far.glb");
+    await settle("t_0_0_lod2.glb");
+    expect(streamer.stats().visible).toBe(false);
+    await settle("t_1_0_lod2.glb");
+
+    expect(streamer.stats().visible).toBe(true);
+    expect(streamer.stats().resident[2]).toBe(2);
+  });
+
+  it("gives up, instead of waiting forever, once every retry of the far mesh has failed", async () => {
+    const { streamer, requests, advance } = setup({ retryDelayMs: 10, maxRetries: 1 });
+    const view = viewAt(128, 128);
+    streamer.update(view);
+    expect(streamer.stats().gaveUp).toBe(false);
+
+    for (let attempt = 0; attempt < 6; attempt++) {
+      for (const request of requests) {
+        if (request.signal.aborted) continue;
+        if (request.url.endsWith("far.glb")) request.reject(new Error("HTTP 500"));
+        else request.resolve();
+      }
+      await flush();
+      advance(1000);
+      streamer.update(view);
+    }
+
+    expect(streamer.stats().visible).toBe(false);
+    expect(streamer.stats().gaveUp).toBe(true);
+  });
+});
+
+describe("createTerrainStreamer critical path", () => {
+  it("while detail is held, loads only the far mesh and the coarse LOD of the tiles around the camera", async () => {
+    const { streamer, requests } = setup({ detailEnabled: false }, 6);
+    const view = viewAt(128, 128);
+
+    for (let round = 0; round < 8; round++) {
+      streamer.update(view);
+      for (const request of requests) request.resolve();
+      await flush();
+    }
+    streamer.update(view);
+
+    expect(urls(requests).sort()).toEqual(["far.glb", "t_0_0_lod2.glb", "t_1_0_lod2.glb"]);
+    expect(streamer.stats().visible).toBe(true);
+    expect(streamer.stats().pending).toBeGreaterThan(0);
+  });
+
+  it("loads everything else, nearest first, once detail is enabled", async () => {
+    const { streamer, requests } = setup({ detailEnabled: false }, 6);
+    const view = viewAt(128, 128);
+    for (let round = 0; round < 4; round++) {
+      streamer.update(view);
+      for (const request of requests) request.resolve();
+      await flush();
+    }
+    const before = requests.length;
+
+    streamer.setDetailEnabled(true);
+    streamer.update(view);
+
+    expect(requests.length).toBeGreaterThan(before);
+    expect(urls(requests.slice(before))).toContain("t_2_0_lod2.glb");
+  });
+
+  it("holds detail from the first update, so nothing else is fetched ahead of the collision field", () => {
+    const { streamer, requests } = setup({ detailEnabled: false }, 6);
+
+    streamer.update(viewAt(128, 128));
+
+    expect(urls(requests)).toEqual(["far.glb", "t_0_0_lod2.glb"]);
+  });
+});
