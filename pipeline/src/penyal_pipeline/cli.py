@@ -253,13 +253,13 @@ def _cmd_vegetation(args: argparse.Namespace) -> int:
     counts, shrubs = doc["counts"], doc["understory"]
     print(
         f"crowns: {counts['crownsDetected']} detected, {counts['crownsTooTall']} too tall, "
-        f"{counts['crownsAbsent']} absent in the 2024 orthophoto (NDVI < "
-        f"{args.threshold}), {counts['crownsKept']} kept"
+        f"{counts['crownsAbsent']} absent in the 2024 orthophoto (NDVI < {args.threshold}), "
+        f"{counts['crownsCliff']} cliff artefacts, {counts['crownsOverPath']} over the path, "
+        f"{counts['crownsKept']} kept ({counts['crownsLeaning']} leaning off the corridor)"
     )
     print(
-        f"pilot band (421 m + 40 m): {counts['pilotBandReference']} crowns on the clipped "
-        f"window (reference), {counts['pilotBandPark']} in the park run, "
-        f"{counts['pilotBandKept']} after NDVI"
+        f"pilot band (421 m + 40 m): {counts['pilotBandPark']} detected, "
+        f"{counts['pilotBandKept']} kept"
     )
     print(f"understory: {shrubs['count']} instances")
     print(f"wrote {args.out} ({args.out.stat().st_size} bytes)")

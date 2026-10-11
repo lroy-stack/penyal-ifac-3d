@@ -10,12 +10,13 @@ import rasterio
 import shapely
 from conftest import build_marks, raw_marks
 from rasterio.transform import from_origin
+from shapely.geometry.base import BaseGeometry
 
-from penyal_pipeline import dem, ortho, understory, vegetation
+from penyal_pipeline import dem, ortho, provenance, trail, understory, vegetation
 from penyal_pipeline.cellhash import hash_cells, unit_float
 from penyal_pipeline.dem import Grid
 from penyal_pipeline.geo import ORIGIN_E, ORIGIN_N
-from penyal_pipeline.paths import TERRAIN_BUILD_DIR, TRAIL_GENERATED
+from penyal_pipeline.paths import REPO_ROOT, TERRAIN_BUILD_DIR, TRAIL_GENERATED
 from penyal_pipeline.vegetation import (
     Crowns,
     NdviRaster,
@@ -344,16 +345,6 @@ class TestWithData:
         *build_marks(TERRAIN_BUILD_DIR / "dem.f32", TRAIL_GENERATED),
     ]
 
-    def test_the_pilot_band_reproduces_the_research_figure(
-        self, found: vegetation.Detection
-    ) -> None:
-        assert found.pilot_reference == vegetation.PILOT_REFERENCE_CROWNS == 186
-
-    def test_the_park_run_has_one_crown_fewer_in_the_band(
-        self, found: vegetation.Detection
-    ) -> None:
-        assert found.pilot_park == vegetation.PILOT_PARK_CROWNS == 185
-
     def test_the_pilot_crowns_have_the_measured_heights(self, found: vegetation.Detection) -> None:
         band = vegetation.pilot_band(found.route)
         heights = found.crowns.height[vegetation.crowns_in(found.crowns, band)]
@@ -674,3 +665,275 @@ def test_cliff_understory_stays_outside_the_band_and_below_the_slope_threshold()
     assert (np.array(below["x"]) >= 0).any()
     gentle = instances_of(ramp_grid(base=100.0, rise_per_metre=1.0))  # 45 degrees: under 50
     assert (np.array(gentle["x"]) >= 0).any()
+
+
+# --- exclusion zone and the OSM boundary --------------------------------------------------------
+
+
+def osm_with(ways: dict[int, trail.Way], nodes: dict[int, tuple[float, float]]) -> trail.OsmData:
+    return trail.OsmData(xz=nodes, node_tags={}, ways=ways)
+
+
+def corridor_file(tmp_path: Path) -> Path:
+    path = tmp_path / "trail.json"
+    ring = [[-30.0, 20.0], [-10.0, 20.0], [-10.0, 30.0], [-30.0, 30.0], [-30.0, 20.0]]
+    path.write_text(json.dumps({"corridor": {"polygon": ring}}), encoding="utf-8")
+    return path
+
+
+def zone_of(tmp_path: Path) -> shapely.geometry.base.BaseGeometry:
+    nodes = {
+        1: (0.0, 0.0),
+        2: (100.0, 0.0),  # a footpath along x
+        3: (0.0, 50.0),
+        4: (100.0, 50.0),  # a residential street
+        5: (20.0, 70.0),
+        6: (30.0, 70.0),
+        7: (30.0, 80.0),
+        8: (20.0, 80.0),  # a building
+        9: (500.0, 500.0),
+    }
+    ways = {
+        10: trail.Way((1, 2), {"highway": "path"}),
+        11: trail.Way((3, 4), {"highway": "residential"}),
+        12: trail.Way((5, 6, 7, 8, 5), {"building": "yes"}),
+        13: trail.Way((1, 99), {"highway": "path"}),  # node 99 is not in the extract
+    }
+    return understory.exclusion_zone(osm_with(ways, nodes), corridor_file(tmp_path))
+
+
+def inside(zone: shapely.geometry.base.BaseGeometry, x: float, z: float) -> bool:
+    return bool(shapely.contains_xy(zone, x, z))
+
+
+def test_footpaths_keep_the_understory_off_by_the_footpath_clearance(
+    tmp_path: Path,
+) -> None:
+    zone = zone_of(tmp_path)
+    assert inside(zone, 50.0, understory.FOOTPATH_CLEARANCE - 0.1)
+    assert not inside(zone, 50.0, understory.FOOTPATH_CLEARANCE + 0.1)
+
+
+def test_roads_keep_the_understory_off_by_the_road_clearance(tmp_path: Path) -> None:
+    zone = zone_of(tmp_path)
+    assert inside(zone, 50.0, 50.0 + understory.ROAD_CLEARANCE - 0.1)
+    assert not inside(zone, 50.0, 50.0 + understory.ROAD_CLEARANCE + 0.1)
+
+
+def test_buildings_and_their_clearance_are_excluded(tmp_path: Path) -> None:
+    zone = zone_of(tmp_path)
+    assert inside(zone, 25.0, 75.0)
+    assert inside(zone, 30.0 + understory.BUILDING_CLEARANCE - 0.1, 75.0)
+    assert not inside(zone, 30.0 + understory.BUILDING_CLEARANCE + 0.1, 75.0)
+
+
+def test_the_corridor_is_excluded_with_its_clearance(tmp_path: Path) -> None:
+    zone = zone_of(tmp_path)
+    assert inside(zone, -20.0, 25.0)
+    assert inside(zone, -10.0 + understory.CORRIDOR_CLEARANCE - 0.05, 25.0)
+    assert not inside(zone, -10.0 + understory.CORRIDOR_CLEARANCE + 0.05, 25.0)
+
+
+def test_a_way_with_a_node_missing_from_the_extract_is_skipped_not_fatal(
+    tmp_path: Path,
+) -> None:
+    zone = zone_of(tmp_path)  # way 13 lists node 99, which is absent: it must not raise
+    assert inside(zone, 50.0, 0.0)  # the other footpath still counts
+
+
+def reserve_osm(tmp_path: Path) -> tuple[Path, trail.OsmData]:
+    path = tmp_path / "osm.json"
+    relation = {
+        "type": "relation",
+        "id": vegetation.RESERVE_RELATION,
+        "members": [
+            {"type": "way", "ref": 1, "role": "outer"},
+            {"type": "way", "ref": 2, "role": "outer"},
+        ],
+    }
+    path.write_text(json.dumps({"elements": [relation]}), encoding="utf-8")
+    nodes = {1: (0.0, 0.0), 2: (10.0, 0.0), 3: (10.0, 10.0), 4: (0.0, 10.0)}
+    ways = {1: trail.Way((1, 2, 3), {}), 2: trail.Way((3, 4, 1), {})}
+    return path, osm_with(ways, nodes)
+
+
+def test_the_reserve_polygon_closes_from_its_outer_ways(tmp_path: Path) -> None:
+    path, osm = reserve_osm(tmp_path)
+    assert vegetation.reserve_polygon(path, osm).area == pytest.approx(100.0)
+
+
+def test_a_reserve_way_with_a_node_missing_is_a_clear_error_not_a_key_error(
+    tmp_path: Path,
+) -> None:
+    path, osm = reserve_osm(tmp_path)
+    broken = osm_with(osm.ways, {k: v for k, v in osm.xz.items() if k != 2})
+    with pytest.raises(VegetationError, match="node 2"):
+        vegetation.reserve_polygon(path, broken)
+
+
+# --- point and crown filters --------------------------------------------------------------------
+
+
+def test_crowns_taller_than_the_limit_are_not_plausible() -> None:
+    height = np.array([3.0, vegetation.MAX_CROWN_HEIGHT, vegetation.MAX_CROWN_HEIGHT + 0.01, 94.0])
+    crowns = Crowns(np.zeros(4), np.zeros(4), np.zeros(4), height, np.ones(4))
+    assert vegetation.plausible(crowns).tolist() == [True, True, False, False]
+
+
+def write_las(path: Path, rows: list[tuple[float, float, float, int]]) -> Path:
+    """A LAS file with one point per ``(easting offset, northing offset, z, class)``."""
+    import laspy
+
+    header = laspy.LasHeader(point_format=3, version="1.2")
+    header.scales = np.array([0.01, 0.01, 0.01])
+    header.offsets = np.array([ORIGIN_E, ORIGIN_N, 0.0])
+    las = laspy.LasData(header)
+    las.x = np.array([ORIGIN_E + r[0] for r in rows])
+    las.y = np.array([ORIGIN_N - r[1] for r in rows])  # local z grows southwards
+    las.z = np.array([r[2] for r in rows])
+    las.classification = np.array([r[3] for r in rows], dtype=np.uint8)
+    las.write(str(path))
+    return path
+
+
+def test_only_usable_vegetation_points_survive_the_reader(tmp_path: Path) -> None:
+    heights = np.full((200, 200), 50.0, dtype=np.float32)
+    heights[:, :100] = 0.2  # the west half is at sea level: boats, masts, sea clutter
+    grid = Grid(heights, x0=-100.0, z0=-100.0)
+    rows = [
+        (20.0, 0.0, 58.0, 5),  # good: 8 m above 50 m ground
+        (21.0, 0.0, 58.0, 2),  # ground class: not vegetation
+        (22.0, 0.0, 49.0, 5),  # below the DEM
+        (-20.0, 0.0, 12.0, 5),  # over the sea (ground 0.2 m)
+        (23.0, 0.0, 400.0, 5),  # above the noise range
+        (500.0, 0.0, 58.0, 5),  # outside the bounds
+    ]
+    las = write_las(tmp_path / "t.las", rows)
+    points = vegetation.read_vegetation_points([las], (-90.0, -90.0, 90.0, 90.0), grid)
+    assert points.x.size == 1
+    assert points.height[0] == pytest.approx(8.0, abs=0.01)
+    assert points.lidar_class.tolist() == [5]
+
+
+# --- reproducibility ----------------------------------------------------------------------------
+
+
+def test_the_cell_hash_and_the_variant_and_yaw_of_a_known_cell_are_pinned() -> None:
+    """Pinned so a numpy or platform change cannot silently move every tree."""
+    assert int(hash_cells(np.array([5]), np.array([9]), 1)[0]) == 9336431854891424590
+    assert int(hash_cells(np.array([-3]), np.array([7]), 2)[0]) == 13009522658322218369
+    crowns = Crowns(
+        np.array([5.0, -3.0]),
+        np.zeros(2),
+        np.array([9.0, 7.0]),
+        np.array([6.0, 6.0]),
+        np.array([2.0, 2.0]),
+    )
+    columns = vegetation.crown_columns(crowns, np.array([0.3, 0.3]), np.array([5.0, 5.0]))
+    assert columns["variant"] == [2, 0]
+    assert columns["yaw"] == [54, 253]
+
+
+def test_keep_values_thin_the_understory_in_nested_subsets() -> None:
+    points = points_of(
+        [
+            (float(x) + 0.5, float(z) + 0.5, 0.8)
+            for x in range(-96, 96, 4)
+            for z in range(-96, 96, 4)
+            for _ in range(14)
+        ],
+        lidar_class=4,
+    )
+    area = shapely.box(-100, -100, 100, 100)
+    keep = np.array(
+        understory.instances(points, flat_grid(), area, shapely.Point(500, 500))["keep"]
+    )
+    low, high = keep < 35, keep < 70
+    assert (low <= high).all()  # what a low tier draws, a high tier draws too
+    assert low.mean() == pytest.approx(0.35, abs=0.03)
+    assert high.mean() == pytest.approx(0.70, abs=0.03)
+
+
+# --- the research prototype's pilot figure, as properties of the algorithm ----------------------
+
+PILOT_FIXTURE = REPO_ROOT / "fixtures" / "vegetation" / "pilot-crowns.json"
+PILOT_REFERENCE_CROWNS = 186  # docs/research/003-inventario-datos-propios.md section 4
+PILOT_PARK_CROWNS = 185
+
+
+def pilot_reference_crowns(points: VegetationPoints, grid: Grid, band: BaseGeometry) -> Crowns:
+    """What the research prototype did: the points inside the bounding box of the band are cut
+    out first, then the crowns inside the band are kept. The cut leaves the window edge without
+    neighbours, which is why a run over the whole park finds one crown fewer."""
+    x_min, z_min, x_max, z_max = band.bounds
+    window = (points.x >= x_min) & (points.x <= x_max) & (points.z >= z_min) & (points.z <= z_max)
+    crowns = vegetation.detect_crowns(vegetation.select_points(points, window), grid)
+    return crowns.select(vegetation.crowns_in(crowns, band))
+
+
+@pytest.fixture(scope="module")
+def reference(found: vegetation.Detection) -> Crowns:
+    return pilot_reference_crowns(found.points, found.grid, vegetation.pilot_band(found.route))
+
+
+class TestPilotStretch:
+    pytestmark: ClassVar = [
+        *raw_marks(*DATA_PATTERNS),
+        *build_marks(TERRAIN_BUILD_DIR / "dem.f32", TRAIL_GENERATED),
+    ]
+
+    def test_the_clipped_window_reproduces_the_research_figure(self, reference: Crowns) -> None:
+        assert len(reference) == PILOT_REFERENCE_CROWNS
+
+    def test_a_run_over_the_whole_park_has_one_crown_fewer_in_the_band(
+        self, found: vegetation.Detection
+    ) -> None:
+        band = vegetation.pilot_band(found.route)
+        assert int(vegetation.crowns_in(found.crowns, band).sum()) == PILOT_PARK_CROWNS
+
+    def test_the_height_classes_match_the_research_within_three(self, reference: Crowns) -> None:
+        bins = np.histogram(reference.height, bins=[3.0, 5.0, 8.0, 12.0, 100.0])[0]
+        assert bins.tolist()[:3] == pytest.approx([58, 108, 20], abs=3)
+        assert int(bins[3]) == 0
+
+    def test_a_half_metre_shift_of_every_point_changes_the_count_by_at_most_five_percent(
+        self, found: vegetation.Detection
+    ) -> None:
+        points = found.points
+        shifted = VegetationPoints(
+            points.x + 0.5, points.z + 0.5, points.height, points.lidar_class
+        )
+        before = len(vegetation.detect_crowns(points, found.grid))
+        after = len(vegetation.detect_crowns(shifted, found.grid))
+        assert abs(after - before) <= 0.05 * before
+
+    def test_the_stored_pilot_positions_are_still_found_within_a_metre(
+        self, reference: Crowns
+    ) -> None:
+        stored = np.array(json.loads(PILOT_FIXTURE.read_text(encoding="utf-8"))["crowns"])
+        assert len(stored) == PILOT_REFERENCE_CROWNS
+        found = np.stack([reference.x, reference.z], axis=1)
+        nearest = np.sqrt(((stored[:, None, :] - found[None, :, :]) ** 2).sum(axis=2)).min(axis=1)
+        assert (nearest <= 1.0).mean() >= 0.95
+
+
+class TestRunIsReproducible:
+    pytestmark: ClassVar = [
+        *raw_marks(*DATA_PATTERNS),
+        *build_marks(TERRAIN_BUILD_DIR / "dem.f32", TRAIL_GENERATED),
+    ]
+
+    def test_two_runs_write_the_same_bytes_and_a_provenance_block_that_verifies(
+        self, tmp_path: Path
+    ) -> None:
+        first, second = (
+            tmp_path / "a" / "vegetation.json",
+            tmp_path / "b" / "vegetation.json",
+        )
+        vegetation.run_vegetation(first)
+        vegetation.run_vegetation(second)
+        assert first.read_bytes() == second.read_bytes()
+        document = json.loads(first.read_text(encoding="utf-8"))
+        assert document["inputs"]
+        assert set(document["tools"]) == {"numpy", "rasterio", "shapely", "laspy"}
+        assert provenance.verify_artefact(first, "vegetation.json", REPO_ROOT) == []

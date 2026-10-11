@@ -61,14 +61,11 @@ MAX_CROWN_RADIUS = 6.0
 ROUTE_BAND = 40.0  # metres around the route that always belong to the area
 RESERVE_RELATION = 2172136  # OSM: Parc Natural del Penyal d'Ifac
 
-# The pilot stretch of the research (§4): 40 m each side of the first 421 m of route. The figure
-# 186 is a reference that pins the algorithm, not a tuning target: it is the count of the same
-# method run on the points inside the bounding box of the band, as the prototype did. A run over
-# the whole park finds one crown fewer in the band (a crown the clipped window left uncovered).
+# The pilot stretch of the research (section 4): 40 m each side of the first 421 m of route. Its
+# figure (186 crowns) pins the algorithm in the tests, which reproduce the prototype's clipping of
+# the points to the band; it is not a tuning target.
 PILOT_LENGTH = 421.0
 PILOT_BAND = 40.0
-PILOT_REFERENCE_CROWNS = 186
-PILOT_PARK_CROWNS = 185
 
 # Orthophoto 2024: bands R, G, B, then near infrared. The ICV metadata page could not be reached,
 # so the NIR band was identified from the data (tech lead, 2026-10-11): 5000 random LiDAR 2016
@@ -208,11 +205,20 @@ def reserve_polygon(osm_json: Path, osm: trail.OsmData) -> BaseGeometry:
         raise VegetationError(
             f"OSM relation {RESERVE_RELATION} (nature reserve) is not in the extract"
         )
-    lines = [
-        shapely.LineString([osm.xz[n] for n in osm.ways[m["ref"]].nodes])
-        for m in relation["members"]
-        if m["type"] == "way" and m["role"] == "outer"
-    ]
+    lines = []
+    for member in relation["members"]:
+        if member["type"] != "way" or member["role"] != "outer":
+            continue
+        way = osm.ways.get(member["ref"])
+        if way is None:
+            raise VegetationError(f"reserve way {member['ref']} is not in the OSM extract")
+        missing = [n for n in way.nodes if n not in osm.xz]
+        if missing:
+            raise VegetationError(
+                f"reserve way {member['ref']} lists node {missing[0]}, which is not in the OSM "
+                "extract: fetch the extract again"
+            )
+        lines.append(shapely.LineString([osm.xz[n] for n in way.nodes]))
     polygons = list(shapely.ops.polygonize(shapely.unary_union(lines)))
     if len(polygons) != 1:
         raise VegetationError(
@@ -378,17 +384,13 @@ def place_feet(x: Floats, z: Floats, height: Floats, corridor: BaseGeometry) -> 
     return Feet(foot_x, foot_z, ok)
 
 
+def plausible(crowns: Crowns) -> npt.NDArray[np.bool_]:
+    """False for crowns taller than any tree of the park (LiDAR/DEM mismatches on vertical rock)."""
+    return np.asarray(crowns.height <= MAX_CROWN_HEIGHT, dtype=np.bool_)
+
+
 def crowns_in(crowns: Crowns, area: BaseGeometry) -> npt.NDArray[np.bool_]:
     return np.asarray(shapely.contains_xy(area, crowns.x, crowns.z), dtype=np.bool_)
-
-
-def pilot_reference_crowns(points: VegetationPoints, grid: dem.Grid, band: BaseGeometry) -> Crowns:
-    """The research prototype's figure: points clipped to the band's bounding box, then the crowns
-    inside the band."""
-    x_min, z_min, x_max, z_max = band.bounds
-    window = (points.x >= x_min) & (points.x <= x_max) & (points.z >= z_min) & (points.z <= z_max)
-    crowns = detect_crowns(select_points(points, window), grid)
-    return crowns.select(crowns_in(crowns, band))
 
 
 # --- NDVI ---------------------------------------------------------------------------------------
@@ -541,7 +543,6 @@ class Detection:
     over_path: npt.NDArray[np.bool_]
     feet: Feet
     kept: npt.NDArray[np.bool_]
-    pilot_reference: int
     pilot_park: int
     pilot_kept: int
     implausible: int
@@ -564,8 +565,8 @@ def detect(threshold: float = NDVI_ABSENT_THRESHOLD) -> Detection:
     points = read_vegetation_points(dem.lidar_paths(), bounds, grid)
     crowns = detect_crowns(points, grid)
     crowns = crowns.select(crowns_in(crowns, area))
-    implausible = int((crowns.height > MAX_CROWN_HEIGHT).sum())
-    crowns = crowns.select(crowns.height <= MAX_CROWN_HEIGHT)
+    implausible = int((~plausible(crowns)).sum())
+    crowns = crowns.select(plausible(crowns))
     with ortho.open_ortho(ortho.locate_ortho().path) as src:
         raster = read_ndvi(src, (x_min, z_min, x_max, z_max))
     ndvi = crown_ndvi(raster, crowns)
@@ -588,7 +589,6 @@ def detect(threshold: float = NDVI_ABSENT_THRESHOLD) -> Detection:
         over_path=over_path,
         feet=feet,
         kept=kept,
-        pilot_reference=len(pilot_reference_crowns(points, grid, band)),
         pilot_park=int(in_band.sum()),
         pilot_kept=int((in_band & kept).sum()),
         implausible=implausible,
@@ -615,9 +615,8 @@ def analysis_report(found: Detection, threshold: float) -> str:
         f"{MAX_CROWN_HEIGHT:.0f} m dropped, {len(crowns)} analysed",
         f"height of the analysed crowns: median {np.median(crowns.height):.1f} m, p90 "
         f"{np.percentile(crowns.height, 90):.1f} m, max {crowns.height.max():.1f} m",
-        f"pilot band (421 m + 40 m): {found.pilot_reference} crowns on the clipped window "
-        f"(reference {PILOT_REFERENCE_CROWNS}), {int(in_band.sum())} in the park run "
-        f"(pinned {PILOT_PARK_CROWNS})",
+        f"pilot band (421 m + 40 m): {int(in_band.sum())} crowns detected, "
+        f"{int((in_band & found.kept).sum())} kept",
         f"NDVI (band {NIR_BAND} = NIR): {int(np.isnan(ndvi).sum())} crowns without valid pixels",
         "crown NDVI histogram (all / pilot band):",
     ]
@@ -712,7 +711,6 @@ def document(found: Detection, understory_doc: dict[str, Any], threshold: float)
             "crownsCliff": int(found.cliff.sum()),
             "crownsOverPath": int(found.over_path.sum()),
             "crownsLeaning": int((np.hypot(*lean) > 0.0).sum()),
-            "pilotBandReference": found.pilot_reference,
             "pilotBandPark": found.pilot_park,
             "pilotBandKept": found.pilot_kept,
         },

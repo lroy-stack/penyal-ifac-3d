@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from penyal_pipeline import dem, ortho, trail, understory
-from penyal_pipeline.paths import REPO_ROOT, TUNNEL_CURATED
+from penyal_pipeline.paths import REPO_ROOT, TRAIL_GENERATED, TUNNEL_CURATED
 from penyal_pipeline.provenance import ProvenanceError, relative, sha256_file, tool_versions
 from penyal_pipeline.rawdata import locate
 
@@ -40,7 +40,7 @@ def _osm_input(root: Path) -> Input:
 
 
 def _vegetation_inputs(root: Path) -> list[Input]:
-    trail_json = root / "app" / "public" / "assets" / "generated" / "trail.json"
+    trail_json = root / TRAIL_GENERATED.relative_to(REPO_ROOT)
     return [
         *_dem_inputs(root),
         _osm_input(root),
