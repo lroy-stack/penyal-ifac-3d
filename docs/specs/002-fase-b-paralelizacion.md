@@ -118,8 +118,13 @@ Estas tareas no tocan código y pueden empezar ya:
 
 ### Estado del arranque anticipado (11/10/2026)
 
-- [ ] L3: especies y modelos de plantas → `docs/specs/002/vegetacion-especies.md`. En curso.
-- [ ] L2: sonidos con licencia → `docs/specs/002/sonido-licencias.md`. En curso.
+- [x] L3: especies y modelos de plantas → `docs/specs/002/vegetacion-especies.md`, con recuentos de iNaturalist.
+  - Descargados 9,20 MB CC0 de Poly Haven, aprobados por el usuario.
+  - El pino será procedural con las texturas de `pine_tree_01`.
+- [x] L2: sonidos con licencia → `docs/specs/002/sonido-licencias.md`.
+  - Descargados, con la aprobación del usuario: mar, cigarras y paso (Commons); gaviota XC624044 y curruca XC930530 (xeno-canto, CC BY 4.0).
+  - El audio CC BY-SA está permitido como fichero aparte (ADR 0011).
+  - Faltan el viento en pinos, la collalba negra y el vencejo pálido.
 - [x] L8: guion de vecinos y protocolo de fotos → `docs/specs/002/pruebas-vecinos.md` y `docs/specs/002/protocolo-fotos.md`.
   - Los puntos F1–F5 llevan coordenadas y rumbos calculados a partir de `trail.json`.
 - [x] L7: ficha piloto, en dos variantes → `docs/specs/002/ficha-piloto.md`.
