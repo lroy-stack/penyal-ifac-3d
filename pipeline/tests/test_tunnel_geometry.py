@@ -265,3 +265,11 @@ def test_clip_is_deterministic_and_welds_shared_edges() -> None:
         return len(mesh.positions) - len({tuple(p) for p in mesh.positions.tolist()})
 
     assert duplicates(first) <= duplicates(shell), "cut-line vertices are shared by neighbours"
+
+
+def test_exactly_one_profile_strip_is_the_walkable_floor_and_it_lies_at_floor_level() -> None:
+    profile = geo.strips(2.0, 2.6)
+    floors = [strip for strip in profile if strip.walkable]
+    assert len(floors) == 1
+    assert np.allclose(floors[0].uv[:, 1], 0.0)
+    assert all(not np.allclose(strip.uv[:, 1], 0.0) for strip in profile if not strip.walkable)

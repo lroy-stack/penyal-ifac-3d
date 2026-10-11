@@ -48,6 +48,7 @@ class Strip:
 
     uv: Floats  # (k, 2)
     tangent: Floats  # (k, 2) unit profile direction at each vertex
+    walkable: bool = False  # the floor: never clipped, whatever its slope
 
 
 def _arch(width: float, height: float) -> tuple[float, float, float]:
@@ -85,14 +86,19 @@ def strips(width: float, height: float) -> tuple[Strip, ...]:
     arc = np.column_stack([radius * np.cos(angles), centre_v + radius * np.sin(angles)])
     arc_tangent = np.column_stack([-np.sin(angles), np.cos(angles)])
 
-    def straight(a: tuple[float, float], b: tuple[float, float], d: tuple[float, float]) -> Strip:
-        return Strip(np.array([a, b]), np.array([d, d]))
+    def straight(
+        a: tuple[float, float],
+        b: tuple[float, float],
+        d: tuple[float, float],
+        walkable: bool = False,
+    ) -> Strip:
+        return Strip(np.array([a, b]), np.array([d, d]), walkable)
 
     return (
         straight((half, 0.0), (half, wall_top), (0.0, 1.0)),
         Strip(arc, arc_tangent),
         straight((-half, wall_top), (-half, 0.0), (0.0, -1.0)),
-        straight((-half, 0.0), (half, 0.0), (1.0, 0.0)),
+        straight((-half, 0.0), (half, 0.0), (1.0, 0.0), walkable=True),
     )
 
 
@@ -163,10 +169,9 @@ def build_shell(axis: Floats, width: float, height: float) -> ShellMesh:
     up = np.array([0.0, 1.0, 0.0])
     ring_count = axis.shape[0]
     offset = 0
-    all_strips = strips(width, height)
-    for index, strip in enumerate(all_strips):
+    for strip in strips(width, height):
         count = strip.uv.shape[0]
-        floor.append(np.full(ring_count * count, index == len(all_strips) - 1))
+        floor.append(np.full(ring_count * count, strip.walkable))
         for i in range(ring_count):
             u, v = strip.uv[:, 0:1], strip.uv[:, 1:2]
             positions.append(axis[i] + frame.left[i] * u * frame.miter[i] + up * v)
