@@ -231,10 +231,19 @@
   </head>
   <body>
     <canvas id="scene" aria-label="{{canvasLabel}}"></canvas>
-    <div id="poster" aria-hidden="true">
+    <div id="poster">
       <h1>{{posterTitle}}</h1>
       <p id="poster-message">{{loadingRoute}}</p>
-      <div id="poster-track"><div id="poster-bar"></div></div>
+      <div
+        id="poster-track"
+        role="progressbar"
+        aria-label="{{loadingProgress}}"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="0"
+      >
+        <div id="poster-bar"></div>
+      </div>
     </div>
     <div id="fatal"></div>
     <div id="notice" role="status" aria-live="polite"></div>

@@ -16,18 +16,21 @@ const FADE_MS = 400;
 
 /**
  * The loading poster is plain HTML in index.html, so its text is the first thing painted (and the
- * largest-contentful-paint candidate: a `<canvas>` is not one). This only updates it. It is
- * `aria-hidden`; screen readers get the same messages from `#status`.
+ * largest-contentful-paint candidate: a `<canvas>` is not one). This only updates it. Its title
+ * and progress bar are exposed to assistive technology; `#status` announces the messages.
  */
 export function createPoster(): Poster {
   const poster = requireElement("poster");
   const message = requireElement("poster-message");
   const bar = requireElement("poster-bar");
+  const track = requireElement("poster-track");
   let hidden = false;
   return {
     setProgress: (fraction) => {
       if (hidden) return;
-      bar.style.transform = `scaleX(${Math.min(Math.max(fraction, 0), 1)})`;
+      const clamped = Math.min(Math.max(fraction, 0), 1);
+      bar.style.transform = `scaleX(${clamped})`;
+      track.setAttribute("aria-valuenow", String(Math.round(clamped * 100)));
     },
     setMessage: (text) => {
       if (!hidden) message.textContent = text;

@@ -31,6 +31,13 @@ test("shows a poster at once and walks only after the terrain is visible, fetchi
   const poster = page.locator("#poster");
   await expect(poster).toBeVisible();
   await expect(poster.locator("h1")).toHaveText("Penyal d'Ifac 3D");
+  // Assistive technology sees the title and the progress while loading, not an empty page.
+  await expect(poster).not.toHaveAttribute("aria-hidden", /.*/);
+  await expect(page.getByRole("heading", { level: 1, name: "Penyal d'Ifac 3D" })).toBeVisible();
+  const progress = page.getByRole("progressbar", { name: "Progreso de la carga" });
+  await expect(progress).toHaveAttribute("aria-valuemin", "0");
+  await expect(progress).toHaveAttribute("aria-valuemax", "100");
+  await expect(progress).toHaveAttribute("aria-valuenow", /^\d+$/);
   await expect(page.locator("#poster-message")).toHaveText("Cargando el terreno…", {
     timeout: 30_000,
   });
