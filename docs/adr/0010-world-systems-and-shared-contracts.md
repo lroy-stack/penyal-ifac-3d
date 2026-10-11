@@ -1,6 +1,6 @@
 # 0010. Compose the world from registered systems that share atmosphere, quality, budget and POI contracts
 
-- Status: accepted; amendment 1 (2026-10-11) adds a GPU texture-memory budget
+- Status: accepted; amendment 1 (2026-10-11) adds a GPU texture-memory budget; amendment 2 (2026-10-11) records the B0 implementation and its review
 - Date: 2026-10-11
 - Deciders: tech lead (architect); accepted by lr0y (product owner) on 2026-10-11
 - Scope: B0 of `docs/specs/002-fase-b-paralelizacion.md`; implemented after phase A closes.
@@ -327,3 +327,30 @@ Precondition: main is green and `uv run --project pipeline penyal verify-generat
   - Production code still never reads the budget (§4).
 - **Rule for lanes.** A system that streams textures, such as the masks or terrain tiles, loads them only for resident tiles and disposes them on eviction.
   - The budget row covers its worst resident set, not the whole map.
+
+## Amendment 2 (2026-10-11): what B0 implemented, and the review's corrections
+B0 landed on main as 10 commits (cc4e091 … 369f53e, plus fixups). The independent review approved the core: isolation, phase and list order, the real-time terrain gate, an unchanged shader cache key, the quality equivalence and bit-identical atmosphere defaults. These are the contract points the lanes must code against, where the implementation differs from or adds to §1–§7.
+- **`FrameInfo.realMs`.** The real frame time in ms: capped per frame and 0 for the first frame after a hidden tab. Systems that need wall-clock behaviour use it, as the terrain stall gate does (phase A rule). `dt` stays the clamped simulation step.
+- **`World.setEnabled(id, on)` and `World.cpuMs(id)`** back the `__world` test hooks and the budget E2E. `__world.textures()` reports the per-system texture estimate of Amendment 1. All of these exist only with `TEST_HOOKS_ENABLED`.
+- **`WorldDeps`:**
+  - quality is a mutable holder (`{ current }`) that `World.setQuality` updates;
+  - the ground registry is lockable: `addSurface` and `addEnclosure` throw after `startWalk`.
+- **Atmosphere.** Only the atmosphere system receives the writer. The others receive a **runtime** read-only view: a write throws, not only a type error. *(Fix in progress after the review.)*
+- **Loading order.** The bootstrap awaits `critical`, starts the preview, and awaits `beforeWalk` only after the walk gate. This is what §1 always said; the first implementation awaited both before the preview. *(Fix in progress.)*
+  - A slow `beforeWalk` system, such as the staircases, must never delay the first frame or the poster.
+- **Settle deadline.** The registry gives every `critical`/`beforeWalk` system a settle deadline. When it expires, the status becomes `degraded`, one `console.error("[world:<id>] …")` is logged and the walk gate proceeds. The gate is polled by a timer whenever the frame loop is not running. *(Fix in progress.)*
+- **`ctx.report`.** `{ state: "failed" }` goes through the same path as a thrown error: `console.error`, `ctx.signal` aborted, root hidden. `degraded` is logged once and is not fatal. *(Fix in progress.)*
+- **Init timeout.** The default is `JSON_TIMEOUT_MS + 5 s` (35 s), so a JSON request always times out and retries before the system's init does. The original 20 s default would lose a slow but healthy load.
+- **`notices`** is declared and reserved. For now the bootstrap composes the terrain and tunnel texts. The first lane that needs a user-visible failure text implements it.
+- **`addShaderPatch`** replaces any foreign `onBeforeCompile` on the material. `Material.clone()` drops the patches, so callers that clone must re-attach (vegetation wind, for example).
+- **Budget E2E.**
+  - Draw calls include shadow passes, because `info.reset()` runs before the shadow-map render. So toggling a caster also removes its shadow passes; they are charged to the caster's row, not to `shadows`. The shadows lane (L1) must state its split before the `high` row is final.
+  - Toggling `sky` or `tunnel` changes the light count and recompiles programs. Metal ms medians must warm up a few frames after such a toggle.
+  - After each re-enable, the spec asserts that the total is restored. *(Fix in progress.)*
+- **POIs.**
+  - `content/pois/centre.json` is ficha-piloto variant B, in Spanish only, as a draft.
+  - Variant A stays out until the park confirms the Mirador de Ponent anchor.
+  - The discovery radius of 15 m is a content default for the content owner to review.
+- **E2E output.** Specs that write captures to `test-results/` were not moved to `testInfo.outputPath()`, because each lane worktree already isolates them.
+- **Worktrees.** `data/raw` and `data/manual` are APFS-cloned, not symlinked. `provenance.relative()` used to resolve symlinks out of the lane, which broke every pipeline command that records inputs; it is now symlink-robust too. *(Fix in progress.)*
+  - The lane checklist runs `penyal verify-generated` inside the lane.
