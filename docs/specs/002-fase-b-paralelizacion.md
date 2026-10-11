@@ -131,7 +131,8 @@ Estas tareas no tocan código y pueden empezar ya:
 - [x] Correo al parque → `docs/specs/002/consulta-parque.md`. Recoge las 11 discrepancias, los 4 datos sin verificar, el Mirador de Ponent, las paradas, la reserva, los menores y las medidas del túnel.
   - **Lo envía el responsable del proyecto.**
   - Abre una decisión: cómo citar una respuesta por correo, porque el esquema exige una URL. Irá como enmienda del ADR 0005.
-- [ ] B0: diseño de contratos → `docs/adr/0010-world-systems-and-shared-contracts.md`, del agente `architect`, con estado "Propuesto". En curso.
+- [x] B0, diseño: `docs/adr/0010-world-systems-and-shared-contracts.md`, aceptado el 11/10/2026.
+  - Define una migración en 10 commits, cada uno con su comprobación.
   - La implementación de B0 espera al cierre de la fase A.
 - [ ] Fase A: M5, la carcasa del túnel en la boca este, del agente `implementer`. En curso.
   - Después se regeneran el terreno y el túnel hasta que `penyal verify-generated` salga con 0.

@@ -1,8 +1,8 @@
 # 0010. Compose the world from registered systems that share atmosphere, quality, budget and POI contracts
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-11
-- Deciders: tech lead (architect); to be accepted by lr0y (product owner)
+- Deciders: tech lead (architect); accepted by lr0y (product owner) on 2026-10-11
 - Scope: B0 of `docs/specs/002-fase-b-paralelizacion.md`; implemented after phase A closes.
 
 ## Context
@@ -300,6 +300,9 @@ Precondition: main is green and `uv run --project pipeline penyal verify-generat
 - **Easier.** A lane adds one system file and one list entry. A failing optional system no longer ends the walk. Every system has measured draw calls, triangles and a toggle. A card cannot contradict `facts.json`, pick a side in a conflict, or ship without the valenciano review.
 - **Harder.** There is one more indirection between `main.ts` and what is drawn. Ground surfaces must exist before the walk, and the light count is frozen after the critical init. B0 is 10 commits, which may take longer than the planned 1–1.5 days.
 - **Follow-ups.** L6 needs `Player.setAvatar(object | null)` to replace the capsule; the integrator adds it when L6 starts. Identical captures are required only for refactors; lanes that change the look refresh the baseline on purpose and attach the captures to the review.
+- **Tech-lead review notes (2026-10-11).**
+  - Cascaded shadows (`high`) add and remove lights when the tier changes. The rule "lights only in `critical` inits" therefore has one exception: the shadows system may change its lights in `onQualityChange`, accepting the one recompile hitch listed in §3. No other system adds lights after the critical init.
+  - `review.by` stores the name the reviewer agrees to be credited with. Ask the reviewer before writing it. A handle or initials are fine.
 - **Not verified yet.**
   - Whether SwiftShader captures are pixel-identical from run to run (commit 1 measures it).
   - That `renderer.info.render.calls` includes the shadow passes: inferred from the single `render()`, and L1's toggle confirms it.
