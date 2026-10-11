@@ -17,6 +17,7 @@ from penyal_pipeline import (
     fetch,
     ortho,
     provenance,
+    structures,
     surfaces,
     tiles,
     trail,
@@ -154,6 +155,29 @@ def _cmd_surfaces(args: argparse.Namespace) -> int:
         f"surfaces: {len(manifest['tiles'])} tiles, {len(manifest['ways'])} ways, "
         f"{_megabytes(sizes)} of PNG; skipped ways {manifest['skippedWays']}; "
         f"widths are {manifest['widths']['status']}"
+    )
+    return 0
+
+
+def _cmd_structures(args: argparse.Namespace) -> int:
+    report = structures.run_structures(
+        args.out_dir, args.build_dir, artefacts.provenance("structures")
+    )
+    rows = [
+        [
+            s["id"],
+            str(s["stepCount"]),
+            f"{s['riser']:.3f}",
+            f"{s['treadDepth']:.3f}",
+            f"{s['mesh']['triangles']:,}",
+        ]
+        for s in report.document["staircases"]
+    ]
+    print(format_table(["STAIRCASE", "STEPS", "RISER m", "TREAD m", "TRIANGLES"], rows))
+    print(
+        f"structures.glb {report.glb_bytes} bytes, {report.triangles:,} triangles; "
+        f"structures.json {report.json_bytes} bytes; constants are "
+        f"{report.document['constants']['status']}"
     )
     return 0
 
@@ -383,6 +407,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
     surfaces_cmd.set_defaults(handler=_cmd_surfaces)
 
+    structures_cmd = commands.add_parser(
+        "structures", help="build the OSM staircases: structures.glb + structures.json"
+    )
+    structures_cmd.add_argument(
+        "--out-dir",
+        type=Path,
+        default=GENERATED_DIR,
+        help="where structures.glb and structures.json go (default: %(default)s)",
+    )
+    structures_cmd.add_argument(
+        "--build-dir",
+        type=Path,
+        default=structures.STRUCTURES_BUILD_DIR,
+        help="where the unoptimised GLB is written (default: %(default)s)",
+    )
+    structures_cmd.set_defaults(handler=_cmd_structures)
+
     verify_cmd = commands.add_parser(
         "verify-generated",
         help="check that the inputs recorded in the generated artefacts still match the sources",
@@ -418,6 +459,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         provenance.ProvenanceError,
         tunnel_geometry.GeometryError,
         surfaces.SurfacesError,
+        structures.StructuresError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

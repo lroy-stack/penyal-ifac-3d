@@ -47,7 +47,7 @@ def _inputs(kind: str, root: Path) -> list[Input]:
             return [_osm_input(root)]
         case "collision" | "trail":
             return [*_dem_inputs(root), _osm_input(root), curated_input(root)]
-        case "tunnel":
+        case "tunnel" | "structures":
             # the shell is clipped against the carved DEM (run_tunnel), so the DEM is an input
             return [*_dem_inputs(root), _osm_input(root), curated_input(root)]
     raise ProvenanceError(f"unknown artefact kind {kind!r}")
@@ -57,7 +57,7 @@ def _tools(kind: str) -> tuple[str, ...]:
     match kind:
         case "terrain":
             return BLENDER_TOOLS
-        case "tunnel":
+        case "tunnel" | "structures":
             return ("bpy", "gltf-transform", "node")
         case "collision":
             return ("numpy", "rasterio", "shapely")

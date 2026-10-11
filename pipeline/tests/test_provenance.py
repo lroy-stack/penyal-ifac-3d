@@ -27,6 +27,7 @@ ALL_JSON = {
     "trail.json",
     "materials/manifest.json",
     "surfaces/manifest.json",
+    "structures.json",
 }
 
 
@@ -88,6 +89,7 @@ def assets(repo: Path, tmp_path: Path) -> Path:
         ("tunnel.json", "tunnel"),
         ("trail.json", "trail"),
         ("surfaces/manifest.json", "surfaces"),
+        ("structures.json", "structures"),
     ):
         path = out / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -136,6 +138,7 @@ class TestInputs:
             ("trail", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
             ("tunnel", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
             ("surfaces", {"osm-penyal"}, False),
+            ("structures", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
         ],
     )
     def test_each_artefact_lists_every_input_that_changes_it(
