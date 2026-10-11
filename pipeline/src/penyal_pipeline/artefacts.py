@@ -83,6 +83,10 @@ def _inputs(kind: str, root: Path) -> list[Input]:
                 *_dem_inputs(root),
                 _osm_input(root),
                 raw_input(buildings.LIDAR_SOURCE_ID, ".laz", root),
+                *(
+                    raw_input(source_id, buildings.TEXTURE_SUFFIX, root)
+                    for source_id, _ in buildings.TEXTURES.values()
+                ),
             ]
         case "tunnel" | "structures":
             # the shell is clipped against the carved DEM (run_tunnel), so the DEM is an input
@@ -99,7 +103,7 @@ def _tools(kind: str) -> tuple[str, ...]:
         case "tunnel" | "structures":
             return ("bpy", "gltf-transform", "node")
         case "buildings":
-            return ("bpy", "gltf-transform", "node", "numpy", "shapely", "laspy")
+            return ("bpy", "gltf-transform", "node", "numpy", "shapely", "laspy", "rasterio")
         case "collision":
             return ("numpy", "rasterio", "shapely")
         case "surfaces":

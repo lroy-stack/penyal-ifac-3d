@@ -29,6 +29,10 @@ RAW_FILES = {
     "polyhaven-pine-tree-01-twig-diff-1k": "twig_diff.jpg",
     "polyhaven-pine-tree-01-twig-alpha-1k": "twig_alpha.jpg",
     "polyhaven-pine-tree-01-bark-diff-1k": "bark_diff.jpg",
+    "polyhaven-white-stucco-diff-1k": "white_stucco_diff_1k.jpg",
+    "polyhaven-yellow-plaster-diff-1k": "yellow_plaster_diff_1k.jpg",
+    "polyhaven-roof-tiles-diff-1k": "roof_tiles_diff_1k.jpg",
+    "polyhaven-stacked-stone-wall-diff-1k": "stacked_stone_wall_diff_1k.jpg",
 }
 TRAIL_JSON = Path("app") / "public" / "assets" / "generated" / "trail.json"
 SURFACES_MANIFEST = Path("app") / "public" / "assets" / "generated" / "surfaces" / "manifest.json"
@@ -40,6 +44,7 @@ ALL_JSON = {
     "materials/manifest.json",
     "surfaces/manifest.json",
     "structures.json",
+    "buildings.json",
     "vegetation.json",
     "vegetation/pine.json",
     "vegetation/plants.json",
@@ -109,6 +114,7 @@ def assets(repo: Path, tmp_path: Path) -> Path:
         ("trail.json", "trail"),
         ("surfaces/manifest.json", "surfaces"),
         ("structures.json", "structures"),
+        ("buildings.json", "buildings"),
         ("vegetation.json", "vegetation"),
         ("vegetation/pine.json", "pine"),
         ("vegetation/plants.json", "plants"),
@@ -180,6 +186,20 @@ class TestInputs:
             ("tunnel", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
             ("surfaces", {"osm-penyal"}, False),
             ("structures", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
+            (
+                "buildings",
+                {
+                    "icv-mdt-2016-0848",
+                    "icv-cv05-penyal",
+                    "osm-penyal",
+                    "icv-lidar-2016-766-4282",
+                    "polyhaven-white-stucco-diff-1k",
+                    "polyhaven-yellow-plaster-diff-1k",
+                    "polyhaven-roof-tiles-diff-1k",
+                    "polyhaven-stacked-stone-wall-diff-1k",
+                },
+                False,
+            ),
             (
                 "vegetation",
                 {
@@ -307,11 +327,16 @@ class TestVerify:
         assert flagged(problems) == {"vegetation.json"}
         assert "surfaces/manifest.json" in problems[0].message
 
-    def test_a_lidar_tile_change_flags_only_the_vegetation(self, repo: Path, assets: Path) -> None:
+    def test_a_lidar_tile_change_flags_the_vegetation_and_the_buildings(
+        self, repo: Path, assets: Path
+    ) -> None:
         shas = {source_id: sha(source_id) for source_id in RAW_FILES}
         shas["icv-lidar-2016-766-4282"] = sha("new tile")
         write_lock(repo, shas)
-        assert flagged(provenance.verify_generated(assets, repo)) == {"vegetation.json"}
+        assert flagged(provenance.verify_generated(assets, repo)) == {
+            "vegetation.json",
+            "buildings.json",
+        }
 
     def test_regenerating_the_trail_makes_the_vegetation_stale(
         self, repo: Path, assets: Path

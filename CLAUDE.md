@@ -24,6 +24,7 @@ A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Ca
 | Rebuild generated data | `uv run --project pipeline penyal dem && … penyal trail && … penyal terrain` (`penyal tunnel` re-cuts only the tiles touching the portals) |
 | Path surface masks (OSM → per-tile linear UASTC KTX2 RGBA, 0.25 m/px, `app/public/assets/generated/surfaces/`) | `uv run --project pipeline penyal surfaces` (widths are provisional, see `CREDITS.md`) |
 | Staircases (OSM `highway=steps` → `structures.glb` + `structures.json` with step collision treads; constants provisional) | `uv run --project pipeline penyal structures` |
+| Visitor-centre buildings (OSM footprints + LiDAR class-6 roofs → `buildings.glb` + `buildings.json`; approximate, textures JPEG not yet KTX2) | `uv run --project pipeline penyal buildings` |
 | Tree crowns, NDVI check and understory (`vegetation.json`; `--analyse` prints counts and the NDVI histogram, writes nothing) | `uv run --project pipeline penyal vegetation` |
 | Procedural Aleppo pine (`vegetation/pine.glb` + `pine.json`: 4 variants x LOD0/LOD1, far card; shape generated, not measured) | `uv run --project pipeline penyal pine` |
 | Procedural understory plants (`vegetation/plants.glb` + `plants.json`: lentisc, rosemary, grass tuft, each LOD0/LOD1/far card; generated, leaf pixels from Poly Haven) | `uv run --project pipeline penyal plants` |

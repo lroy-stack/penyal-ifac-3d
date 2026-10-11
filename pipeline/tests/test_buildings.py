@@ -9,6 +9,7 @@ from typing import ClassVar
 import numpy as np
 import numpy.typing as npt
 import pytest
+import rasterio
 import shapely
 from conftest import build_marks, raw_marks
 from shapely.geometry import Polygon
@@ -73,6 +74,11 @@ def build(footprint: Floats = L_SHAPE, bump: bool = False, eave: float = EAVE) -
     return buildings.build_building(
         spec, footprint, roof_points(footprint, eave=eave, bump=bump), ramp_grid()
     )
+
+
+def surface_vertices(mesh: buildings.BuildingMesh, surface: str) -> npt.NDArray[np.bool_]:
+    """Per vertex: does it belong to a triangle of ``surface``."""
+    return np.repeat(mesh.materials == buildings.SURFACES.index(surface), 3)
 
 
 def face_normals(mesh: buildings.BuildingMesh) -> Floats:
@@ -148,17 +154,19 @@ class TestMesh:
         assert float(y.max()) == pytest.approx(building.levels.ridge, abs=1e-3)
 
     def test_the_whitewash_stands_between_the_plinth_and_the_eave(self) -> None:
-        mesh = build().mesh
-        white = buildings.srgb_to_linear(buildings.COLOURS["whitewash"])
-        is_white = np.all(np.isclose(mesh.colours, white, atol=1e-5), axis=1)
+        building = build()
+        is_white = surface_vertices(building.mesh, "whitewash")
         assert is_white.any()
-        assert float(mesh.positions[is_white, 1].max()) == pytest.approx(
-            build().levels.eave, abs=1e-3
+        assert float(building.mesh.positions[is_white, 1].max()) == pytest.approx(
+            building.levels.eave, abs=1e-3
         )
 
-    def test_every_vertex_has_a_linear_colour_and_a_unit_normal(self) -> None:
+    def test_every_vertex_has_a_tint_a_uv_and_a_unit_normal(self) -> None:
         mesh = build(bump=True).mesh
         assert mesh.colours.shape == mesh.positions.shape == mesh.normals.shape
+        assert mesh.uvs.shape == (len(mesh.positions), 2)
+        assert mesh.materials.shape == (len(mesh.triangles),)
+        assert set(mesh.materials.tolist()) <= set(range(len(buildings.SURFACES)))
         assert np.linalg.norm(mesh.normals, axis=1) == pytest.approx(1.0, abs=1e-5)
         assert mesh.triangles.max() == len(mesh.positions) - 1
 
@@ -188,9 +196,7 @@ class TestMesh:
 
     def test_the_stone_follows_the_slope_up_the_wall(self) -> None:
         building = build()
-        stone = buildings.srgb_to_linear(buildings.COLOURS["plinth"])
-        is_stone = np.all(np.isclose(building.mesh.colours, stone, atol=1e-5), axis=1)
-        tops = building.mesh.positions[is_stone, 1]
+        tops = building.mesh.positions[surface_vertices(building.mesh, "plinth"), 1]
         assert float(tops.max()) == pytest.approx(
             float(ramp_grid().sample(40.0, 10.0)) + buildings.PLINTH_RISE, abs=0.35
         )
@@ -214,6 +220,48 @@ class TestMesh:
             build(eave=GROUND - 5.0)
 
 
+class TestTextureCoordinates:
+    def test_a_wall_repeats_its_texture_once_per_tile_of_metres(self) -> None:
+        mesh = build(RECTANGLE).mesh
+        tile = buildings.TEXTURES["whitewash"][1]
+        normals = face_normals(mesh)
+        wall = np.repeat(np.abs(normals[:, 1]) < 1e-6, 3) & surface_vertices(mesh, "whitewash")
+        positions = mesh.positions[wall].astype(np.float64)
+        uvs = mesh.uvs[wall].astype(np.float64)
+        heights = np.unique(np.round(positions[:, 1], 3))
+        low, high = heights.min(), heights.max()
+        v_low = uvs[np.isclose(positions[:, 1], low, atol=1e-3), 1].mean()
+        v_high = uvs[np.isclose(positions[:, 1], high, atol=1e-3), 1].mean()
+        assert abs(v_high - v_low) * tile == pytest.approx(high - low, rel=0.05)
+
+    def test_the_roof_texture_runs_along_the_slope_not_the_plan(self) -> None:
+        building = build(RECTANGLE)
+        mesh = building.mesh
+        tile = buildings.TEXTURES["roof"][1]
+        triangles = mesh.positions.reshape(-1, 3, 3).astype(np.float64)
+        uvs = mesh.uvs.reshape(-1, 3, 2).astype(np.float64)
+        slope = (mesh.materials == buildings.SURFACES.index("roof")) & (
+            np.abs(face_normals(mesh)[:, 1]) < 0.99
+        )
+        assert slope.any()
+        for tri, uv in zip(triangles[slope], uvs[slope], strict=True):
+            for i, j in ((0, 1), (1, 2), (0, 2)):
+                metres = float(np.linalg.norm(tri[i] - tri[j]))
+                texels = float(np.linalg.norm(uv[i] - uv[j])) * tile
+                assert texels == pytest.approx(metres, rel=1e-4)
+
+
+class TestTints:
+    def test_a_tint_pulls_a_texture_towards_its_photo_colour_without_brightening(self) -> None:
+        means = dict.fromkeys(buildings.SURFACES, (0.5, 0.5, 0.5))
+        tints = buildings.texture_tints(means)
+        wanted = buildings.default_tints()
+        for name, tint in tints.items():
+            assert all(0.0 <= c <= 1.0 for c in tint)
+            for got, want in zip(tint, wanted[name], strict=True):
+                assert got == pytest.approx(min(want / 0.5, 1.0))
+
+
 class TestTurretMesh:
     def test_the_turret_adds_a_shaft_and_eight_merlons(self) -> None:
         plain, tower = build(), build(bump=True)
@@ -235,43 +283,71 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def tiny_textures(directory: Path) -> list[Path]:
+    """One 8 x 8 PNG per surface, in the order of ``SURFACES``."""
+    paths = []
+    for index, name in enumerate(buildings.SURFACES):
+        path = directory / f"{name}.png"
+        pixels = np.full((3, 8, 8), 60 * (index + 1), dtype=np.uint8)
+        with rasterio.open(
+            path, "w", driver="PNG", width=8, height=8, count=3, dtype="uint8"
+        ) as dst:
+            dst.write(pixels)
+        paths.append(path)
+    return paths
+
+
+def two_buildings() -> buildings.BuildingMesh:
+    return buildings.merge_meshes([build(bump=True).mesh, build(RECTANGLE).mesh], "buildings")
+
+
 @pytest.mark.slow
 class TestExport:
-    def test_the_glb_has_one_node_per_building_and_one_vertex_colour_material(
+    def test_the_glb_is_one_node_with_a_textured_primitive_per_surface(
         self, tmp_path: Path
     ) -> None:
         from penyal_pipeline.blender import buildings as blender_buildings
 
-        meshes = [build().mesh, build(RECTANGLE, bump=False).mesh]
-        meshes = [
-            buildings.BuildingMesh(m.positions, m.normals, m.colours, m.triangles, name)
-            for m, name in zip(meshes, ("building_a", "building_b"), strict=True)
-        ]
-        out = blender_buildings.export_buildings(meshes, tmp_path / "buildings.glb")
+        merged = two_buildings()
+        out = blender_buildings.export_buildings(
+            merged, tiny_textures(tmp_path), tmp_path / "buildings.glb"
+        )
         gltf, blob = read_glb(out)
-        assert sorted(n["name"] for n in gltf["nodes"]) == ["building_a", "building_b"]
-        assert "images" not in gltf
-        assert [m["name"] for m in gltf["materials"]] == ["buildings_painted"]
-        for mesh in gltf["meshes"]:
-            assert len(mesh["primitives"]) == 1
-            attributes = mesh["primitives"][0]["attributes"]
-            assert "COLOR_0" in attributes
-        colours = accessor(gltf, blob, gltf["meshes"][0]["primitives"][0]["attributes"]["COLOR_0"])
-        assert colours.shape[0] == len(meshes[0].positions)
+        assert [n["name"] for n in gltf["nodes"]] == ["buildings"]
+        assert sorted(m["name"] for m in gltf["materials"]) == sorted(
+            f"buildings_{name}" for name in buildings.SURFACES
+        )
+        assert len(gltf["meshes"]) == 1
+        primitives = gltf["meshes"][0]["primitives"]
+        assert len(primitives) == len(buildings.SURFACES)
+        for primitive in primitives:
+            assert {"POSITION", "NORMAL", "TEXCOORD_0", "COLOR_0"} <= set(primitive["attributes"])
+        for material in gltf["materials"]:
+            assert "baseColorTexture" in material["pbrMetallicRoughness"]
+        assert [image["mimeType"] for image in gltf["images"]] == ["image/jpeg"] * 4
+        total = sum(gltf["accessors"][p["indices"]]["count"] // 3 for p in primitives)
+        assert total == len(merged.triangles)
+        colours = accessor(gltf, blob, primitives[0]["attributes"]["COLOR_0"])
+        assert colours.shape[1] >= 3
 
     def test_two_exports_are_byte_identical(self, tmp_path: Path) -> None:
         from penyal_pipeline.blender import buildings as blender_buildings
 
-        meshes = [build(bump=True).mesh]
-        first = blender_buildings.export_buildings(meshes, tmp_path / "a" / "b.glb")
-        second = blender_buildings.export_buildings(meshes, tmp_path / "b" / "b.glb")
+        textures = tiny_textures(tmp_path)
+        merged = two_buildings()
+        first = blender_buildings.export_buildings(merged, textures, tmp_path / "a" / "b.glb")
+        second = blender_buildings.export_buildings(merged, textures, tmp_path / "b" / "b.glb")
         assert sha256(first) == sha256(second)
 
 
 # --- the real data -------------------------------------------------------------------------------
 
 real_marks = [
-    *raw_marks("osm-penyal/osm-penyal.json", "icv-lidar-2016-766-4282/*.laz"),
+    *raw_marks(
+        "osm-penyal/osm-penyal.json",
+        "icv-lidar-2016-766-4282/*.laz",
+        *(f"{source_id}/*.jpg" for source_id, _ in buildings.TEXTURES.values()),
+    ),
     *needs_dem,
 ]
 
@@ -367,5 +443,9 @@ class TestRun:
             dem.MDT_SOURCE_ID,
         }
         assert {"bpy", "laspy", "gltf-transform"} <= set(document["tools"])
+        assert {t["source"] for t in document["textures"].values()} <= {
+            i["id"] for i in document["inputs"]
+        }
+        assert "not yet KTX2" in document["textureNote"]
         assert reports[0].triangles == sum(b["mesh"]["triangles"] for b in document["buildings"])
         assert (tmp_path / "first" / "buildings.glb").stat().st_size == reports[0].glb_bytes

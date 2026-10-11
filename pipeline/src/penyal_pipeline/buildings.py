@@ -28,7 +28,8 @@ extruded from their OSM footprint. Everything vertical comes from the 2016 ICV L
 * **Not modelled**: the porch of semicircular arches, doors, windows, chimneys and the roof
   tiles (all in the photo, none in the LiDAR at 1.3 m spacing).
 
-Colours are flat, from photo 1 (:data:`COLOURS`); there is no texture. Every number that is not
+Surfaces are four tiled CC0 Poly Haven albedo maps (:data:`TEXTURES`, UVs in metres), tinted per
+vertex towards the colours sampled from photo 1 (:data:`COLOURS`). Every number that is not
 read from the data is an approximation listed in ``CREDITS.md``.
 """
 
@@ -44,6 +45,7 @@ from typing import Any
 import laspy
 import numpy as np
 import numpy.typing as npt
+import rasterio
 import shapely
 from shapely.geometry import Polygon
 
@@ -78,6 +80,20 @@ COLOURS: dict[str, tuple[int, int, int]] = {
     "turret": (149, 124, 92),
     "plinth": (106, 77, 42),
 }
+
+# Material slots, in the order the GLB lists them: one draw call each.
+SURFACES = ("whitewash", "turret", "roof", "plinth")
+# Tiled albedo per surface: Poly Haven source id and the metres one texture repeat covers (the
+# roof texture shows about 25 pantiles across, a pantile being 0.17 m wide).
+TEXTURES: dict[str, tuple[str, float]] = {
+    "whitewash": ("polyhaven-white-stucco-diff-1k", 3.0),
+    "turret": ("polyhaven-yellow-plaster-diff-1k", 3.0),
+    "roof": ("polyhaven-roof-tiles-diff-1k", 4.0),
+    "plinth": ("polyhaven-stacked-stone-wall-diff-1k", 2.5),
+}
+TEXTURE_SUFFIX = ".jpg"
+TEXTURE_SIZE = 512  # pixels: the 1k maps are scaled down so four of them cost ~5 MiB of GPU memory
+TEXTURE_ENCODING = "JPEG"  # not yet KTX2: `ktx` is unavailable, re-encode when it is back
 COLOUR_SOURCE = {
     "photo": "data/manual/fotos-referencia/commons/01-Calpe-penon-de-ifach-panoramio.jpg",
     "boxes": {
@@ -164,12 +180,15 @@ class RoofLevels:
 
 @dataclass(frozen=True)
 class BuildingMesh:
-    """Flat-shaded triangle soup (three own vertices per triangle) with linear RGB per vertex."""
+    """Flat-shaded triangle soup (three own vertices per triangle): a linear RGB tint and a glTF
+    UV (metres divided by the texture's tile size) per vertex, a surface index per triangle."""
 
     positions: npt.NDArray[np.float32]
     normals: npt.NDArray[np.float32]
     colours: npt.NDArray[np.float32]
+    uvs: npt.NDArray[np.float32]
     triangles: npt.NDArray[np.int32]
+    materials: npt.NDArray[np.int32]
     name: str = ""
 
 
@@ -236,37 +255,57 @@ def offset_ring(ring: Float2, distance: float) -> Float2:
     )
 
 
+def planar_uv(points: Float2, normal: Float1, tile: float) -> Float2:
+    """Metric planar UVs of a triangle: ``u`` runs along the horizontal of its plane and ``v``
+    up the slope (``(x, z)`` for horizontal faces), so a texture keeps one density everywhere."""
+    up = np.array([0.0, 1.0, 0.0])
+    if abs(float(normal[1])) > 0.99:
+        u, v = points[:, 0], points[:, 2]
+    else:
+        along = np.cross(up, normal)
+        along /= np.linalg.norm(along)
+        slope = np.cross(normal, along)
+        u, v = points @ along, points @ slope
+    return np.stack([u / tile, -v / tile], axis=1)
+
+
 class MeshBuilder:
     """Collects triangles; every face is wound so its normal agrees with a given direction."""
 
-    def __init__(self) -> None:
+    def __init__(self, tints: dict[str, tuple[float, float, float]] | None = None) -> None:
+        self.tints = tints if tints is not None else default_tints()
         self.positions: list[Float1] = []
         self.colours: list[tuple[float, float, float]] = []
+        self.uvs: list[Float1] = []
+        self.materials: list[int] = []
 
     def triangle(
         self,
         a: Float1,
         b: Float1,
         c: Float1,
-        colour: tuple[float, float, float],
+        surface: str,
         outward: Float1 | None = None,
     ) -> None:
         normal = np.cross(b - a, c - a)
         if outward is not None and float(np.dot(normal, outward)) < 0.0:
             b, c = c, b
+            normal = -normal
+        length = float(np.linalg.norm(normal))
+        if length < 1e-9:
+            return
+        corners = np.array([a, b, c], dtype=np.float64)
+        uv = planar_uv(corners, normal / length, TEXTURES[surface][1])
         self.positions.extend([a, b, c])
-        self.colours.extend([colour] * 3)
+        self.colours.extend([self.tints[surface]] * 3)
+        self.uvs.extend(uv)
+        self.materials.append(SURFACES.index(surface))
 
-    def quad(
-        self,
-        corners: Float2,
-        colour: tuple[float, float, float],
-        outward: Float1 | None = None,
-    ) -> None:
+    def quad(self, corners: Float2, surface: str, outward: Float1 | None = None) -> None:
         p = np.asarray(corners, dtype=np.float64)
         hint = outward if outward is not None else np.cross(p[1] - p[0], p[3] - p[0])
-        self.triangle(p[0], p[1], p[2], colour, hint)
-        self.triangle(p[0], p[2], p[3], colour, hint)
+        self.triangle(p[0], p[1], p[2], surface, hint)
+        self.triangle(p[0], p[2], p[3], surface, hint)
 
     def box(
         self,
@@ -275,7 +314,7 @@ class MeshBuilder:
         heading: float,
         y0: float,
         y1: float,
-        colour: tuple[float, float, float],
+        surface: str,
     ) -> None:
         """An upright box with its top and four sides (no bottom), turned by ``heading``."""
         u = np.array([math.cos(heading), 0.0, math.sin(heading)])
@@ -290,28 +329,77 @@ class MeshBuilder:
         for k in range(4):
             a, b = corners[k], corners[(k + 1) % 4]
             outward = np.cross(up, b - a)
-            self.quad(np.array([a + lo, b + lo, b + hi, a + hi]), colour, outward)
-        self.quad(np.array([p + hi for p in corners]), colour, up)
+            self.quad(np.array([a + lo, b + lo, b + hi, a + hi]), surface, outward)
+        self.quad(np.array([p + hi for p in corners]), surface, up)
 
     def finish(self, name: str) -> BuildingMesh:
-        count = len(self.positions)
-        if count == 0:
+        if not self.positions:
             raise BuildingsError(f"{name}: empty mesh")
         positions = np.array(self.positions, dtype=np.float64).reshape(-1, 3)
         faces = positions.reshape(-1, 3, 3)
         normals = np.cross(faces[:, 1] - faces[:, 0], faces[:, 2] - faces[:, 0])
-        length = np.linalg.norm(normals, axis=1)
-        keep = length > 1e-9
-        normals = normals[keep] / length[keep, None]
-        positions = faces[keep].reshape(-1, 3)
-        colours = np.array(self.colours, dtype=np.float64).reshape(-1, 3, 3)[keep].reshape(-1, 3)
+        normals /= np.linalg.norm(normals, axis=1)[:, None]
         return BuildingMesh(
             positions=positions.astype(np.float32),
             normals=np.repeat(normals, 3, axis=0).astype(np.float32),
-            colours=colours.astype(np.float32),
+            colours=np.array(self.colours, dtype=np.float32),
+            uvs=np.array(self.uvs, dtype=np.float32),
             triangles=np.arange(len(positions), dtype=np.int32).reshape(-1, 3),
+            materials=np.array(self.materials, dtype=np.int32),
             name=name,
         )
+
+
+def merge_meshes(meshes: list[BuildingMesh], name: str) -> BuildingMesh:
+    """One mesh from several: the export draws every surface of both buildings in one call."""
+    offsets = np.cumsum([0, *(len(m.positions) for m in meshes[:-1])])
+    return BuildingMesh(
+        positions=np.concatenate([m.positions for m in meshes]),
+        normals=np.concatenate([m.normals for m in meshes]),
+        colours=np.concatenate([m.colours for m in meshes]),
+        uvs=np.concatenate([m.uvs for m in meshes]),
+        triangles=np.concatenate(
+            [m.triangles + off for m, off in zip(meshes, offsets, strict=True)]
+        ),
+        materials=np.concatenate([m.materials for m in meshes]),
+        name=name,
+    )
+
+
+def default_tints() -> dict[str, tuple[float, float, float]]:
+    """The photo colours, linear: the tint when no texture is known (and in unit tests)."""
+    return {name: srgb_to_linear(rgb) for name, rgb in COLOURS.items()}
+
+
+def texture_means(paths: dict[str, Path]) -> dict[str, tuple[float, float, float]]:
+    """Mean linear RGB of each surface's texture."""
+    means: dict[str, tuple[float, float, float]] = {}
+    for name, path in paths.items():
+        with rasterio.open(path) as src:
+            pixels = src.read(out_dtype="float64")[:3] / 255.0
+        linear = np.where(pixels <= 0.04045, pixels / 12.92, ((pixels + 0.055) / 1.055) ** 2.4)
+        mean = linear.reshape(3, -1).mean(axis=1)
+        means[name] = (float(mean[0]), float(mean[1]), float(mean[2]))
+    return means
+
+
+def texture_tints(
+    means: dict[str, tuple[float, float, float]],
+) -> dict[str, tuple[float, float, float]]:
+    """Per-vertex tint that pulls each texture towards its photo colour (never brightens it:
+    glTF multiplies, and a tint above 1 would clip)."""
+    wanted = default_tints()
+    tints: dict[str, tuple[float, float, float]] = {}
+    for name, mean in means.items():
+        ratio = np.clip(np.array(wanted[name]) / np.maximum(np.array(mean), 1e-4), 0.0, 1.0)
+        tints[name] = (float(ratio[0]), float(ratio[1]), float(ratio[2]))
+    return tints
+
+
+def texture_paths() -> dict[str, Path]:
+    return {
+        name: locate(source_id, TEXTURE_SUFFIX).path for name, (source_id, _) in TEXTURES.items()
+    }
 
 
 # --- LiDAR --------------------------------------------------------------------------------------
@@ -464,14 +552,10 @@ def _heading(ring: Float2) -> float:
     return float(math.atan2(longest[1], longest[0]) % (math.pi / 2.0))
 
 
-def add_turret(
-    builder: MeshBuilder, turret: Turret, colours: dict[str, tuple[float, float, float]]
-) -> None:
+def add_turret(builder: MeshBuilder, turret: Turret) -> None:
     """An ochre square shaft crowned by eight white merlons: four corners and four mid-sides."""
     shaft_top = turret.top_y - MERLON_HEIGHT
-    builder.box(
-        turret.centre, turret.half, turret.heading, turret.base_y, shaft_top, colours["turret"]
-    )
+    builder.box(turret.centre, turret.half, turret.heading, turret.base_y, shaft_top, "turret")
     u = np.array([math.cos(turret.heading), math.sin(turret.heading)])
     v = np.array([-u[1], u[0]])
     centre = np.array(turret.centre)
@@ -490,12 +574,16 @@ def add_turret(
             turret.heading,
             shaft_top,
             turret.top_y,
-            colours["whitewash"],
+            "whitewash",
         )
 
 
 def build_building(
-    spec: BuildingSpec, footprint_xz: Float2, points: RoofPoints, ground: Grid
+    spec: BuildingSpec,
+    footprint_xz: Float2,
+    points: RoofPoints,
+    ground: Grid,
+    tints: dict[str, tuple[float, float, float]] | None = None,
 ) -> Building:
     """Walls, hip roof and turrets for one footprint, from its LiDAR roof points."""
     ring = orient_ring(footprint_xz)
@@ -517,8 +605,7 @@ def build_building(
         )
     base_y = ground_min - PLINTH_EMBED
 
-    colours = {name: srgb_to_linear(rgb) for name, rgb in COLOURS.items()}
-    builder = MeshBuilder()
+    builder = MeshBuilder(tints)
     count = len(ring)
     for i in range(count):
         a, b = ring[i], ring[(i + 1) % count]
@@ -545,7 +632,7 @@ def build_building(
                             [p[0], high[0], p[1]],
                         ]
                     ),
-                    colours[name],
+                    name,
                 )
     out = offset_ring(ring, OVERHANG)
     centre = np.array(polygon.centroid.coords[0])
@@ -563,7 +650,7 @@ def build_building(
                     [out[i, 0], eave, out[i, 1]],
                 ]
             ),
-            colours["whitewash"],
+            "whitewash",
             down,
         )
         slope = np.array(
@@ -574,7 +661,7 @@ def build_building(
                 [top_ring[i, 0], ridge, top_ring[i, 1]],
             ]
         )
-        builder.quad(slope, colours["roof"], None)
+        builder.quad(slope, "roof", None)
         roof_triangles.extend([slope[[0, 1, 2]], slope[[0, 2, 3]]])
         cap = np.array(
             [
@@ -583,7 +670,7 @@ def build_building(
                 [top_ring[j, 0], ridge, top_ring[j, 1]],
             ]
         )
-        builder.triangle(cap[0], cap[1], cap[2], colours["roof"], up)
+        builder.triangle(cap[0], cap[1], cap[2], "roof", up)
         roof_triangles.append(cap)
     surface = np.array(roof_triangles, dtype=np.float64)
     plan_area = sum(
@@ -623,7 +710,7 @@ def build_building(
             )
         )
     for turret in placed:
-        add_turret(builder, turret, colours)
+        add_turret(builder, turret)
 
     model = surface_height(surface, roof_points.x, roof_points.z)
     covered = np.isfinite(model)
@@ -716,7 +803,7 @@ def _entry(building: Building, osm: OsmData) -> dict[str, Any]:
             for t in building.turrets
         ],
         "mesh": {
-            "node": building.mesh.name,
+            "name": building.mesh.name,
             "triangles": int(building.mesh.triangles.shape[0]),
         },
     }
@@ -733,11 +820,24 @@ def build_document(
         "source": {"id": trail.OSM_SOURCE_ID, "sha256": osm_sha256},
         "frame": {"crs": "EPSG:25830", "origin": {"e": int(ORIGIN_E), "n": int(ORIGIN_N)}},
         "glb": BUILDINGS_GLB,
-        "material": "buildings_painted",
+        "node": "buildings",
+        "surfaces": list(SURFACES),
+        "textures": {
+            name: {
+                "source": source_id,
+                "tileMetres": tile,
+                "sizePixels": TEXTURE_SIZE,
+                "encoding": TEXTURE_ENCODING,
+            }
+            for name, (source_id, tile) in TEXTURES.items()
+        },
+        "textureNote": "albedo only, CC0 Poly Haven, scaled to 512 px and kept as JPEG: the "
+        "textures are not yet KTX2-compressed (ktx was unavailable); re-encode when it is back",
         "colours": {k: list(v) for k, v in COLOURS.items()},
         "colourSource": COLOUR_SOURCE,
         "approximations": [
-            "facades and colours come from one 2014 photo (Commons, Panoramio)",
+            "facades and colours come from one 2014 photo (Commons, Panoramio); the textures are "
+            "generic Poly Haven materials, not the real surfaces",
             "heights are single LiDAR percentiles (eave p25, ridge p95) over a hip roof; "
             "terraces and the solar-panel area are not modelled",
             "turrets are square shafts with eight merlons, sized from LiDAR local maxima",
@@ -760,15 +860,18 @@ def run_buildings(
     osm = trail.load_osm(raw.path)
     grid, _ = dem.load_dem()
     lidar = locate(LIDAR_SOURCE_ID, ".laz").path
+    paths = texture_paths()
+    tints = texture_tints(texture_means(paths))
     result: list[Building] = []
     for spec in SPECS:
         footprint = footprint_of(osm, spec.way)
         points = lidar_roof_points(lidar, Polygon(footprint))
-        result.append(build_building(spec, footprint, points, grid))
+        result.append(build_building(spec, footprint, points, grid, tints))
     build_dir.mkdir(parents=True, exist_ok=True)
     out_dir.mkdir(parents=True, exist_ok=True)
+    merged = merge_meshes([b.mesh for b in result], "buildings")
     raw_glb = blender_buildings.export_buildings(
-        [b.mesh for b in result], build_dir / BUILDINGS_GLB
+        merged, [paths[name] for name in SURFACES], build_dir / BUILDINGS_GLB
     )
     glb_bytes = tiles.optimize_glb(raw_glb, out_dir / BUILDINGS_GLB, None)
     document = build_document(result, osm, raw.sha256, provenance or {"inputs": [], "tools": {}})
