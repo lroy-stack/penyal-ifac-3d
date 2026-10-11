@@ -112,8 +112,9 @@ export async function loadTerrainManifest(
   signal?: AbortSignal,
 ): Promise<ManifestResult> {
   try {
-    const response = await fetchChecked(url, signal);
-    return { status: "ready", manifest: parseTerrainManifest(await response.json()) };
+    const opened = await fetchChecked(url, signal);
+    const json: unknown = await opened.read((response) => response.json());
+    return { status: "ready", manifest: parseTerrainManifest(json) };
   } catch (error) {
     if (error instanceof NotFoundError) return { status: "missing" };
     if (signal?.aborted) throw error;

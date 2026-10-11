@@ -43,8 +43,8 @@ export type TunnelResult =
 /** Loads `tunnel.json`. The tunnel is optional: a missing or invalid file is a status, not a crash. */
 export async function loadTunnel(url: string, signal?: AbortSignal): Promise<TunnelResult> {
   try {
-    const response = await fetchChecked(url, signal);
-    const parsed = tunnelSchema.safeParse(await response.json());
+    const opened = await fetchChecked(url, signal);
+    const parsed = tunnelSchema.safeParse(await opened.read((response) => response.json()));
     if (!parsed.success) {
       return { status: "error", message: `${url} is not valid: ${parsed.error.message}` };
     }

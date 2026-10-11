@@ -33,18 +33,25 @@ export class RequestTimeoutError extends Error {
   }
 }
 
-type Request = { readonly response: Response; readonly release: () => void };
+/** An answered request; the timeout keeps running until `read` has finished with the body. */
+export type OpenResponse = {
+  readonly response: Response;
+  /** Reads the body, then stops the timeout. A timeout surfaces as `RequestTimeoutError`. */
+  readonly read: <T>(reader: (response: Response) => Promise<T>) => Promise<T>;
+};
 
 /**
  * Starts a request that is aborted when `signal` fires or `timeoutMs` elapses, so a hung request
  * rejects into the caller's retry path. The signals are composed by hand: `AbortSignal.any` needs
- * Safari 17.4. The timer also covers reading the body; `release` stops it once the body is read.
+ * Safari 17.4. The timer also covers reading the body. Some engines reject an aborted fetch or
+ * body read with a generic AbortError instead of `signal.reason`; the timeout is rethrown as
+ * such, so callers can tell it from a cancellation.
  */
 async function open(
   url: string,
   signal: AbortSignal | undefined,
   timeoutMs: number,
-): Promise<Request> {
+): Promise<OpenResponse> {
   const controller = new AbortController();
   const timer = setTimeout(() => {
     controller.abort(new RequestTimeoutError(url, timeoutMs));
@@ -56,6 +63,8 @@ async function open(
     clearTimeout(timer);
     signal?.removeEventListener("abort", onAbort);
   };
+  const surface = (error: unknown): unknown =>
+    controller.signal.reason instanceof RequestTimeoutError ? controller.signal.reason : error;
   try {
     const response = await fetch(url, { signal: controller.signal });
     if (response.status === 404) throw new NotFoundError(url);
@@ -63,20 +72,29 @@ async function open(
     if ((response.headers.get("content-type") ?? "").includes("text/html")) {
       throw new NotFoundError(url);
     }
-    return { response, release };
+    const read = async <T>(reader: (body: Response) => Promise<T>): Promise<T> => {
+      try {
+        return await reader(response);
+      } catch (error) {
+        throw surface(error);
+      } finally {
+        release();
+      }
+    };
+    return { response, read };
   } catch (error) {
     release();
-    throw error;
+    throw surface(error);
   }
 }
 
-/** For callers that read the body themselves: the timeout covers the body until it fires. */
+/** For callers that parse the body themselves: they must go through `read`. */
 export async function fetchChecked(
   url: string,
   signal?: AbortSignal,
   timeoutMs: number = JSON_TIMEOUT_MS,
-): Promise<Response> {
-  return (await open(url, signal, timeoutMs)).response;
+): Promise<OpenResponse> {
+  return open(url, signal, timeoutMs);
 }
 
 /** Fetches JSON and validates it at the boundary. */
@@ -85,13 +103,8 @@ export async function fetchJson<T>(
   schema: ZodType<T>,
   signal?: AbortSignal,
 ): Promise<T> {
-  const { response, release } = await open(url, signal, JSON_TIMEOUT_MS);
-  let body: unknown;
-  try {
-    body = await response.json();
-  } finally {
-    release();
-  }
+  const opened = await open(url, signal, JSON_TIMEOUT_MS);
+  const body: unknown = await opened.read((response) => response.json());
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     throw new Error(`${url} is not valid: ${parsed.error.message}`);
@@ -100,10 +113,6 @@ export async function fetchJson<T>(
 }
 
 export async function fetchBuffer(url: string, signal?: AbortSignal): Promise<ArrayBuffer> {
-  const { response, release } = await open(url, signal, BINARY_TIMEOUT_MS);
-  try {
-    return await response.arrayBuffer();
-  } finally {
-    release();
-  }
+  const opened = await open(url, signal, BINARY_TIMEOUT_MS);
+  return opened.read((response) => response.arrayBuffer());
 }
