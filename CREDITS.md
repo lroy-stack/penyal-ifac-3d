@@ -13,6 +13,20 @@ Code: © the Penyal d'Ifac 3D contributors, licensed under the [EUPL-1.2](LICENS
 | Cartografia CV05 1:5000 (contours, spot heights, buildings, paths, wooded areas) | Institut Cartogràfic Valencià | CC BY 4.0 | Cartografia CV05 1:5000 © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0) |
 | Trail, tunnel, steps, viewpoints, points of interest | OpenStreetMap contributors | ODbL 1.0 | © OpenStreetMap contributors. The extract and anything derived from it as a database are kept in separate files under ODbL. |
 
+## Textures and other assets
+| Asset | Author | Licence | Use |
+|---|---|---|---|
+| Poly Haven `marble_cliff_05` (diffuse, normal, ARM; 1k and 2k) | Amal Kumar | CC0 1.0 (no attribution required; credited as courtesy) | Rock structure for cliffs and near-ground detail in the terrain material |
+| Poly Haven `rocks_ground_05` (diffuse, normal, ARM; 1k and 2k) | Rob Tuytel | CC0 1.0 (no attribution required; credited as courtesy) | Trail surface (planned, T2.3) |
+
+## Third-party software shipped in the app
+| Component | Version | Licence |
+|---|---|---|
+| three.js (incl. GLTFLoader, KTX2Loader, CSM addons) | 0.186.1 | MIT |
+| Basis Universal transcoder (via three.js `examples/jsm/libs/basis`) | as bundled with three 0.186.1 | Apache-2.0 |
+| meshoptimizer decoder (via three.js `examples/jsm/libs/meshopt_decoder.module.js`) | as bundled with three 0.186.1 | MIT |
+| zod | 4.6.5 | MIT |
+
 ## Facts shown in the cards
 Every fact cites its source in `content/sources.json` (Generalitat Valenciana, DOGV, BOE, MITECO, EEA, Ajuntament de Calp, Mancomunitat de la Marina Alta, Universitat d'Alacant, MARQ). Texts are written by the project; no official text is reproduced.
 
@@ -25,3 +39,4 @@ Any geometry not backed by data (for example a tunnel cross-section without meas
 - **Terrain at the tunnel portals**: the 1 m DEM is the rock wall at the west portal, so the terrain tile `t_2_-4` (and the collision heightfield) is lowered by up to 13.3 m along the last 8.7 m of the steps, in a 6 m wide strip, down to the footpath floor, ending at the portal plane (39 DEM cells change). The tunnel volume (plus 1 m beyond each portal) is cut out of the surface in LOD0 and LOD1 of that tile so the mouths are visible; LOD2 keeps the rock. This is geometry, not data: it follows the approximate floor above.
 - **West approach path height**: the footpath along the OSM steps way follows the DEM for its first 8 m, then climbs in a straight line to the curated west floor; the first 5 m of the path leaving the east portal fade from the east floor into the DEM.
 - **Corridor shape**: the walkable corridor is the OSM trail buffered by 3 m plus discs of 15 / 10 / 8 / 6 m (forecourt, summit, Mirador de Carabiners, viewpoints), as decided in ADR 0006. Inside the tunnel it is the placeholder width minus 0.3 m (player capsule radius) on each side. The forecourt disc is centred on the point of the Centre d'Informació footprint nearest to the trail.
+- **Limestone stand-in**: the Penyal is Eocene nummulitic limestone; the rock detail comes from the Poly Haven `marble_cliff_05` texture, a visual stand-in (not geology), tinted by the orthophoto's local colour so the hue stays that of the real rock. When the textures are not loaded, a procedural noise detail is used instead; neither is surveyed geometry or photography of the Penyal.
