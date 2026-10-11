@@ -1,0 +1,103 @@
+{
+  "turnstile": {
+    "top": [
+      "0.92 MB /assets/generated/terrain/collision.bin",
+      "0.85 MB /bundle/index-Dys0rnbj.js",
+      "0.77 MB /assets/generated/terrain/far.glb",
+      "0.66 MB /assets/generated/terrain/tiles/t_2_-3_lod0.glb",
+      "0.64 MB /assets/generated/terrain/tiles/t_2_-4_lod0.glb",
+      "0.53 MB /decoders/basis/basis_transcoder.wasm",
+      "0.46 MB /assets/generated/terrain/tiles/t_1_-5_lod0.glb",
+      "0.45 MB /assets/generated/terrain/tiles/t_3_-4_lod0.glb",
+      "0.44 MB /assets/generated/terrain/tiles/t_1_-4_lod0.glb",
+      "0.43 MB /assets/generated/terrain/tiles/t_2_-5_lod0.glb",
+      "0.42 MB /assets/generated/terrain/tiles/t_1_-3_lod0.glb",
+      "0.26 MB /assets/generated/terrain/tiles/t_3_-5_lod0.glb"
+    ],
+    "tReadyMs": 390,
+    "bytesReady": 1861385,
+    "readyByKind": {
+      "other": 89640,
+      "js": 847624,
+      "collision": 924121
+    },
+    "bytesSettled": 9155783,
+    "settledByKind": {
+      "other": 106168,
+      "js": 847624,
+      "collision": 924121,
+      "terrain-tiles": 6693008,
+      "decoders": 584862
+    },
+    "requests": 43
+  },
+  "turnstile&terrain=high": {
+    "top": [
+      "4.92 MB /assets/generated/materials/marble_cliff_05_nor_gl_2k.ktx2",
+      "1.27 MB /assets/generated/materials/marble_cliff_05_nor_gl_1k.ktx2",
+      "0.92 MB /assets/generated/terrain/collision.bin",
+      "0.88 MB /assets/generated/materials/marble_cliff_05_diff_2k.ktx2",
+      "0.85 MB /bundle/index-Dys0rnbj.js",
+      "0.77 MB /assets/generated/terrain/far.glb",
+      "0.66 MB /assets/generated/terrain/tiles/t_2_-3_lod0.glb",
+      "0.64 MB /assets/generated/terrain/tiles/t_2_-4_lod0.glb",
+      "0.53 MB /decoders/basis/basis_transcoder.wasm",
+      "0.48 MB /assets/generated/materials/marble_cliff_05_arm_2k.ktx2",
+      "0.46 MB /assets/generated/terrain/tiles/t_1_-5_lod0.glb",
+      "0.45 MB /assets/generated/terrain/tiles/t_3_-4_lod0.glb"
+    ],
+    "tReadyMs": 1235,
+    "bytesReady": 4323712,
+    "readyByKind": {
+      "other": 106168,
+      "js": 847624,
+      "collision": 924121,
+      "materials": 1640387,
+      "terrain-tiles": 805412
+    },
+    "bytesSettled": 17083599,
+    "settledByKind": {
+      "other": 106168,
+      "js": 847624,
+      "collision": 924121,
+      "materials": 7927816,
+      "terrain-tiles": 6693008,
+      "decoders": 584862
+    },
+    "requests": 49
+  },
+  "summit": {
+    "top": [
+      "0.92 MB /assets/generated/terrain/collision.bin",
+      "0.85 MB /bundle/index-Dys0rnbj.js",
+      "0.77 MB /assets/generated/terrain/far.glb",
+      "0.66 MB /assets/generated/terrain/tiles/t_2_-3_lod0.glb",
+      "0.64 MB /assets/generated/terrain/tiles/t_2_-4_lod0.glb",
+      "0.61 MB /assets/generated/terrain/tiles/t_3_-3_lod0.glb",
+      "0.53 MB /decoders/basis/basis_transcoder.wasm",
+      "0.45 MB /assets/generated/terrain/tiles/t_3_-4_lod0.glb",
+      "0.42 MB /assets/generated/terrain/tiles/t_1_-3_lod0.glb",
+      "0.24 MB /assets/generated/terrain/tiles/t_4_-2_lod1.glb",
+      "0.21 MB /assets/generated/terrain/tiles/t_4_-3_lod1.glb",
+      "0.18 MB /assets/generated/terrain/tiles/t_3_-2_lod1.glb"
+    ],
+    "tReadyMs": 1622,
+    "bytesReady": 3335691,
+    "readyByKind": {
+      "other": 106168,
+      "js": 847624,
+      "collision": 924121,
+      "terrain-tiles": 872916,
+      "decoders": 584862
+    },
+    "bytesSettled": 8361419,
+    "settledByKind": {
+      "other": 106168,
+      "js": 847624,
+      "collision": 924121,
+      "terrain-tiles": 5898644,
+      "decoders": 584862
+    },
+    "requests": 42
+  }
+}

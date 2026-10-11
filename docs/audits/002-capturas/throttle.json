@@ -1,0 +1,10 @@
+{
+  "slow4g": {
+    "firstStepMs": 9936,
+    "farTerrainMs": 21280
+  },
+  "fast4g": {
+    "firstStepMs": 2001,
+    "farTerrainMs": 7357
+  }
+}

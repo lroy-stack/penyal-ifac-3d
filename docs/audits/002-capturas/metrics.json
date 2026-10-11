@@ -1,0 +1,209 @@
+{
+  "turnstile": {
+    "tReadyMs": 361,
+    "tSettledMs": 26839,
+    "bytesAtReady": 11609635,
+    "bytesAtSettled": 22397671,
+    "calls": 18,
+    "triangles": 296001,
+    "p95ms_swiftshader": 100,
+    "terrain": {
+      "resident": {
+        "0": 8,
+        "1": 8,
+        "2": 16
+      },
+      "displayed": {
+        "0": 8,
+        "1": 8
+      },
+      "farLoaded": true,
+      "bytesLoaded": 6693008,
+      "pending": 0,
+      "inFlight": 0,
+      "failed": 0,
+      "lastError": null,
+      "quality": "low",
+      "detail": "procedural"
+    },
+    "grounded": true
+  },
+  "viewpoint-1795591637": {
+    "tReadyMs": 3972,
+    "tSettledMs": 12808,
+    "bytesAtReady": 12995028,
+    "bytesAtSettled": 22397671,
+    "calls": 18,
+    "triangles": 296001,
+    "p95ms_swiftshader": 100,
+    "terrain": {
+      "resident": {
+        "0": 8,
+        "1": 8,
+        "2": 16
+      },
+      "displayed": {
+        "0": 8,
+        "1": 8
+      },
+      "farLoaded": true,
+      "bytesLoaded": 6693008,
+      "pending": 0,
+      "inFlight": 0,
+      "failed": 0,
+      "lastError": null,
+      "quality": "low",
+      "detail": "procedural"
+    },
+    "grounded": true
+  },
+  "viewpoint-3635481356": {
+    "tReadyMs": 954,
+    "tSettledMs": 4525,
+    "bytesAtReady": 13129778,
+    "bytesAtSettled": 22212829,
+    "calls": 15,
+    "triangles": 277559,
+    "p95ms_swiftshader": 100,
+    "terrain": {
+      "resident": {
+        "0": 7,
+        "1": 9,
+        "2": 16
+      },
+      "displayed": {
+        "0": 7,
+        "1": 9
+      },
+      "farLoaded": true,
+      "bytesLoaded": 6665356,
+      "pending": 0,
+      "inFlight": 0,
+      "failed": 0,
+      "lastError": null,
+      "quality": "low",
+      "detail": "procedural"
+    },
+    "grounded": true
+  },
+  "tunnel-east": {
+    "tReadyMs": 1791,
+    "tSettledMs": 7863,
+    "bytesAtReady": 12995028,
+    "bytesAtSettled": 21564988,
+    "calls": 13,
+    "triangles": 291313,
+    "p95ms_swiftshader": 100,
+    "terrain": {
+      "resident": {
+        "0": 6,
+        "1": 9,
+        "2": 16
+      },
+      "displayed": {
+        "0": 6,
+        "1": 9,
+        "2": 1
+      },
+      "farLoaded": true,
+      "bytesLoaded": 6282228,
+      "pending": 0,
+      "inFlight": 0,
+      "failed": 0,
+      "lastError": null,
+      "quality": "low",
+      "detail": "procedural"
+    },
+    "grounded": true
+  },
+  "bifurcation": {
+    "tReadyMs": 2768,
+    "tSettledMs": 16476,
+    "bytesAtReady": 12996473,
+    "bytesAtSettled": 23025847,
+    "calls": 16,
+    "triangles": 291859,
+    "p95ms_swiftshader": 100,
+    "terrain": {
+      "resident": {
+        "0": 9,
+        "1": 7,
+        "2": 16
+      },
+      "displayed": {
+        "0": 9,
+        "1": 7
+      },
+      "farLoaded": true,
+      "bytesLoaded": 7109376,
+      "pending": 0,
+      "inFlight": 0,
+      "failed": 0,
+      "lastError": null,
+      "quality": "low",
+      "detail": "procedural"
+    },
+    "grounded": true
+  },
+  "summit": {
+    "tReadyMs": 1009,
+    "tSettledMs": 4058,
+    "bytesAtReady": 13166506,
+    "bytesAtSettled": 21000279,
+    "calls": 13,
+    "triangles": 254257,
+    "p95ms_swiftshader": 100,
+    "terrain": {
+      "resident": {
+        "0": 5,
+        "1": 10,
+        "2": 16
+      },
+      "displayed": {
+        "0": 5,
+        "1": 10,
+        "2": 1
+      },
+      "farLoaded": true,
+      "bytesLoaded": 5898644,
+      "pending": 0,
+      "inFlight": 0,
+      "failed": 0,
+      "lastError": null,
+      "quality": "low",
+      "detail": "procedural"
+    },
+    "grounded": true
+  },
+  "carabiners": {
+    "tReadyMs": 824,
+    "tSettledMs": 3373,
+    "bytesAtReady": 13150279,
+    "bytesAtSettled": 18726296,
+    "calls": 5,
+    "triangles": 98228,
+    "p95ms_swiftshader": 100,
+    "terrain": {
+      "resident": {
+        "0": 4,
+        "1": 4,
+        "2": 16
+      },
+      "displayed": {
+        "0": 4,
+        "1": 4,
+        "2": 8
+      },
+      "farLoaded": true,
+      "bytesLoaded": 4475920,
+      "pending": 0,
+      "inFlight": 0,
+      "failed": 0,
+      "lastError": null,
+      "quality": "low",
+      "detail": "procedural"
+    },
+    "grounded": true
+  },
+  "errors": []
+}

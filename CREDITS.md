@@ -1,0 +1,27 @@
+# Credits and licences
+
+This file lists every data source and asset used by Penyal d'Ifac 3D, with its licence and required attribution. The in-app credits screen is generated from `data/catalog.toml` and this file. Update both whenever something is added.
+
+Code: © the Penyal d'Ifac 3D contributors, licensed under the [EUPL-1.2](LICENSE).
+
+## Geographic data
+| Data | Producer | Licence | Attribution |
+|---|---|---|---|
+| MDT 1 m (2016), sheet 0848 | Institut Cartogràfic Valencià, from PNOA-LiDAR 2016 | CC BY 4.0 | Producte derivat de LIDAR-PNOA 2016 CC-BY 4.0 scne.es · Institut Cartogràfic Valencià |
+| LiDAR 2016 point clouds (0.5 pt/m²) | Institut Cartogràfic Valencià, from PNOA-LiDAR | CC BY 4.0 | Conté dades modificades de PNOA-LiDAR 2016 CC BY 4.0 www.scne.es · Institut Cartogràfic Valencià |
+| Orthophoto 2024, 25 cm, RGBI, sheet 0848_7-2 | Institut Cartogràfic Valencià | CC BY 4.0 | Ortofoto 2024 25 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0) |
+| Cartografia CV05 1:5000 (contours, spot heights, buildings, paths, wooded areas) | Institut Cartogràfic Valencià | CC BY 4.0 | Cartografia CV05 1:5000 © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0) |
+| Trail, tunnel, steps, viewpoints, points of interest | OpenStreetMap contributors | ODbL 1.0 | © OpenStreetMap contributors. The extract and anything derived from it as a database are kept in separate files under ODbL. |
+
+## Facts shown in the cards
+Every fact cites its source in `content/sources.json` (Generalitat Valenciana, DOGV, BOE, MITECO, EEA, Ajuntament de Calp, Mancomunitat de la Marina Alta, Universitat d'Alacant, MARQ). Texts are written by the project; no official text is reproduced.
+
+## Approximations
+Any geometry not backed by data (for example a tunnel cross-section without measurements) is listed here with what it is based on.
+
+- **Seabed**: the MDT holds 0.0 m over water, so sea cells inside the CV05 `Mar Mediterrani` polygon are set to a constant −3.0 m (`seaFill` in `dem.json` and `collision.json`). It is a placeholder under the sea surface, not a bathymetry. Land heights are never altered.
+- **Tunnel floor heights** (approximate, spec Q2/Q6): the DEM over and beside the tunnel is rock, not floor (at the west portal it reads 182.87 m, 4-11 m above the footpath), so the floor is curated in `data/curated/tunnel.toml` and runs linearly in path distance between the portals: west 171.0 m (range 170.0-172.5), east 193.0 m (192.3-193.7), a climb of 22 m over the 49 m path (about 24 degrees). West basis: the footpath before the steps is at 168-170 m in the DEM and the ground LiDAR, plus 6 steps (OSM `step_count`) of an assumed 0.18 m, about 169.9 m; the lowest LiDAR return within 3 m outside the portal is 172.1 m. East basis: the DEM at the portal (193.12 m) agrees with the LiDAR along the first 5 m of the path leaving it (medians 192.3-192.7 m). No height was measured on site; confirm with the park or a visit. `penyal tunnel --analyse` recomputes the evidence and a test fails if the file drifts from the data.
+- **Tunnel cross-section** (placeholder, spec Q2): 2.0 m wide and 2.6 m high (ranges 1.5-2.5 m and 2.2-3.2 m), a flat floor under vertical walls and a flattened vault. No dimensions are published and the three openly licensed Wikimedia Commons photos reviewed (Spotter2, CC BY-SA 3.0 / GFDL; chisloup, CC BY 3.0; Josemanuel, CC BY-SA 2.5) contain no person or object of known size, so they only support a section about one to two people wide. The photos are not stored in the repository and not used as textures; the interior is plain grey. Replace with measurements or a phone-LiDAR scan.
+- **Terrain at the tunnel portals**: the 1 m DEM is the rock wall at the west portal, so the terrain tile `t_2_-4` (and the collision heightfield) is lowered by up to 13.3 m along the last 8.7 m of the steps, in a 6 m wide strip, down to the footpath floor, ending at the portal plane (39 DEM cells change). The tunnel volume (plus 1 m beyond each portal) is cut out of the surface in LOD0 and LOD1 of that tile so the mouths are visible; LOD2 keeps the rock. This is geometry, not data: it follows the approximate floor above.
+- **West approach path height**: the footpath along the OSM steps way follows the DEM for its first 8 m, then climbs in a straight line to the curated west floor; the first 5 m of the path leaving the east portal fade from the east floor into the DEM.
+- **Corridor shape**: the walkable corridor is the OSM trail buffered by 3 m plus discs of 15 / 10 / 8 / 6 m (forecourt, summit, Mirador de Carabiners, viewpoints), as decided in ADR 0006. Inside the tunnel it is the placeholder width minus 0.3 m (player capsule radius) on each side. The forecourt disc is centred on the point of the Centre d'Informació footprint nearest to the trail.
