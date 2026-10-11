@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Penyal d'Ifac 3D</title>
+    <title>{{pageTitle}}</title>
     <style>
       html,
       body {
@@ -45,17 +45,98 @@
       #fatal[data-visible="true"] {
         display: flex;
       }
+      #attribution {
+        position: fixed;
+        left: max(0.5rem, env(safe-area-inset-left));
+        bottom: max(0.5rem, env(safe-area-inset-bottom));
+        /* Leaves the corner of the touch camera button (56 px + 1 rem margin) free. */
+        max-width: calc(100% - 1rem - 56px - 1.75rem);
+        z-index: 6;
+        margin: 0;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        background: rgb(0 0 0 / 0.65);
+        color: #fff;
+        font: 12px/1.4 system-ui, sans-serif;
+        /* Touches on the text reach the canvas (joystick, look); only the button is live. */
+        pointer-events: none;
+      }
+      #attribution button {
+        min-height: 24px;
+        margin: 0 0 0 0.25rem;
+        padding: 0 0.25rem;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        font-weight: 600;
+        text-decoration: underline;
+        cursor: pointer;
+        pointer-events: auto;
+      }
+      #attribution button:focus-visible,
+      dialog#credits button:focus-visible {
+        outline: 2px solid #ffd54a;
+        outline-offset: 2px;
+      }
+      dialog#credits {
+        width: min(40rem, calc(100% - 2rem));
+        max-height: calc(100% - 2rem);
+        padding: 1rem 1.25rem;
+        border: 1px solid rgb(255 255 255 / 0.4);
+        border-radius: 8px;
+        background: #10202f;
+        color: #fff;
+        font: 0.9375rem/1.5 system-ui, sans-serif;
+      }
+      dialog#credits::backdrop {
+        background: rgb(0 0 0 / 0.6);
+      }
+      dialog#credits h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1.25rem;
+      }
+      dialog#credits h3 {
+        margin: 1rem 0 0.25rem;
+        font-size: 1rem;
+      }
+      dialog#credits ul {
+        margin: 0;
+        padding-left: 1.25rem;
+      }
+      dialog#credits li {
+        margin: 0.25rem 0;
+      }
+      dialog#credits a {
+        color: #9ecbff;
+      }
+      dialog#credits .credits-body {
+        max-height: 60vh;
+        overflow: auto;
+      }
+      dialog#credits .credits-close {
+        margin-top: 0.75rem;
+        min-height: 2.5rem;
+        padding: 0 1rem;
+        border: 1px solid #fff;
+        border-radius: 4px;
+        background: transparent;
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
-    <canvas id="scene" aria-label="Vista 3D del Penyal d'Ifac"></canvas>
+    <canvas id="scene" aria-label="{{canvasLabel}}"></canvas>
     <div id="fatal"></div>
     <div id="status" class="visually-hidden" role="status" aria-live="polite"></div>
+    <footer id="attribution">
+      {{attributionLine}}
+      <button type="button" id="credits-open">{{creditsButton}}</button>
+    </footer>
     <noscript>
-      <p style="color: #fff; font-family: system-ui, sans-serif; padding: 2rem">
-        Esta aplicación necesita JavaScript para mostrar el Penyal d'Ifac en 3D. Actívalo en tu
-        navegador e inténtalo de nuevo.
-      </p>
+      <p style="color: #fff; font-family: system-ui, sans-serif; padding: 2rem">{{noscript}}</p>
     </noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>

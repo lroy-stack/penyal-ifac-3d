@@ -9,6 +9,7 @@ import { parseTimescale, simulationSteps } from "./core/timescale";
 import { createPlayer } from "./player";
 import { buildAutoWalkRoute } from "./player/autowalk";
 import { MAX_FRAME_DT } from "./player/controller";
+import { initCredits } from "./ui/credits";
 import { createPerfOverlay, isPerfRequested, type PerfOverlay } from "./ui/perfOverlay";
 import { COLLISION_PATH, loadCollisionField } from "./world/collision";
 import { createTrailDebug, type TrailDebug } from "./world/debugTrail";
@@ -305,6 +306,7 @@ async function bootstrap(): Promise<void> {
   window.addEventListener("pageshow", lifecycle.onPageShow);
 }
 
+initCredits();
 bootstrap().catch((error: unknown) => {
   showFatal(`Error al iniciar el Penyal d'Ifac 3D. ${describeError(error)}`);
 });

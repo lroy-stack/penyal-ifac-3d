@@ -8,6 +8,11 @@ function isEditable(target: EventTarget | null): boolean {
   );
 }
 
+/** While a dialog (the credits) is open the keys belong to it, not to the walker. */
+function isDialogOpen(): boolean {
+  return document.querySelector("dialog[open]") !== null;
+}
+
 /** WASD / arrows, Shift to run, C to toggle the camera, E to interact, P to toggle auto-walk; by `event.code`. */
 export function attachKeyboard(hub: InputHub, target: Window = window): () => void {
   const pressed = new Set<string>();
@@ -18,7 +23,14 @@ export function attachKeyboard(hub: InputHub, target: Window = window): () => vo
   };
 
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (isEditable(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (
+      isEditable(event.target) ||
+      isDialogOpen() ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey
+    )
+      return;
     if (!isHandledKeyCode(event.code)) return;
     event.preventDefault();
     if (event.repeat) return;
