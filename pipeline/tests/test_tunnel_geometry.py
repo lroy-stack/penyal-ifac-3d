@@ -203,3 +203,41 @@ def test_split_points_on_shared_edges_are_welded() -> None:
     new_xyz, _ = geo.cut_openings(xyz, triangles, run)
     rounded = {tuple(np.round(p, 9)) for p in new_xyz}
     assert len(rounded) == new_xyz.shape[0], "no duplicate vertices"
+
+
+def ramp(x: npt.NDArray, z: npt.NDArray) -> npt.NDArray:
+    """Terrain that falls from 4 m at x = 0 to 0 m at x = 10."""
+    return 4.0 - 0.4 * x + 0.0 * z
+
+
+def test_clip_removes_the_walls_and_vault_above_the_terrain_and_keeps_the_floor() -> None:
+    shell = geo.build_shell(straight_axis(10.0), WIDTH, HEIGHT)
+    clipped = geo.clip_shell_to_surface(shell, ramp, skin=0.25)
+    wall = clipped.normals[:, 1] < geo.FLOOR_NORMAL_Y
+    p = clipped.positions.astype(np.float64)
+    assert (p[wall, 1] <= ramp(p[wall, 0], p[wall, 2]) - 0.25 + 1e-5).all()
+    floor = shell.normals[:, 1] >= geo.FLOOR_NORMAL_Y
+    assert (clipped.normals[:, 1] >= geo.FLOOR_NORMAL_Y).sum() == floor.sum()
+    assert np.allclose(np.linalg.norm(clipped.normals, axis=1), 1.0, atol=1e-5)
+    assert clipped.triangles.max() < len(clipped.positions)
+    assert len(clipped.triangles) < len(shell.triangles)
+
+
+def test_clip_leaves_a_shell_that_is_wholly_under_the_terrain_untouched() -> None:
+    shell = geo.build_shell(straight_axis(10.0), WIDTH, HEIGHT)
+    clipped = geo.clip_shell_to_surface(shell, lambda x, z: np.full_like(x, 50.0), skin=0.25)
+    assert clipped.positions.tolist() == shell.positions.tolist()
+    assert clipped.triangles.tolist() == shell.triangles.tolist()
+
+
+def test_clip_is_deterministic_and_welds_shared_edges() -> None:
+    shell = geo.build_shell(straight_axis(10.0), WIDTH, HEIGHT)
+    first = geo.clip_shell_to_surface(shell, ramp, skin=0.25)
+    second = geo.clip_shell_to_surface(shell, ramp, skin=0.25)
+    assert first.positions.tolist() == second.positions.tolist()
+    assert first.triangles.tolist() == second.triangles.tolist()
+
+    def duplicates(mesh: geo.ShellMesh) -> int:
+        return len(mesh.positions) - len({tuple(p) for p in mesh.positions.tolist()})
+
+    assert duplicates(first) <= duplicates(shell), "cut-line vertices are shared by neighbours"

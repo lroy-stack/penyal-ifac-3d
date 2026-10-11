@@ -19,6 +19,7 @@ the floor. Strips are listed in an order such that ``sweep x profile_direction``
 tunnel, which fixes both the triangle winding and the normals of the shell.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
@@ -31,6 +32,7 @@ ARCH_RISE_FRACTION = 0.8
 ARC_SEGMENTS = 12
 OVERRUN = 1.0  # metres of shell and cut volume beyond each portal
 PLANE_TOLERANCE = 1e-9
+FLOOR_NORMAL_Y = 0.85  # inward normals at least this vertical belong to the floor
 MIN_PIECE_AREA = 1e-9
 
 type Floats = npt.NDArray[np.float64]
@@ -176,6 +178,73 @@ def build_shell(axis: Floats, width: float, height: float) -> ShellMesh:
         positions=np.concatenate(positions).astype(np.float32),
         normals=np.concatenate(normals).astype(np.float32),
         triangles=np.concatenate(triangles).astype(np.int32),
+    )
+
+
+def clip_shell_to_surface(
+    shell: ShellMesh,
+    surface: Callable[[Floats, Floats], Floats],
+    skin: float,
+) -> ShellMesh:
+    """Remove the walls and vault above ``surface - skin`` so nothing pokes out of the rock.
+
+    ``surface(x, z)`` is the terrain height. Near a portal the terrain falls below the vault; the
+    shell there would be a half-pipe lying on the ground, visible from outside. Triangles are cut
+    where the (affine over a triangle) height excess crosses zero; new vertices are shared between
+    neighbours, with interpolated normals. Floor vertices (inward normal ``y >= FLOOR_NORMAL_Y``)
+    are never cut: the floor is the walkable surface and fills the opening in the terrain.
+    """
+    positions = shell.positions.astype(np.float64)
+    excess = positions[:, 1] - (surface(positions[:, 0], positions[:, 2]) - skin)
+    excess[shell.normals[:, 1] >= FLOOR_NORMAL_Y] = -1.0
+    outside = excess > 0.0
+    corner_out = outside[shell.triangles]
+    count = corner_out.sum(axis=1)
+    keep = shell.triangles[count == 0]
+    new_positions: list[Floats] = []
+    new_normals: list[Floats] = []
+    cache: dict[tuple[int, int], int] = {}
+    base = positions.shape[0]
+
+    def crossing(a: int, b: int) -> int:
+        low, high = (a, b) if a < b else (b, a)
+        if (low, high) not in cache:
+            t = excess[low] / (excess[low] - excess[high])
+            cache[(low, high)] = base + len(new_positions)
+            new_positions.append(positions[low] + (positions[high] - positions[low]) * t)
+            blended = (
+                shell.normals[low].astype(np.float64) * (1 - t)
+                + shell.normals[high].astype(np.float64) * t
+            )
+            new_normals.append(blended / np.linalg.norm(blended))
+        return cache[(low, high)]
+
+    fresh: list[tuple[int, int, int]] = []
+    for t in np.flatnonzero((count > 0) & (count < 3)):
+        ids = [int(v) for v in shell.triangles[t]]
+        polygon: list[int] = []
+        for k, current in enumerate(ids):
+            following = ids[(k + 1) % 3]
+            if not outside[current]:
+                polygon.append(current)
+            if outside[current] != outside[following]:
+                polygon.append(crossing(current, following))
+        for k in range(1, len(polygon) - 1):
+            fresh.append((polygon[0], polygon[k], polygon[k + 1]))
+    all_positions = np.vstack([positions, np.array(new_positions).reshape(-1, 3)])
+    all_normals = np.vstack(
+        [shell.normals.astype(np.float64), np.array(new_normals).reshape(-1, 3)]
+    )
+    triangles = np.concatenate(
+        [keep.astype(np.int64), np.array(fresh, dtype=np.int64).reshape(-1, 3)]
+    )
+    used = np.unique(triangles.ravel())
+    remap = np.full(all_positions.shape[0], -1, dtype=np.int64)
+    remap[used] = np.arange(used.size)
+    return ShellMesh(
+        positions=all_positions[used].astype(np.float32),
+        normals=all_normals[used].astype(np.float32),
+        triangles=remap[triangles].astype(np.int32),
     )
 
 
