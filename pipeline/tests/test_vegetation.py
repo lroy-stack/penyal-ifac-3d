@@ -384,6 +384,28 @@ class TestWithData:
         assert not (kept & on_cliff & (found.ndvi < vegetation.CLIFF_MIN_NDVI)).any()
         assert int(found.cliff.sum()) == int((found.cliff & on_cliff).sum())
 
+    def test_no_trunk_foot_is_on_the_walkable_corridor_or_near_the_path_axis(
+        self, found: vegetation.Detection
+    ) -> None:
+        document = json.loads(TRAIL_GENERATED.read_text(encoding="utf-8"))
+        corridor = vegetation.surface_corridor(document)
+        x, z = found.feet.x[found.kept], found.feet.z[found.kept]
+        assert not shapely.contains_xy(corridor, x, z).any()
+        axis = shapely.MultiLineString(
+            [
+                [(p[0], p[2]) for p in s["points"]]
+                for s in document["route"]["segments"]
+                if s["id"] != "tunnel"
+            ]
+        )  # trees may stand over the tunnel, not over the path on the surface
+        assert shapely.distance(shapely.points(x, z), axis).min() >= 3.0
+        apex_x, apex_z = found.crowns.x[found.kept], found.crowns.z[found.kept]
+        lean = np.hypot(apex_x - x, apex_z - z)
+        assert 5 < int((lean > 0).sum()) < len(x) / 5  # some trunks moved, most did not
+        assert (
+            lean <= vegetation.MAX_LEAN_PER_HEIGHT * found.crowns.height[found.kept] + 1e-6
+        ).all()
+
     def test_the_document_is_complete_and_has_no_protected_species(
         self, found: vegetation.Detection
     ) -> None:
@@ -532,3 +554,37 @@ def test_a_small_crown_whose_apex_is_shifted_off_its_canopy_is_still_measured() 
         radius=np.array([0.75]),
     )
     assert vegetation.crown_ndvi(raster, far)[0] == pytest.approx(0.0)
+
+
+# --- trunk feet ---------------------------------------------------------------------------------
+
+PATH_CORRIDOR = shapely.box(-20.0, -3.0, 20.0, 3.0)  # ADR 0006: 3 m each side of a path along x
+
+
+def test_a_trunk_foot_leaves_the_corridor_and_leans_towards_the_apex() -> None:
+    feet = vegetation.place_feet(
+        np.array([0.0, 5.0, 8.0]),
+        np.array([0.5, -1.0, 9.0]),
+        np.array([8.0, 8.0, 8.0]),
+        PATH_CORRIDOR,
+    )
+    assert feet.ok.tolist() == [True, True, True]
+    assert (feet.x[2], feet.z[2]) == (
+        8.0,
+        9.0,
+    )  # outside the corridor: the apex is the foot
+    assert not shapely.contains_xy(PATH_CORRIDOR, feet.x, feet.z).any()
+    margin = vegetation.FOOT_MARGIN
+    assert feet.z[0] >= 3.0 + margin  # nearest side of the apex at z = 0.5 is the south
+    assert feet.z[1] <= -3.0 - margin  # and for z = -1 the north side
+    lean = np.hypot(feet.x - np.array([0.0, 5.0, 8.0]), feet.z - np.array([0.5, -1.0, 9.0]))
+    assert lean[0] < 4.0
+    assert lean[2] == 0.0
+
+
+def test_a_crown_too_short_to_lean_out_of_the_corridor_is_blocked() -> None:
+    feet = vegetation.place_feet(
+        np.array([0.0, 0.0]), np.array([0.0, 0.0]), np.array([4.0, 8.0]), PATH_CORRIDOR
+    )
+    # 3.5 m from the centre to the clear ground: a 4 m tree cannot lean that far, an 8 m one can
+    assert feet.ok.tolist() == [False, True]
