@@ -637,6 +637,32 @@
       "licence": "CC0 1.0",
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_nor_gl_1k.jpg"
+    },
+    "xenocanto-xc624044-larus-michahellis": {
+      "attribution": "Giovanni Francesco Tartarelli, XC624044. Accessible at www.xeno-canto.org/624044 (CC BY 4.0)",
+      "files": [
+        {
+          "bytes": 675686,
+          "name": "XC624044-gabbiano%20reale%209.mp3",
+          "sha256": "74d2fc4efa1f5af201912b55c03dc845b0106eaf71c99cbfffcd568c8f009532"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "retrieved": "2026-10-11",
+      "url": "https://xeno-canto.org/sounds/uploaded/IAECJPJERN/XC624044-gabbiano%20reale%209.mp3"
+    },
+    "xenocanto-xc930530-curruca-undata": {
+      "attribution": "Camille Vacher, XC930530. Accessible at www.xeno-canto.org/930530 (CC BY 4.0)",
+      "files": [
+        {
+          "bytes": 388910,
+          "name": "XC930530-20240531_1653_fauvettepitchou.mp3",
+          "sha256": "6171d685565ac4d6b45db618145c8cd8b69ac61bb034f81d8f03ccc1bd0b9abf"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "retrieved": "2026-10-11",
+      "url": "https://xeno-canto.org/sounds/uploaded/LTIHWHLJQI/XC930530-20240531_1653_fauvettepitchou.mp3"
     }
   },
   "version": 1

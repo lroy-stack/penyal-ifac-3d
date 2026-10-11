@@ -29,6 +29,8 @@ Planned for phase B lane L2. Every file is trimmed and re-encoded for the app.
 | ["Oceanwavescrushing"](https://commons.wikimedia.org/wiki/File:Oceanwavescrushing.ogg), originally [Freesound #48412](https://freesound.org/people/Luftrum/sounds/48412/) | Luftrum | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) — modified (trimmed, re-encoded) | Sea on rock |
 | ["Cicadas in Greece"](https://commons.wikimedia.org/wiki/File:Cicadas_in_Greece.ogg) | Channel R | Public domain (credited as courtesy) | Cicadas, summer only |
 | ["Footstep on Gravel"](https://commons.wikimedia.org/wiki/File:Footstep_on_Gravel_(Gravity_Sound).mp3) | Gravity Sound | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — modified (trimmed, re-encoded) | Footsteps |
+| [XC624044](https://xeno-canto.org/624044), yellow-legged gull call, Livorno (Italy) | Giovanni Francesco Tartarelli | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — modified (trimmed, re-encoded) | Gull layer |
+| [XC930530](https://xeno-canto.org/930530), Dartford warbler call, Vaucluse (France) | Camille Vacher | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — modified (trimmed, re-encoded) | Passerine layer |
 
 CC BY-SA recordings are allowed only as one separate share-alike file per recording (ADR 0011); none is used yet.
 

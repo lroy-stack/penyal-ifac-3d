@@ -44,6 +44,23 @@ Los metadatos de Commons vienen de la página del archivo leída con WebFetch. F
 
 Nota: los archivos de Commons con origen xeno-canto declaran BY-SA. No he podido abrir xeno-canto, así que no sé si la licencia original es BY-NC-SA. Si lo fuera, el archivo de Commons estaría mal etiquetado y no podría usarse ni como BY-SA.
 
+## Comprobación en xeno-canto (responsable técnico, 2026-10-11)
+
+xeno-canto solo tiene IPv4; se consultó por el relé NAT64 del proyecto (`curl --resolve`). La licencia se leyó en la ficha de cada grabación ("License …"), no en el pie de página.
+
+| Grabación | Licencia en origen | Consecuencia |
+|---|---|---|
+| Commons "Cri de martinet pâle, Espagne.wav" = XC932233 (Xavier Riera) | **CC BY-NC-SA 4.0** | **Descartada**: Commons la etiqueta BY-SA por error; es no comercial |
+| Commons "Yellow-legged Gull - Larus michahellis michahellis.ogg" (Cedric Mroczko, origen xeno-canto sin número) | Todas las grabaciones de gaviota de este autor en xeno-canto (XC237323, XC245734, XC245736, XC245741, XC283599…) son **CC BY-NC-SA 4.0** | **Descartada** por precaución: muy probablemente mal etiquetada en Commons |
+| Commons "Curruca rabilarga (Curruca undata) 01.mp3" = XC794239 (Benoît Van Hecke) | CC BY-SA 4.0 | Válida, pero hay una CC BY (abajo) |
+| **XC624044**, gaviota patiamarilla, Giovanni Francesco Tartarelli, Livorno (Toscana, Italia), 2021-02-24 | **CC BY 4.0** | **Candidata**: 39,6 s, mono, MP3 128 kbps, reclamo de adulto, sin fondo; 675 686 bytes. Puerto mediterráneo. Es un reclamo, no una colonia: la colonia se compone en la app repitiendo y desplazando reclamos |
+| **XC930530**, curruca rabilarga, Camille Vacher, Taillades (Vaucluse, Provenza), 2024-05-31 | **CC BY 4.0** | **Candidata**: 25 s, mono, reclamo, sin fondo; 388 910 bytes |
+| Búsquedas `lic:BY` y `lic:CC0` de *Oenanthe leucura* y *Apus pallidus* | sin resultados | Collalba negra y vencejo pálido siguen sin fuente válida |
+
+Con estas dos, la gaviota y el paseriforme ya no necesitan BY-SA. Solo el viento en pinos sigue siendo BY-SA ("Wind in Swedish pine forest at 25 mps.ogg", obra propia del usuario de Commons, 1 909 781 bytes). **Ojo:** 25 m/s es un temporal (~90 km/h), no una brisa; habría que filtrarlo y bajarlo mucho, y puede no sonar natural.
+
+**Descargado** (aprobado por el usuario el 2026-10-11; fase 4 de `data/catalog.toml`, sha256 en `data/manifest.lock.json`): los tres archivos de Commons de la lista de aprobación, XC624044 (gaviota) y XC930530 (curruca rabilarga). El viento en pinos queda pendiente de una fuente mejor; collalba negra y vencejo pálido, sin fuente.
+
 ## Otras fuentes
 
 - **Freesound** (búsqueda web, no abierta: freesound.org no respondió desde aquí; NO VERIFICADO). Licencias vigentes: CC0, CC BY y CC BY-NC; Sampling+ está retirada. Los resultados de búsqueda que parecen válidos, todos NO VERIFICADOS:

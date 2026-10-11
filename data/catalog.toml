@@ -608,3 +608,27 @@ expected_bytes = 12142
 size_tolerance = 0.0
 licence = "CC BY 4.0"
 attribution = "\"Footstep on Gravel\" by Gravity Sound, via Wikimedia Commons, CC BY 4.0"
+
+[[source]]
+id = "xenocanto-xc624044-larus-michahellis"
+phase = 4
+kind = "file"
+description = "Yellow-legged gull (Larus michahellis) adult call, 39.6 s mono MP3 128 kbps, Livorno (Tuscany, Italy), 2021-02-24, no background species. xeno-canto is IPv4-only: fetch with --nat64-prefix on an IPv6-only uplink. Licence read on the recording page on 2026-10-11."
+used_for = "Phase B L2 (B4): gull layer (single calls, repeated and offset at runtime to suggest the colony)."
+url = "https://xeno-canto.org/sounds/uploaded/IAECJPJERN/XC624044-gabbiano%20reale%209.mp3"
+expected_bytes = 675686
+size_tolerance = 0.0
+licence = "CC BY 4.0"
+attribution = "Giovanni Francesco Tartarelli, XC624044. Accessible at www.xeno-canto.org/624044 (CC BY 4.0)"
+
+[[source]]
+id = "xenocanto-xc930530-curruca-undata"
+phase = 4
+kind = "file"
+description = "Dartford warbler (Curruca undata) call, 25 s mono MP3, near Taillades (Vaucluse, France), 2024-05-31, no background species. xeno-canto is IPv4-only: fetch with --nat64-prefix on an IPv6-only uplink. Licence read on the recording page on 2026-10-11."
+used_for = "Phase B L2 (B4): passerine layer (the park lists the Dartford warbler)."
+url = "https://xeno-canto.org/sounds/uploaded/LTIHWHLJQI/XC930530-20240531_1653_fauvettepitchou.mp3"
+expected_bytes = 388910
+size_tolerance = 0.0
+licence = "CC BY 4.0"
+attribution = "Camille Vacher, XC930530. Accessible at www.xeno-canto.org/930530 (CC BY 4.0)"
