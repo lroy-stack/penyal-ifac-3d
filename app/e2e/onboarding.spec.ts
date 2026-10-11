@@ -68,6 +68,33 @@ test.describe("first-time hints", () => {
   });
 });
 
+for (const viewport of [
+  { width: 390, height: 780 },
+  { width: 320, height: 568 },
+]) {
+  test(`the hints sit clear of the attribution and the camera button at ${viewport.width}x${viewport.height}`, async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ viewport, hasTouch: true, isMobile: true });
+    const page = await context.newPage();
+    await page.goto("/?start=turnstile");
+    await waitForWalkReady(page);
+    await expect(page.locator("#hints")).toHaveAttribute("data-visible", "true");
+
+    const hints = await page.locator("#hints").boundingBox();
+    const attribution = await page.locator("#attribution").boundingBox();
+    const camera = await page.locator('[data-action="toggle-camera"]').boundingBox();
+    if (hints === null || attribution === null || camera === null) {
+      throw new Error("The hints, the attribution and the camera button must all be laid out.");
+    }
+    const overlaps = (a: typeof hints, b: typeof hints): boolean =>
+      a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+    expect(overlaps(hints, attribution), "hints overlap the attribution").toBe(false);
+    expect(overlaps(hints, camera), "hints overlap the camera button").toBe(false);
+    await context.close();
+  });
+}
+
 test("the arrow keys turn the view in the real app", async ({ page }) => {
   await page.goto("/?start=turnstile");
   await waitForApp(page);

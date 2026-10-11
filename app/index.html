@@ -34,11 +34,12 @@
       #fatal {
         position: fixed;
         inset: 0;
-        z-index: 5;
+        z-index: 9;
         display: none;
         align-items: center;
         justify-content: center;
         padding: 2rem;
+        background: #0b1a2a;
         color: #fff;
         font: 1.125rem/1.5 system-ui, sans-serif;
         text-align: center;
@@ -105,8 +106,12 @@
         opacity: 0;
         transform: translateX(-50%);
       }
+      /* The hints live in the bottom dock, above the attribution row, so they never cover it. */
       #hints {
-        bottom: calc(3.75rem + env(safe-area-inset-bottom));
+        position: static;
+        z-index: auto;
+        margin-bottom: 0.5rem;
+        transform: none;
       }
       #notice {
         top: max(1rem, env(safe-area-inset-top));
@@ -130,14 +135,26 @@
           transition: opacity 0.3s;
         }
       }
-      #attribution {
+      #dock {
         position: fixed;
-        left: max(0.5rem, env(safe-area-inset-left));
-        bottom: max(0.5rem, env(safe-area-inset-bottom));
+        inset: auto 0 0;
+        z-index: 6;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        pointer-events: none;
+      }
+      /* As tall as the corner of the touch camera button, so the hints stay above it too. */
+      #dock-row {
+        display: flex;
+        align-items: flex-end;
+        align-self: stretch;
+        min-height: calc(max(1rem, env(safe-area-inset-bottom)) + 56px);
+      }
+      #attribution {
         /* Leaves the corner of the touch camera button (56 px + 1 rem margin) free. */
         max-width: calc(100% - 1rem - 56px - 1.75rem);
-        z-index: 6;
-        margin: 0;
+        margin: 0 0 max(0.5rem, env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-left));
         padding: 0.25rem 0.5rem;
         border-radius: 4px;
         background: rgb(0 0 0 / 0.65);
@@ -220,13 +237,17 @@
       <div id="poster-track"><div id="poster-bar"></div></div>
     </div>
     <div id="fatal"></div>
-    <div id="hints" role="status" aria-live="polite"></div>
     <div id="notice" role="status" aria-live="polite"></div>
     <div id="status" class="visually-hidden" role="status" aria-live="polite"></div>
-    <footer id="attribution">
-      {{attributionLine}}
-      <button type="button" id="credits-open">{{creditsButton}}</button>
-    </footer>
+    <div id="dock">
+      <div id="hints" role="status" aria-live="polite"></div>
+      <div id="dock-row">
+        <footer id="attribution">
+          {{attributionLine}}
+          <button type="button" id="credits-open">{{creditsButton}}</button>
+        </footer>
+      </div>
+    </div>
     <noscript>
       <style>
         #poster {
