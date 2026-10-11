@@ -8,6 +8,7 @@ import { createSkySystem } from "./sky";
 import type { WorldSystem } from "./systems";
 import { createTerrainSystem, type TerrainHandle } from "./terrain/system";
 import { createTunnelSystem, type TunnelHandle } from "./tunnelSystem";
+import { createVegetationSystem } from "./vegetation/system";
 
 export type WorldSystemsDeps = {
   /** The writer goes to the `atmosphere` system alone; every other system reads `ctx.atmosphere`. */
@@ -47,6 +48,7 @@ export function createWorldSystems(deps: WorldSystemsDeps): {
   systems.push(
     createPoiSystem({ control: deps.pois, load: loadPois, showDrafts: deps.showDrafts }),
   );
+  systems.push(createVegetationSystem());
   if (deps.debugTrail) systems.push(createTrailDebugSystem());
   return { systems, handles: { terrain: terrain.handle, tunnel: tunnel.handle } };
 }
