@@ -30,7 +30,11 @@ import {
   type TerrainStreamer,
   viewFromCamera,
 } from "./world/terrain";
-import { terrainGateOutcome } from "./world/terrain/gate";
+import {
+  INITIAL_TERRAIN_GATE,
+  stepTerrainGate,
+  type TerrainGateOutcome,
+} from "./world/terrain/gate";
 import {
   headingAlongRoute,
   loadTrail,
@@ -55,6 +59,8 @@ const ANCHOR_REACH_RADIUS = 6;
 const STATS_INTERVAL_FRAMES = 15;
 /** While the terrain loads, its readiness is checked every N frames. */
 const PREVIEW_CHECK_FRAMES = 6;
+/** How long "the terrain is available now" stays up after a late recovery. */
+const RECOVERED_NOTICE_MS = 5000;
 const TERRAIN_MANIFEST_PATH = "assets/generated/terrain/manifest.json";
 /** Auto-walk target of the P key. */
 const DEFAULT_AUTOWALK_TARGET = "summit";
@@ -79,6 +85,19 @@ function showFatal(message: string): void {
   setStatus(message);
 }
 
+let failed = false;
+let stopRendering: () => void = () => undefined;
+
+/**
+ * Every fatal path ends here: the loop stops (so nothing renders behind the message and a
+ * `pageshow` cannot revive it), no notice stays on top, and the fatal screen is shown.
+ */
+function fail(message: string): void {
+  failed = true;
+  stopRendering();
+  showFatal(message);
+}
+
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -92,6 +111,7 @@ async function bootstrap(): Promise<void> {
   const canvas = requireElement("scene", HTMLCanvasElement);
   const poster = createPoster();
   const hud = createHud();
+  stopRendering = () => hud.notify(null);
   const far = cameraFar();
   const camera = new PerspectiveCamera(65, 1, 0.2, far);
 
@@ -100,7 +120,7 @@ async function bootstrap(): Promise<void> {
     camera.updateProjectionMatrix();
   });
   if (!handle.ok) {
-    showFatal(handle.message);
+    fail(handle.message);
     return;
   }
   const { renderer } = handle;
@@ -123,7 +143,7 @@ async function bootstrap(): Promise<void> {
     ]);
   } catch (error) {
     handle.dispose();
-    showFatal(`${t("routeDataFailed")} ${describeError(error)}`);
+    fail(`${t("routeDataFailed")} ${describeError(error)}`);
     return;
   }
 
@@ -215,10 +235,10 @@ async function bootstrap(): Promise<void> {
 
   let player: Player | null = null;
   let collisionLoaded = false;
-  let failed = false;
-  let previewFrames = 0;
-  let terrainFailedShown = false;
-  const criticalPathStartMs = performance.now();
+  let gateFrames = 0;
+  let gateElapsedMs = 0;
+  let gate = INITIAL_TERRAIN_GATE;
+  const terrainView: { outcome: TerrainGateOutcome } = { outcome: "waiting" };
   let terrainSettled: () => void = () => undefined;
   const terrainGate = new Promise<void>((resolve) => {
     terrainSettled = resolve;
@@ -245,33 +265,75 @@ async function bootstrap(): Promise<void> {
   camera.position.set(startEye.x, startEye.y, startEye.z);
   camera.rotation.set(0, startYaw, 0, "YXZ");
 
+  const showTerrainOutcome = (outcome: TerrainGateOutcome, stats: TerrainStats): void => {
+    const before = terrainView.outcome;
+    terrainView.outcome = outcome;
+    if (outcome === "visible") {
+      state.loading.terrainVisibleMs = Math.round(performance.now());
+      poster.hide();
+      if (before === "failed") {
+        state.terrain.status = "ready";
+        state.terrain.message = null;
+        setStatus(t("terrainRecovered"));
+        hud.notify(t("terrainRecovered"), RECOVERED_NOTICE_MS);
+      } else {
+        // One polite live region announces it: #notice (the visible message), not #status as well.
+        hud.notify(t("terrainReady"));
+      }
+      terrainSettled();
+    } else if (outcome === "failed") {
+      if (before !== "failed") {
+        state.terrain.status = "error";
+        state.terrain.message = stats.lastError ?? "The terrain did not load in time.";
+        setStatus(`${t("terrainFailed")} ${stats.lastError ?? ""}`.trim());
+        poster.setMessage(t("terrainFailed"));
+        terrainSettled();
+      }
+      // The walk may already have started over missing terrain: keep saying so until it shows.
+      if (player !== null) hud.notify(t("terrainFailed"));
+    } else if (before === "failed") {
+      state.terrain.status = "ready";
+      state.terrain.message = null;
+      setStatus(t("loadingTerrain"));
+      poster.setMessage(t("loadingTerrain"));
+      if (player !== null) hud.notify(t("loadingTerrain"));
+    }
+  };
+
+  /**
+   * Until the terrain is visible (also after a failure: a slow link may still deliver it), every
+   * few frames the streamer's progress is fed to the stall gate with the loop's own dt, which is
+   * zero-length while the tab is hidden.
+   */
+  const checkTerrainGate = (dt: number): void => {
+    if (streamer === null || state.loading.terrainVisibleMs !== null) return;
+    gateElapsedMs += dt * 1000;
+    gateFrames++;
+    if (gateFrames % PREVIEW_CHECK_FRAMES !== 1) return;
+    const stats = streamer.stats();
+    state.terrain.stats = stats;
+    poster.setProgress(progressNow(stats));
+    const step = stepTerrainGate(
+      gate,
+      {
+        visible: stats.visible,
+        gaveUp: stats.gaveUp,
+        bytesLoaded: stats.bytesLoaded,
+        loadedTiles: stats.coverage.loaded,
+      },
+      gateElapsedMs,
+    );
+    gate = step.state;
+    gateElapsedMs = 0;
+    showTerrainOutcome(step.outcome, stats);
+  };
+
   const previewFrame = (): void => {
     sky.update(camera.position);
     if (streamer === null) return;
     renderer.getDrawingBufferSize(drawingBuffer);
     streamer.update(viewFromCamera(camera, drawingBuffer.y));
     renderer.render(scene, camera);
-    previewFrames++;
-    if (previewFrames % PREVIEW_CHECK_FRAMES !== 1) return;
-    const stats = streamer.stats();
-    state.terrain.stats = stats;
-    poster.setProgress(progressNow(stats));
-    if (state.loading.terrainVisibleMs !== null || terrainFailedShown) return;
-    const outcome = terrainGateOutcome(stats, performance.now() - criticalPathStartMs);
-    if (outcome === "visible") {
-      state.loading.terrainVisibleMs = Math.round(performance.now());
-      poster.hide();
-      // One polite live region announces it: #notice (the visible message), not #status as well.
-      hud.notify(t("terrainReady"));
-      terrainSettled();
-    } else if (outcome === "failed") {
-      terrainFailedShown = true;
-      state.terrain.status = "error";
-      state.terrain.message = stats.lastError ?? "The terrain did not load in time.";
-      setStatus(`${t("terrainFailed")} ${stats.lastError ?? ""}`.trim());
-      poster.setMessage(t("terrainFailed"));
-      terrainSettled();
-    }
   };
 
   const reached = new Set<string>();
@@ -330,6 +392,7 @@ async function bootstrap(): Promise<void> {
     if (rawMs !== null) frameStats.push(rawMs);
     if (player === null) previewFrame();
     else liveFrame(player, dt);
+    checkTerrainGate(dt);
     if (frameStats.snapshot !== lastSnapshot) {
       lastSnapshot = frameStats.snapshot;
       state.frameStats = lastSnapshot;
@@ -338,6 +401,11 @@ async function bootstrap(): Promise<void> {
     }
   });
   if (streamer !== null) loop.start();
+
+  stopRendering = () => {
+    loop.stop();
+    hud.notify(null);
+  };
 
   const lifecycle = createPageLifecycle({
     suspend: () => loop.stop(),
@@ -366,10 +434,7 @@ async function bootstrap(): Promise<void> {
   try {
     collision = await loadCollisionField(publicUrl(COLLISION_PATH, base));
   } catch (error) {
-    failed = true;
-    loop.stop();
-    hud.notify(null);
-    showFatal(`${t("routeDataFailed")} ${describeError(error)}`);
+    fail(`${t("routeDataFailed")} ${describeError(error)}`);
     return;
   }
   collisionLoaded = true;
@@ -404,7 +469,8 @@ async function bootstrap(): Promise<void> {
   streamer?.setDetailEnabled(true);
   state.loading.readyMs = Math.round(performance.now());
   poster.hide();
-  hud.notify(null);
+  if (terrainView.outcome === "failed") hud.notify(t("terrainFailed"));
+  else hud.notify(null);
   setStatus(t("walkReady"));
   hud.showHints(coarsePointer ? t("hintTouch") : t("hintKeyboard"));
   const requestedAutoWalk = params.get("autowalk");
@@ -414,5 +480,5 @@ async function bootstrap(): Promise<void> {
 
 initCredits();
 bootstrap().catch((error: unknown) => {
-  showFatal(`${t("startFailed")} ${describeError(error)}`);
+  fail(`${t("startFailed")} ${describeError(error)}`);
 });
