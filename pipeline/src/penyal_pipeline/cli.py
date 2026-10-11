@@ -23,12 +23,16 @@ from penyal_pipeline import (
     trail,
     tunnel,
     tunnel_geometry,
+    vegetation,
 )
 from penyal_pipeline.catalog import CatalogError, load_catalog, select_sources
 from penyal_pipeline.nat64 import Nat64Resolver, parse_prefix
 from penyal_pipeline.paths import (
     BUILD_DIR,
     GENERATED_DIR,
+    PINE_BUILD,
+    PINE_GENERATED,
+    PLANTS_BUILD,
     SPIKE_GLB,
     TERRAIN_BUILD_DIR,
     TERRAIN_GENERATED_DIR,
@@ -279,6 +283,48 @@ def _cmd_tunnel(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_vegetation(args: argparse.Namespace) -> int:
+    if args.analyse:
+        found = vegetation.detect(args.threshold)
+        print(vegetation.analysis_report(found, args.threshold))
+        return 0
+    doc = vegetation.run_vegetation(args.out, args.threshold)
+    counts, shrubs = doc["counts"], doc["understory"]
+    print(
+        f"crowns: {counts['crownsDetected']} detected, {counts['crownsTooTall']} too tall, "
+        f"{counts['crownsAbsent']} absent in the 2024 orthophoto (NDVI < {args.threshold}), "
+        f"{counts['crownsCliff']} cliff artefacts, {counts['crownsOverPath']} over the path, "
+        f"{counts['crownsKept']} kept ({counts['crownsLeaning']} leaning off the corridor)"
+    )
+    print(
+        f"pilot band (421 m + 40 m): {counts['pilotBandPark']} detected, "
+        f"{counts['pilotBandKept']} kept"
+    )
+    print(f"understory: {shrubs['count']} instances")
+    print(f"wrote {args.out} ({args.out.stat().st_size} bytes)")
+    return 0
+
+
+def _cmd_pine(args: argparse.Namespace) -> int:
+    from penyal_pipeline.blender import pine
+
+    document = pine.run_pine(args.out_dir, args.build_dir)
+    rows = [[m["name"], str(m["triangles"]), str(m["vertices"])] for m in document["meshes"]]
+    print(format_table(["MESH", "TRIANGLES", "VERTICES"], rows))
+    print(f"{pine.PINE_GLB}: {document['file']['bytes']} bytes in {args.out_dir}")
+    return 0
+
+
+def _cmd_plants(args: argparse.Namespace) -> int:
+    from penyal_pipeline.blender import plants
+
+    document = plants.run_plants(args.out_dir, args.build_dir)
+    rows = [[m["name"], str(m["triangles"]), str(m["vertices"])] for m in document["meshes"]]
+    print(format_table(["MESH", "TRIANGLES", "VERTICES"], rows))
+    print(f"{plants.PLANTS_GLB}: {document['file']['bytes']} bytes in {args.out_dir}")
+    return 0
+
+
 def _cmd_verify_generated(args: argparse.Namespace) -> int:
     problems = provenance.verify_generated(args.assets_dir)
     for problem in problems:
@@ -423,6 +469,49 @@ def build_parser() -> argparse.ArgumentParser:
         help="where the unoptimised GLB is written (default: %(default)s)",
     )
     structures_cmd.set_defaults(handler=_cmd_structures)
+    pine_cmd = commands.add_parser(
+        "pine", help="build the procedural Aleppo-pine GLB (variants, LODs, far card)"
+    )
+    pine_cmd.add_argument(
+        "--out-dir", type=Path, default=PINE_GENERATED, help="pine.glb + pine.json (%(default)s)"
+    )
+    pine_cmd.add_argument(
+        "--build-dir", type=Path, default=PINE_BUILD, help="unoptimised GLB (%(default)s)"
+    )
+    pine_cmd.set_defaults(handler=_cmd_pine)
+
+    plants_cmd = commands.add_parser(
+        "plants", help="build the procedural understory GLB (lentisc, rosemary, grass)"
+    )
+    plants_cmd.add_argument(
+        "--out-dir",
+        type=Path,
+        default=PINE_GENERATED,
+        help="plants.glb + plants.json (%(default)s)",
+    )
+    plants_cmd.add_argument(
+        "--build-dir", type=Path, default=PLANTS_BUILD, help="unoptimised GLB (%(default)s)"
+    )
+    plants_cmd.set_defaults(handler=_cmd_plants)
+
+    vegetation_cmd = commands.add_parser(
+        "vegetation", help="build vegetation.json (LiDAR crowns, NDVI check, understory)"
+    )
+    vegetation_cmd.add_argument(
+        "--out", type=Path, default=vegetation.VEGETATION_GENERATED, help="%(default)s"
+    )
+    vegetation_cmd.add_argument(
+        "--threshold",
+        type=float,
+        default=vegetation.NDVI_ABSENT_THRESHOLD,
+        help="NDVI below which a crown counts as gone (default: %(default)s)",
+    )
+    vegetation_cmd.add_argument(
+        "--analyse",
+        action="store_true",
+        help="print counts and the NDVI histogram; writes nothing",
+    )
+    vegetation_cmd.set_defaults(handler=_cmd_vegetation)
 
     verify_cmd = commands.add_parser(
         "verify-generated",
@@ -460,6 +549,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         tunnel_geometry.GeometryError,
         surfaces.SurfacesError,
         structures.StructuresError,
+        vegetation.VegetationError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
