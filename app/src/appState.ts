@@ -1,0 +1,70 @@
+import type { CameraMode } from "./player/cameras";
+import type { TerrainStats } from "./world/terrain";
+
+export type TerrainStatus = "loading" | "ready" | "missing" | "error";
+export type TunnelStatus = TerrainStatus;
+
+/** Snapshot published on `window.__appState` for automated checks (Playwright, manual console). */
+export type AppState = {
+  /** True once the first frame has been rendered. */
+  ready: boolean;
+  frames: number;
+  player: {
+    x: number;
+    y: number;
+    z: number;
+    yaw: number;
+    grounded: boolean;
+    cameraMode: CameraMode;
+    corridorHit: boolean;
+    /** Simulated seconds since the player was created. */
+    elapsed: number;
+  };
+  /** Names of the trail anchors the player has come within reach of. */
+  anchorsReached: string[];
+  terrain: {
+    status: TerrainStatus;
+    message: string | null;
+    stats: TerrainStats | null;
+  };
+  render: { calls: number; triangles: number };
+  /** Camera position in the local frame (for checks that it stays inside the tunnel). */
+  camera: { x: number; y: number; z: number };
+  tunnel: { status: TunnelStatus; message: string | null; meshLoaded: boolean };
+  autowalk: { active: boolean; target: string | null; progress: number };
+  /** Test-only simulation speed (`?timescale=N`); 1 in normal use. */
+  timescale: number;
+  /** 95th percentile of the last 120 frame times (ms), null before the first frame. */
+  frameTimeP95Ms: number | null;
+};
+
+declare global {
+  interface Window {
+    __appState?: AppState;
+  }
+}
+
+export function createAppState(): AppState {
+  return {
+    ready: false,
+    frames: 0,
+    player: {
+      x: 0,
+      y: 0,
+      z: 0,
+      yaw: 0,
+      grounded: false,
+      cameraMode: "first",
+      corridorHit: false,
+      elapsed: 0,
+    },
+    anchorsReached: [],
+    terrain: { status: "loading", message: null, stats: null },
+    render: { calls: 0, triangles: 0 },
+    camera: { x: 0, y: 0, z: 0 },
+    tunnel: { status: "loading", message: null, meshLoaded: false },
+    autowalk: { active: false, target: null, progress: 0 },
+    timescale: 1,
+    frameTimeP95Ms: null,
+  };
+}

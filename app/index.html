@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Penyal d'Ifac 3D</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #0b1a2a;
+      }
+      #scene {
+        position: fixed;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+      }
+      #fatal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        color: #fff;
+        font: 1.125rem/1.5 system-ui, sans-serif;
+        text-align: center;
+      }
+      #fatal[data-visible="true"] {
+        display: flex;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene" aria-label="Vista 3D del Penyal d'Ifac"></canvas>
+    <div id="fatal"></div>
+    <div id="status" class="visually-hidden" role="status" aria-live="polite"></div>
+    <noscript>
+      <p style="color: #fff; font-family: system-ui, sans-serif; padding: 2rem">
+        Esta aplicación necesita JavaScript para mostrar el Penyal d'Ifac en 3D. Actívalo en tu
+        navegador e inténtalo de nuevo.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
