@@ -3,9 +3,11 @@
 #
 #   scripts/worktree-setup.sh <l1..l8>
 #
-# The worktree lives in .worktrees/<lane> on the branch feat/b-<lane>, cut from main. Inputs that
-# the lane only reads are symlinked to the main checkout; outputs that the lane regenerates are
-# cloned (APFS copy-on-write), so lanes never overwrite each other's generated assets.
+# The worktree lives in .worktrees/<lane> on the branch feat/b-<lane>, cut from main. Tools (which
+# the lane only runs) are symlinked to the main checkout. Data and outputs are cloned (APFS
+# copy-on-write, no extra space): a symlinked data/raw would resolve outside the worktree and break
+# every repo-relative path the pipeline records, and the lane regenerates its outputs, so lanes
+# never overwrite each other's generated assets.
 set -euo pipefail
 
 lane="${1:-}"
@@ -39,21 +41,19 @@ branch="feat/b-$lane"
 
 git worktree add "$worktree" -b "$branch" main
 
-# Inputs: read-only, absolute links into the main checkout.
+# Tools: read-only, absolute links into the main checkout.
 link() {
   local from="$1"
   [ -e "$root/$from" ] || return 0
   mkdir -p "$(dirname "$worktree/$from")"
   ln -s "$root/$from" "$worktree/$from"
 }
-link data/raw
-link data/manual
 link tools/bin
 for ktx in "$root"/tools/ktx-*; do
   [ -e "$ktx" ] && link "tools/$(basename "$ktx")"
 done
 
-# Outputs: each lane regenerates its own, so they are cloned, not linked.
+# Data and outputs: cloned, not linked (see the header).
 clone() {
   local from="$1"
   [ -e "$root/$from" ] || return 0
@@ -64,11 +64,14 @@ clone() {
     cp -R "$root/$from" "$worktree/$from"
   fi
 }
+clone data/raw
+clone data/manual
 clone build
 clone app/public/assets/generated
 
 (cd "$worktree" && pnpm install --frozen-lockfile)
 (cd "$worktree" && uv sync --project pipeline --locked)
+(cd "$worktree" && uv run --project pipeline penyal verify-generated)
 
 cat <<MESSAGE
 

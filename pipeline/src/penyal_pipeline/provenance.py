@@ -14,6 +14,7 @@ files) are hashed from disk.
 import hashlib
 import importlib.metadata
 import json
+import os
 import shutil
 import subprocess
 from collections.abc import Iterable
@@ -60,7 +61,12 @@ def sha256_file(path: Path) -> str:
 
 
 def relative(path: Path, root: Path) -> str:
-    return path.resolve().relative_to(root.resolve()).as_posix()
+    """Repo-relative POSIX path. Symlinks are not followed first, so an input linked to another
+    checkout (data/raw, data/manual) keeps the path it has inside this repository."""
+    try:
+        return Path(os.path.abspath(path)).relative_to(os.path.abspath(root)).as_posix()
+    except ValueError:
+        return path.resolve().relative_to(root.resolve()).as_posix()
 
 
 def _binary(name: str, root: Path) -> str | None:

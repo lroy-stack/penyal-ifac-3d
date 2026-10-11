@@ -142,6 +142,25 @@ class TestInputs:
             "sha256": sha("osm-penyal"),
         }
 
+    def test_a_raw_dir_symlinked_outside_the_repo_keeps_a_repo_relative_path(
+        self, repo: Path, tmp_path: Path
+    ) -> None:
+        main_raw = tmp_path / "main" / "data" / "raw"
+        main_raw.parent.mkdir(parents=True)
+        (repo / "data" / "raw").rename(main_raw)
+        (repo / "data" / "raw").symlink_to(main_raw)
+        entry = artefacts.raw_input("osm-penyal", "osm-penyal.json", repo)
+        assert entry["file"] == "data/raw/osm-penyal/osm-penyal.json"
+        assert entry["sha256"] == sha("osm-penyal")
+
+    def test_a_path_that_resolves_inside_the_root_through_a_symlinked_root(
+        self, repo: Path, tmp_path: Path
+    ) -> None:
+        link = tmp_path / "link-to-repo"
+        link.symlink_to(repo)
+        target = repo / "data" / "curated" / "tunnel.toml"
+        assert provenance.relative(target, link) == "data/curated/tunnel.toml"
+
     def test_the_curated_file_is_hashed_from_disk(self, repo: Path) -> None:
         assert artefacts.curated_input(repo) == {
             "file": "data/curated/tunnel.toml",
