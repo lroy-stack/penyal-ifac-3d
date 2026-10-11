@@ -626,6 +626,112 @@ class TestTunnelAgainstTheTerrain:
         assert 23.0 < slope < 25.5
 
 
+# --- the shell seen from outside ---
+
+FOOTPRINT_STEP = 0.25  # metres between the top-down samples
+PORTAL_REACH = 6.0  # metres from a portal that are checked
+WALL_NORMAL_Y = 0.85  # inward normals below this are walls or vault, above it the floor
+
+
+def top_hits(
+    positions: Floats, triangles: npt.NDArray[np.int_], x: Floats, z: Floats
+) -> tuple[Floats, npt.NDArray[np.int_]]:
+    """Highest surface under each ``(x, z)`` seen from above: height (-inf if none) and triangle."""
+    best = np.full(x.shape, -np.inf)
+    who = np.full(x.shape, -1)
+    corners = positions[triangles]
+    near = (
+        (corners[:, :, 0].max(axis=1) >= x.min())
+        & (corners[:, :, 0].min(axis=1) <= x.max())
+        & (corners[:, :, 2].max(axis=1) >= z.min())
+        & (corners[:, :, 2].min(axis=1) <= z.max())
+    )
+    for t in np.flatnonzero(near):
+        a, b, c = corners[t]
+        det = (b[2] - c[2]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[2] - c[2])
+        if abs(det) < 1e-12:
+            continue
+        l1 = ((b[2] - c[2]) * (x - c[0]) + (c[0] - b[0]) * (z - c[2])) / det
+        l2 = ((c[2] - a[2]) * (x - c[0]) + (a[0] - c[0]) * (z - c[2])) / det
+        inside = (l1 >= -1e-9) & (l2 >= -1e-9) & (1.0 - l1 - l2 >= -1e-9)
+        y = l1 * a[1] + l2 * b[1] + (1.0 - l1 - l2) * c[1]
+        better = inside & (y > best)
+        best[better] = y[better]
+        who[better] = t
+    return best, who
+
+
+@pytest.fixture(scope="module")
+def scene(osm: trail.OsmData, curated: Curated) -> dict[str, Any]:
+    grid, _ = dem.load_dem()
+    features = tunnel.terrain_features(osm, grid, curated)
+    carved = features.carve.apply(grid)
+    shell = tunnel.tunnel_shell(osm, curated, carved)
+    positions = shell.positions.astype(np.float64)
+    axis = tunnel.axis_points(osm, curated)
+    meshes = {}
+    for lod in tiles.LODS[:2]:
+        mesh = tiles.build_tile(carved, 2, -4, lod, tiles.tile_openings(features, lod))
+        meshes[lod.level] = mesh
+    return {
+        "carved": carved,
+        "shell": shell,
+        "positions": positions,
+        "axis": axis,
+        "meshes": meshes,
+    }
+
+
+class TestShellSeenFromOutside:
+    """M5 (audit 002): from outside, nothing but rock and the portal mouths may show."""
+
+    pytestmark: ClassVar = [*raw_marks(OSM_FILE), *needs_dem]
+
+    def footprint(self, scene: dict[str, Any], portal: Floats) -> tuple[Floats, Floats]:
+        positions = scene["positions"]
+        near = np.hypot(positions[:, 0] - portal[0], positions[:, 2] - portal[2]) < PORTAL_REACH
+        low, high = positions[near].min(axis=0), positions[near].max(axis=0)
+        gx, gz = np.meshgrid(
+            np.arange(low[0], high[0], FOOTPRINT_STEP), np.arange(low[2], high[2], FOOTPRINT_STEP)
+        )
+        keep = np.hypot(gx - portal[0], gz - portal[2]) < PORTAL_REACH
+        return gx[keep], gz[keep]
+
+    @pytest.mark.parametrize("end", [0, -1], ids=["west", "east"])
+    @pytest.mark.parametrize("level", [0, 1])
+    def test_no_wall_or_vault_shows_above_the_rock(
+        self, scene: dict[str, Any], end: int, level: int
+    ) -> None:
+        shell, positions = scene["shell"], scene["positions"]
+        x, z = self.footprint(scene, scene["axis"][end])
+        shell_y, shell_tri = top_hits(positions, shell.triangles, x, z)
+        mesh = scene["meshes"][level]
+        rock_y, _ = top_hits(mesh.positions.astype(np.float64), mesh.triangles, x, z)
+        wall = shell.normals[shell.triangles[np.maximum(shell_tri, 0), 0], 1] < WALL_NORMAL_Y
+        exposed = np.isfinite(shell_y) & wall & (shell_y > rock_y + 1e-3)
+        dem_y = scene["carved"].sample(x, z)
+        protrusion = float(np.max(np.where(exposed, shell_y - dem_y, 0.0)))
+        area = float(exposed.sum()) * FOOTPRINT_STEP**2
+        print(
+            f"LOD{level} {'east' if end else 'west'}: exposed {area:.2f} m2, max {protrusion:.2f} m"
+        )
+        assert area <= 0.1, "wall or vault visible from above, outside the rock"
+        assert protrusion <= tiles.LODS[level].max_error + 1e-3
+
+    @pytest.mark.parametrize("end", [0, -1], ids=["west", "east"])
+    @pytest.mark.parametrize("level", [0, 1])
+    def test_every_cut_in_the_terrain_is_covered_by_the_shell(
+        self, scene: dict[str, Any], end: int, level: int
+    ) -> None:
+        shell = scene["shell"]
+        x, z = self.footprint(scene, scene["axis"][end])
+        shell_y, _ = top_hits(scene["positions"], shell.triangles, x, z)
+        mesh = scene["meshes"][level]
+        rock_y, _ = top_hits(mesh.positions.astype(np.float64), mesh.triangles, x, z)
+        uncovered = ~np.isfinite(shell_y) & ~np.isfinite(rock_y)
+        assert not uncovered.any(), "terrain hole with nothing under it: the sea shows through"
+
+
 # --- the shell GLB ---
 
 

@@ -31,8 +31,10 @@ from penyal_pipeline.paths import (
 from penyal_pipeline.rawdata import locate
 from penyal_pipeline.tunnel_geometry import (
     Carve,
+    ShellMesh,
     TerrainFeatures,
     build_shell,
+    clip_shell_to_surface,
     extend_axis,
     prisms,
 )
@@ -45,6 +47,7 @@ STATUS_APPROXIMATE = "approximate"
 LIDAR_GROUND_RADIUS = 2.0  # metres from the approach path
 NEAR_RADII = (3.0, 5.0)  # metres from a portal, on its outer side
 LIDAR_WINDOW = 70.0  # metres around the tunnel read from the point clouds
+SHELL_SKIN = 0.25  # metres: the finest terrain LOD error, so the shell stays under every LOD0 mesh
 DRIFT_TOLERANCE = 0.011  # curated evidence is rounded to centimetres
 
 type Floats = npt.NDArray[np.float64]
@@ -513,6 +516,34 @@ def terrain_features(osm: trail.OsmData, grid: Grid, curated: Curated) -> Terrai
     )
 
 
+def _split_end_segments(axis: Floats, spacing: float) -> Floats:
+    """Split the first and last segment (the overruns) into pieces of at most ``spacing`` metres.
+
+    The overruns are one metre long; the clip of the shell against the terrain is linear over a
+    triangle, which is too coarse there where the terrain changes steeply.
+    """
+
+    def split(a: Floats, b: Floats) -> Floats:
+        pieces = max(1, int(np.ceil(float(np.linalg.norm(b - a)) / spacing - 1e-9)))
+        return a + (b - a) * (np.arange(1, pieces) / pieces)[:, None]
+
+    return np.vstack(
+        [axis[:1], split(axis[0], axis[1]), axis[1:-1], split(axis[-2], axis[-1]), axis[-1:]]
+    )
+
+
+def tunnel_shell(osm: trail.OsmData, curated: Curated, terrain: Grid) -> ShellMesh:
+    """The interior shell exported to ``tunnel.glb``: the section swept along the extended axis.
+
+    Walls and vault are clipped ``SHELL_SKIN`` below ``terrain`` (the carved DEM the tiles are
+    made from), so near a portal, where the ground falls below the vault, the shell never shows
+    above the rock. The floor is kept whole.
+    """
+    axis = _split_end_segments(extend_axis(axis_points(osm, curated)), AXIS_SPACING)
+    shell = build_shell(axis, curated.section.width, curated.section.height)
+    return clip_shell_to_surface(shell, terrain.sample, SHELL_SKIN)
+
+
 def load_terrain_features() -> TerrainFeatures:
     """``terrain_features`` from the committed curated file, the OSM extract and ``build/``."""
     osm = trail.load_osm(locate(trail.OSM_SOURCE_ID, trail.OSM_FILE).path)
@@ -554,13 +585,12 @@ def run_tunnel(
     document = build_document(osm, curated, raw.sha256)
     write_document(document, out_dir / TUNNEL_JSON)
 
-    axis = extend_axis(axis_points(osm, curated))
-    shell = build_shell(axis, curated.section.width, curated.section.height)
+    features = terrain_features(osm, grid, curated)
+    shell = tunnel_shell(osm, curated, features.carve.apply(grid))
     build_dir.mkdir(parents=True, exist_ok=True)
     raw_glb = blender_tunnel.export_tunnel(shell, build_dir / TUNNEL_GLB)
     glb_bytes = tiles.optimize_glb(raw_glb, out_dir / TUNNEL_GLB, None)
 
-    features = terrain_features(osm, grid, curated)
     affected = tiles.tiles_touching(features.bounds) if with_tiles else []
     tile_bytes = tile_triangles = 0
     if affected:
