@@ -1,19 +1,21 @@
 """The three OSM staircases as meshes with a handrail and a collision proxy (spec 003, E1.4).
 
 Each ``highway=steps`` way becomes a flight of ``step_count`` stone steps along its OSM line
-(``way/26330269`` 30 steps, ``way/862108205`` 10 steps, ``way/862108208`` 6 steps), draped on the
-DEM: the first step starts on the ground at the bottom of the flight and the last step's tread
-ends on the ground at the top, with identical risers in between. Tread depth is the flight
-length divided by ``step_count`` and the riser is the height difference divided by
-``step_count``, so both are *derived from data*; only the width and the handrail are assumptions.
+(``way/26330269`` 30 steps, ``way/862108205`` 10 steps, ``way/862108208`` 6 steps), built on the
+DEM exactly as the terrain tiles render it (after the ADR 0009 carve). The riser is uniform: the
+rise of the flight divided by ``step_count``. Each nosing is placed where the monotone envelope of
+the highest ground across the flight's width reaches ``base + k * riser``, so tread depth varies
+with the terrain and the ground never rises above a tread (the player walks on the highest ground
+and LOD0 terrain would otherwise hide the steps). Riser and depths are *derived from data*; only
+the width and the handrail are assumptions.
 
 * **Orientation** follows the DEM, not the OSM ``incline`` tag: ``way/862108205`` is tagged
-  ``incline=down`` but its DEM rises 2.0 m along the way, so the tag and the heights disagree and
+  ``incline=down`` but its DEM rises 2.2 m along the way, so the tag and the heights disagree and
   the heights win (reported as ``inclineTag`` / ``reversedWay`` in ``structures.json``).
-* **The portal flight** (``way/862108208``) does not use the raw DEM, which is the rock wall there
-  (ADR 0009): its heights are the ones ``trail.json`` uses, and the six steps occupy the climb
-  that starts ``steps_ramp_start`` metres along the way (``data/curated/tunnel.toml``), ending on
-  the curated west floor.
+* **The portal flight** (``way/862108208``) is measured along the polyline the carve uses
+  (``trail.segment_polyline_2d``). It starts after ``steps_ramp_start`` metres
+  (``data/curated/tunnel.toml``) and where the rock wall stops overhanging it, and stops short of
+  the portal plane, where the carve strip ends (``StairSpec.end_margin``).
 * **Handrail**: OSM says ``handrail=yes`` without a side. One rail on the **right-hand side when
   going up** is assumed (the conventional single rail, and the side OSM would call ``right``
   for ways drawn uphill): it is the least that ``handrail=yes`` guarantees; two rails would
@@ -64,10 +66,22 @@ HANDRAIL_SIDE = "right"  # when going up; see the module docstring
 # Not measurements either: how deep the steps are buried and the posts sunk, so nothing floats.
 STEP_EMBED = 0.25
 POST_EMBED = 0.1
+PORTAL_END_MARGIN = 0.75  # metres, see StairSpec.end_margin
 
 STONE = 0  # material slots
 METAL = 1
 FOOTPRINT_SAMPLES = (0.0, 0.5, 1.0)  # across and along each step, to find the lowest ground
+# Where across the flight the ground is sampled, as fractions of the half width.
+LATERAL_SIDES = (-1.0, -0.5, 0.0, 0.5, 1.0)
+# The flight starts where the ground beside it is no higher than the axis by more than this: a
+# step cannot start inside a bank (the portal flight begins at the foot of the rock wall).
+START_OVERHANG = 0.1
+PROFILE_SPACING = 0.05  # metres along the flight between samples of the ground profile
+CLEARANCE_SPACING = 0.1  # metres between the samples that check the ground under each tread
+# The ground under a tread may exceed its top by this much: the check samples a bilinear DEM
+# every 10 cm and the surface between two samples can only differ by a few millimetres.
+CLEARANCE_TOLERANCE = 0.02
+MIN_TREAD_DEPTH = 0.15  # metres: shallower than this and the ground profile cannot be followed
 
 type Float1 = npt.NDArray[np.float64]
 type Float2 = npt.NDArray[np.float64]
@@ -83,7 +97,11 @@ class StairSpec:
     name: str
     way: int
     flight_start: float  # metres along the OSM way where the steps start
-    ground: str  # "dem" (drape on the DEM) or "portal-steps" (the heights of trail.json)
+    segment: str | None = None  # id of the trail.json segment that walks this way, if any
+    # Metres before the end of the way where the steps stop: the ADR 0009 carve strip ends flat at
+    # the portal plane and its last half metre blends back into the rock wall (the carved DEM
+    # reads 171.5 m then 178 m there, against the 171.0 m floor), so the steps stop short of it.
+    end_margin: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -115,7 +133,8 @@ class Staircase:
     spec: StairSpec
     step_count: int
     riser: float
-    tread_depth: float
+    tread_depths: npt.NDArray[np.float64]
+    clearance: npt.NDArray[np.float64]  # per tread: top minus the highest ground under it
     flight_length: float
     base: tuple[float, float, float]
     top: tuple[float, float, float]
@@ -125,20 +144,27 @@ class Staircase:
     reversed_way: bool
     incline_tag: str | None
 
+    @property
+    def tread_depth(self) -> float:
+        return float(self.tread_depths.mean())
+
     def mesh_named(self, name: str) -> StairMesh:
         return replace(self.mesh, name=name)
 
 
 def staircase_specs(curated: TunnelSpec) -> tuple[StairSpec, ...]:
     return (
-        StairSpec("centre-steps", "Centre steps (30 steps, handrail)", 26330269, 0.0, "dem"),
-        StairSpec("steps-10", "Steps of 10 (sett, handrail)", 862108205, 0.0, "dem"),
+        StairSpec(
+            "centre-steps", "Centre steps (30 steps, handrail)", 26330269, 0.0, "centre-steps"
+        ),
+        StairSpec("steps-10", "Steps of 10 (sett, handrail)", 862108205, 0.0),
         StairSpec(
             "portal-steps",
             "Steps to the west portal (6 rock steps, handrail)",
             862108208,
             curated.steps_ramp_start,
             "portal-steps",
+            end_margin=PORTAL_END_MARGIN,
         ),
     )
 
@@ -271,52 +297,107 @@ def _add_step(
         )
 
 
+def _ground_profile(
+    dem_sample: Callable[[Float1, Float1], Float1], line: Float2, along: Float1, arcs: Float1
+) -> Float1:
+    """Highest ground across the stair width at each arc length of ``line``."""
+    points = _points_at(line, along, arcs)
+    heading = _tangents_at(line, along, arcs)
+    left = np.column_stack([heading[:, 1], -heading[:, 0]]) * (STAIR_WIDTH / 2.0)
+    heights = [dem_sample(*(points + side * left).T) for side in LATERAL_SIDES]
+    return np.max(heights, axis=0)
+
+
+def _nosing_arcs(
+    profile: Float1, arcs: Float1, base_y: float, riser: float, step_count: int, spec_id: str
+) -> Float1:
+    """Arc length of each step's nosing: where the MONOTONE envelope of the ground profile
+    reaches ``base + k * riser``. The ground before a nosing is then never above the tread."""
+    envelope = np.maximum.accumulate(profile)
+    wanted = base_y + np.arange(1, step_count) * riser
+    index = np.searchsorted(envelope, wanted, side="left")
+    if np.any(index == 0) or np.any(index >= len(arcs)):
+        raise StructuresError(
+            f"{spec_id}: the ground profile does not rise through every step height"
+        )
+    lower, upper = envelope[index - 1], envelope[index]
+    fraction = (wanted - lower) / np.where(upper > lower, upper - lower, 1.0)
+    noses = arcs[index - 1] + fraction * (arcs[index] - arcs[index - 1])
+    bounds = np.concatenate([[arcs[0]], noses, [arcs[-1]]])
+    if float(np.diff(bounds).min()) < MIN_TREAD_DEPTH:
+        raise StructuresError(
+            f"{spec_id}: a tread would be {float(np.diff(bounds).min()):.2f} m deep "
+            f"(< {MIN_TREAD_DEPTH} m): the ground is too steep for this step count"
+        )
+    return bounds
+
+
+def tread_clearance(
+    treads: Sequence["Tread"], dem_sample: Callable[[Float1, Float1], Float1]
+) -> Float1:
+    """``top - highest ground under the footprint`` for each tread (>= -CLEARANCE_TOLERANCE)."""
+    result = []
+    for tread in treads:
+        near_left, near_right, far_right, far_left = tread.quad
+        across = max(
+            2, round(float(np.linalg.norm(near_right - near_left)) / CLEARANCE_SPACING) + 1
+        )
+        along = max(2, round(float(np.linalg.norm(far_left - near_left)) / CLEARANCE_SPACING) + 1)
+        u, v = np.meshgrid(np.linspace(0.0, 1.0, across), np.linspace(0.0, 1.0, along))
+        near = near_left + u[..., None] * (near_right - near_left)
+        far = far_left + u[..., None] * (far_right - far_left)
+        points = ((1.0 - v[..., None]) * near + v[..., None] * far).reshape(-1, 2)
+        result.append(tread.top - float(dem_sample(points[:, 0], points[:, 1]).max()))
+    return np.array(result)
+
+
 def build_staircase(
     spec: StairSpec,
     xz: Float2,
     step_count: int,
     dem_sample: Callable[[Float1, Float1], Float1],
     *,
-    along_height: Callable[[Float1], Float1] | None = None,
     incline_tag: str | None = None,
 ) -> Staircase:
     """The flight of ``step_count`` steps along ``xz``, an OSM way in its own direction.
 
-    Heights come from ``along_height`` (metres along the way to height) when given, else from
-    ``dem_sample`` at the point; ``dem_sample`` also finds the ground under each step's footprint.
+    ``dem_sample`` is the ground as rendered (the carved DEM). The profile is the highest ground
+    across the flight's width at each arc length. The flight starts where the ground beside it
+    stops overhanging the axis, begins at the profile height there and climbs to the highest
+    ground it has to clear; the riser is uniform (rise over ``step_count``) and each nosing sits
+    where the monotone envelope of the profile reaches ``base + k * riser`` (see
+    :func:`_nosing_arcs`). Treads are as deep as the terrain lets them be and the ground never
+    rises above one (to :data:`CLEARANCE_TOLERANCE`).
     """
     if step_count < 1:
         raise StructuresError(f"{spec.id}: a flight needs at least one step")
-    length = float(_along(xz)[-1])
+    length = float(_along(xz)[-1]) - spec.end_margin
     if not 0.0 <= spec.flight_start < length:
         raise StructuresError(f"{spec.id}: the flight starts outside the {length:.1f} m way")
 
-    def ground(line: Float2, s: Float1, mirrored: bool) -> Float1:
-        """Height at arc length ``s`` of ``line``; ``mirrored`` lines run against the OSM way."""
-        if along_height is not None:
-            return along_height(length - s if mirrored else s)
-        points = _points_at(line, _along(line), s)
-        return dem_sample(points[:, 0], points[:, 1])
+    def axis_height(line: Float2, s: float) -> float:
+        point = _points_at(line, _along(line), np.array([s]))
+        return float(dem_sample(point[:, 0], point[:, 1])[0])
 
-    start_height = float(ground(xz, np.array([spec.flight_start]), False)[0])
-    end_height = float(ground(xz, np.array([length]), False)[0])
-    reversed_way = end_height < start_height
+    reversed_way = axis_height(xz, length) < axis_height(xz, spec.flight_start)
     line, first = xz, spec.flight_start
     if reversed_way:
-        if spec.flight_start != 0.0:
+        if spec.flight_start != 0.0 or spec.end_margin != 0.0:
             raise StructuresError(
-                f"{spec.id}: a flight that starts part way cannot be turned round"
+                f"{spec.id}: a flight that starts or stops part way cannot be turned round"
             )
         line = xz[::-1]
     along = _along(line)
-    arcs = first + np.arange(step_count + 1) * (length - first) / step_count
-    centres = _points_at(line, along, arcs)
-    heading = _tangents_at(line, along, arcs)
-    left = np.column_stack([heading[:, 1], -heading[:, 0]])
-    half = STAIR_WIDTH / 2.0
-    left_edge, right_edge = centres + left * half, centres - left * half
-    base_y = float(ground(line, np.array([first]), reversed_way)[0])
-    top_y = float(ground(line, np.array([length]), reversed_way)[0])
+    samples = np.append(np.arange(first, length, PROFILE_SPACING), length)
+    profile = _ground_profile(dem_sample, line, along, samples)
+    axis = _points_at(line, along, samples)
+    overhang = profile - dem_sample(axis[:, 0], axis[:, 1])
+    clear = np.flatnonzero(overhang <= START_OVERHANG)
+    if clear.size == 0:
+        raise StructuresError(f"{spec.id}: the ground beside the flight never clears its width")
+    samples, profile = samples[clear[0] :], profile[clear[0] :]
+    first = float(samples[0])
+    base_y, top_y = float(profile[0]), float(np.maximum.accumulate(profile)[-1])
     rise = top_y - base_y
     if rise <= 0.0:
         raise StructuresError(f"{spec.id}: the flight has no rise ({rise:.3f} m)")
@@ -326,6 +407,12 @@ def build_staircase(
             f"{spec.id}: riser {riser:.3f} m is above the player's step height "
             f"{PLAYER_STEP_HEIGHT} m: the step count or the heights are wrong"
         )
+    arcs = _nosing_arcs(profile, samples, base_y, riser, step_count, spec.id)
+    centres = _points_at(line, along, arcs)
+    heading = _tangents_at(line, along, arcs)
+    left = np.column_stack([heading[:, 1], -heading[:, 0]])
+    half = STAIR_WIDTH / 2.0
+    left_edge, right_edge = centres + left * half, centres - left * half
     tops = base_y + (np.arange(step_count) + 1) * riser
 
     soup = _Soup()
@@ -338,8 +425,8 @@ def build_staircase(
         riser_foot = floor if i == 0 else float(tops[i - 1])
         _add_step(soup, quad, floor, riser_foot, top, closed_back=i == step_count - 1)
 
-    tread_depth = (length - first) / step_count
-    every = max(1, round(POST_SPACING / tread_depth))
+    tread_depths = np.diff(arcs)
+    every = max(1, round(POST_SPACING / float(tread_depths.mean())))
     indices = sorted({*range(0, step_count + 1, every), step_count})
     rail_side = centres - left * (half - RAIL_INSET)
     nosing = base_y + np.arange(step_count + 1) * riser
@@ -350,11 +437,18 @@ def build_staircase(
     for a, b in itertools.pairwise(rail):
         soup.bar(a, b, RAIL_SECTION, METAL)
 
+    clearance = tread_clearance(treads, dem_sample)
+    if float(clearance.min()) < -CLEARANCE_TOLERANCE:
+        raise StructuresError(
+            f"{spec.id}: the ground rises {-float(clearance.min()):.3f} m above a tread "
+            f"(tolerance {CLEARANCE_TOLERANCE} m)"
+        )
     return Staircase(
         spec=spec,
         step_count=step_count,
         riser=riser,
-        tread_depth=tread_depth,
+        tread_depths=tread_depths,
+        clearance=clearance,
         flight_length=length - first,
         base=(float(centres[0, 0]), base_y, float(centres[0, 1])),
         top=(float(centres[-1, 0]), top_y, float(centres[-1, 1])),
@@ -379,31 +473,37 @@ def tread_height(treads: Sequence[Tread], x: float, z: float) -> float | None:
     return None
 
 
-def build_all(osm: OsmData, grid: Grid, curated: TunnelSpec) -> list[Staircase]:
+def _flight_polyline(osm: OsmData, spec: StairSpec) -> Float2:
+    """The way's polyline; for a way the trail walks, the one the trail and the carve use."""
+    way = osm.ways.get(spec.way)
+    if way is None:
+        raise StructuresError(f"way {spec.way} ({spec.id}) is missing from the OSM extract")
+    own = np.array([osm.xz[n] for n in way.nodes], dtype=np.float64)
+    if spec.segment is None:
+        return own
+    segment = next(sp for sp in trail.SEGMENT_SPECS if sp.id == spec.segment)
+    walked = trail.segment_polyline_2d(osm, segment)
+    if walked.shape != own.shape or not np.allclose(walked, own):
+        raise StructuresError(
+            f"{spec.id}: the trail walks way {spec.way} from the other end, so a flight "
+            "start measured along the way would not match the carve"
+        )
+    return walked
+
+
+def build_all(osm: OsmData, carved: Grid, curated: TunnelSpec) -> list[Staircase]:
+    """The staircases on ``carved``: the DEM after the ADR 0009 carve, as the tiles render it."""
     result: list[Staircase] = []
     for spec in staircase_specs(curated):
-        way = osm.ways.get(spec.way)
-        if way is None:
-            raise StructuresError(f"way {spec.way} ({spec.id}) is missing from the OSM extract")
-        xz = np.array([osm.xz[n] for n in way.nodes], dtype=np.float64)
-        along_height: Callable[[Float1], Float1] | None = None
-        if spec.ground == "portal-steps":
-            dense = trail.densify(xz)
-            heights = trail.steps_heights(dense, grid, curated.west_floor, curated.steps_ramp_start)
-            dense_along = _along(dense)
-
-            def portal(s: Float1, a: Float1 = dense_along, h: Float1 = heights) -> Float1:
-                return np.interp(s, a, h)
-
-            along_height = portal
+        xz = _flight_polyline(osm, spec)
+        tags = osm.ways[spec.way].tags
         result.append(
             build_staircase(
                 spec,
                 xz,
-                step_count_of(way.tags, spec.way),
-                grid.sample,
-                along_height=along_height,
-                incline_tag=way.tags.get("incline"),
+                step_count_of(tags, spec.way),
+                carved.sample,
+                incline_tag=tags.get("incline"),
             )
         )
     return result
@@ -433,6 +533,12 @@ def _staircase_entry(stairs: Staircase, osm: OsmData) -> dict[str, Any]:
         "stepCount": stairs.step_count,
         "riser": _mm(stairs.riser),
         "treadDepth": _mm(stairs.tread_depth),
+        "treadDepthRange": [_mm(stairs.tread_depths.min()), _mm(stairs.tread_depths.max())],
+        "treadClearance": {
+            "min": _mm(stairs.clearance.min()),
+            "tolerance": CLEARANCE_TOLERANCE,
+            "note": "top of each tread minus the highest carved-DEM height under it",
+        },
         "width": STAIR_WIDTH,
         "flightLength": _mm(stairs.flight_length),
         "flightStartAlongWay": stairs.spec.flight_start,
@@ -500,12 +606,14 @@ def run_structures(
     """Write ``structures.glb`` (optimised) and ``structures.json`` into ``out_dir``."""
     from penyal_pipeline import dem
     from penyal_pipeline.blender import structures as blender_structures
-    from penyal_pipeline.tunnel import load_curated
+    from penyal_pipeline.tunnel import load_curated, terrain_features
 
     raw = locate(trail.OSM_SOURCE_ID, trail.OSM_FILE)
     osm = trail.load_osm(raw.path)
     grid, _ = dem.load_dem()
-    staircases = build_all(osm, grid, load_curated().trail_spec())
+    curated = load_curated()
+    carved = terrain_features(osm, grid, curated).carve.apply(grid)
+    staircases = build_all(osm, carved, curated.trail_spec())
     meshes = [s.mesh_named(f"stairs_{s.spec.id.replace('-', '_')}") for s in staircases]
     build_dir.mkdir(parents=True, exist_ok=True)
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -42,7 +42,7 @@ def ramp_height(x: float, slope: float = SLOPE) -> float:
 
 
 def spec(flight_start: float = 0.0) -> StairSpec:
-    return StairSpec(id="test", name="test stairs", way=1, flight_start=flight_start, ground="dem")
+    return StairSpec(id="test", name="test stairs", way=1, flight_start=flight_start)
 
 
 def straight(length: float = 12.0, steps: int = 12, slope: float = SLOPE) -> Staircase:
@@ -81,7 +81,7 @@ class TestFlight:
         depth = [
             float(np.hypot(*(t.quad[3] - t.quad[0]))) for t in stairs.treads
         ]  # left edge of each tread
-        assert depth == pytest.approx([2.0] * 6, abs=1e-9)
+        assert depth == pytest.approx([2.0] * 6, abs=1e-3)
         assert stairs.tread_depth == pytest.approx(2.0)
 
     def test_a_flight_that_descends_along_the_way_is_turned_round(self) -> None:
@@ -116,6 +116,47 @@ class TestFlight:
         assert stairs.base[0] == pytest.approx(6.0)
         assert stairs.base[1] == pytest.approx(ramp_height(6.0), abs=1e-4)
         assert stairs.tread_depth == pytest.approx(1.0)
+
+
+def convex_grid() -> Grid:
+    """Ground that is steep at first and flattens: height = 4 * sqrt((x - X0) / 12) over 12 m."""
+    columns = np.arange(200, dtype=np.float64)
+    rise = 4.0 * np.sqrt(np.clip(columns / 12.0, 0.0, 1.0))
+    heights = np.tile((100.0 + rise).astype(np.float32), (200, 1))
+    return Grid(heights, x0=X0 + 50.0 - 50.0, z0=Z0, cell=1.0)
+
+
+class TestProfile:
+    def test_a_convex_ground_gives_deeper_treads_where_it_flattens_and_never_buries_one(
+        self,
+    ) -> None:
+        grid = convex_grid()
+        xz = np.array([[X0, 0.0], [X0 + 12.0, 0.0]])
+        stairs = structures.build_staircase(spec(), xz, 16, grid.sample)
+        depths = stairs.tread_depths
+        assert depths[-1] > 3 * depths[0]
+        assert float(stairs.clearance.min()) >= -structures.CLEARANCE_TOLERANCE
+        tops = [t.top for t in stairs.treads]
+        assert np.diff([stairs.base[1], *tops]) == pytest.approx(
+            np.full(16, stairs.riser), abs=1e-6
+        )
+
+    def test_the_envelope_ignores_a_dip_so_a_later_bump_cannot_bury_a_tread(self) -> None:
+        columns = np.arange(200, dtype=np.float64)
+        profile = 100.0 + 0.2 * columns
+        profile[30:34] -= 0.6  # a dip, then the ground climbs back
+        grid = Grid(np.tile(profile.astype(np.float32), (200, 1)), x0=0.0, z0=Z0, cell=1.0)
+        xz = np.array([[20.0, 0.0], [40.0, 0.0]])
+        stairs = structures.build_staircase(spec(), xz, 20, grid.sample)
+        assert float(stairs.clearance.min()) >= -structures.CLEARANCE_TOLERANCE
+
+    def test_a_ground_too_steep_for_the_step_count_is_rejected(self) -> None:
+        columns = np.arange(200, dtype=np.float64)
+        profile = 100.0 + np.where(columns < 25, 0.0, 1.5)  # a 1.5 m wall at x = 25
+        grid = Grid(np.tile(profile.astype(np.float32), (200, 1)), x0=0.0, z0=Z0, cell=1.0)
+        xz = np.array([[20.0, 0.0], [30.0, 0.0]])
+        with pytest.raises(StructuresError, match=r"tread|ground"):
+            structures.build_staircase(spec(), xz, 8, grid.sample)
 
 
 class TestMesh:
@@ -196,7 +237,7 @@ class TestCollision:
         assert [t.quad.shape for t in stairs.treads] == [(4, 2)] * 12
         first = stairs.treads[0]
         assert first.quad[:, 0].min() == pytest.approx(0.0)
-        assert first.quad[:, 0].max() == pytest.approx(1.0)
+        assert first.quad[:, 0].max() == pytest.approx(1.0, abs=1e-3)
 
     def test_the_rise_between_neighbouring_treads_is_walkable(self) -> None:
         stairs = straight()
@@ -238,11 +279,21 @@ real_marks = [*raw_marks("osm-penyal/osm-penyal.json"), *needs_dem]
 
 
 @pytest.fixture(scope="module")
-def real() -> dict[int, Staircase]:
-    osm = trail.load_osm(locate(trail.OSM_SOURCE_ID, trail.OSM_FILE).path)
+def osm() -> trail.OsmData:
+    return trail.load_osm(locate(trail.OSM_SOURCE_ID, trail.OSM_FILE).path)
+
+
+@pytest.fixture(scope="module")
+def carved(osm: trail.OsmData) -> Grid:
+    """The DEM as the terrain tiles render it: after the ADR 0009 carve at the west portal."""
     grid, _ = dem.load_dem()
+    return tunnel.terrain_features(osm, grid, tunnel.load_curated()).carve.apply(grid)
+
+
+@pytest.fixture(scope="module")
+def real(osm: trail.OsmData, carved: Grid) -> dict[int, Staircase]:
     curated = tunnel.load_curated().trail_spec()
-    return {s.spec.way: s for s in structures.build_all(osm, grid, curated)}
+    return {s.spec.way: s for s in structures.build_all(osm, carved, curated)}
 
 
 @pytest.mark.data
@@ -264,21 +315,44 @@ class TestRealStaircases:
             assert rises == pytest.approx(np.full(stairs.step_count, stairs.riser), abs=1e-9)
             assert 0.10 < stairs.riser <= structures.PLAYER_STEP_HEIGHT
 
-    def test_the_draped_flights_start_and_end_on_the_dem(self, real: dict[int, Staircase]) -> None:
-        grid, _ = dem.load_dem()
-        for way in (26330269, 862108205):
-            stairs = real[way]
+    def test_every_flight_starts_and_ends_on_the_carved_dem(
+        self, real: dict[int, Staircase], carved: Grid
+    ) -> None:
+        # The flight is as high as the highest ground across its width, so its ends can sit a
+        # cross-slope above the axis (at most 0.3 m on the real flights).
+        for stairs in real.values():
             for point in (stairs.base, stairs.top):
-                on_dem = float(grid.sample(point[0], point[2]))
-                assert point[1] == pytest.approx(on_dem, abs=0.01)
+                assert point[1] == pytest.approx(float(carved.sample(point[0], point[2])), abs=0.3)
+
+    def test_no_ground_rises_above_any_tread(
+        self, real: dict[int, Staircase], carved: Grid
+    ) -> None:
+        # Independent of the builder's own check: a finer lattice (5 cm) over each footprint.
+        for stairs in real.values():
+            for tread in stairs.treads:
+                near_left, near_right, far_right, far_left = tread.quad
+                u, v = np.meshgrid(np.linspace(0, 1, 31), np.linspace(0, 1, 31))
+                near = near_left + u[..., None] * (near_right - near_left)
+                far = far_left + u[..., None] * (far_right - far_left)
+                points = ((1 - v[..., None]) * near + v[..., None] * far).reshape(-1, 2)
+                ground = float(carved.sample(points[:, 0], points[:, 1]).max())
+                assert ground <= tread.top + structures.CLEARANCE_TOLERANCE, stairs.spec.id
+
+    def test_the_treads_follow_the_ground_profile_so_their_depth_varies(
+        self, real: dict[int, Staircase]
+    ) -> None:
+        assert real[862108205].tread_depths.max() > 3 * real[862108205].tread_depths.min()
+        for stairs in real.values():
+            assert stairs.tread_depths.min() >= structures.MIN_TREAD_DEPTH
+            assert stairs.tread_depths.sum() == pytest.approx(stairs.flight_length, abs=1e-6)
 
     def test_the_portal_flight_ends_on_the_curated_west_floor(
         self, real: dict[int, Staircase]
     ) -> None:
         floor = tunnel.load_curated().west.value
         stairs = real[862108208]
-        assert stairs.top[1] == pytest.approx(floor, abs=1e-6)
-        assert stairs.base[1] == pytest.approx(169.87, abs=0.05)
+        assert stairs.top[1] == pytest.approx(floor, abs=0.15)
+        assert stairs.base[1] == pytest.approx(170.0, abs=0.15)
 
     def test_the_ten_step_flight_is_oriented_by_the_dem_not_by_the_incline_tag(
         self, real: dict[int, Staircase]
