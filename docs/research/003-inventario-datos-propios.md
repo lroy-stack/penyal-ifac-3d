@@ -20,7 +20,7 @@
 | Nombre | **Centro de Interpretación Parque Natural del Penyal d'Ifac** | OSM `way/26330271` (`tourism=museum`, `fee=no`) |
 | Huella | 651 m² en OSM; 623 m² en la CV05 (`CON04`) | OSM, CV05 |
 | Altura sobre el terreno que lo rodea | mediana 4,9 m; percentil 95, 6,9 m; máximo 7,5 m | LiDAR 2016, puntos de clase 6 (edificio) dentro de la huella, frente a la mediana del suelo (clase 2) en un anillo de 1–6 m alrededor |
-| Aspecto en planta | Cubiertas planas en tonos ocre y terracota, con terrazas. Hay un sector con placas solares y un patio interior con dos árboles | Ortofoto 2024 (`003-capturas/orto2024-centro-150m.jpg`) |
+| Aspecto en planta | Cubiertas en tonos ocre y terracota, con terrazas, un sector con placas solares y un patio interior con dos árboles. **Corrección:** la foto de referencia 1 de `003-fotos-referencia.md` (2014) muestra que las cubiertas ocres son de **teja árabe a cuatro aguas**, de poca pendiente, con torretas ocres de almenas blancas. Lo que se ve encima son terrazas, no una cubierta plana | Ortofoto 2024 (`003-capturas/orto2024-centro-150m.jpg`) y foto Commons 1 |
 | Edificio contiguo, al este | 483 m² en OSM y 394 m² en la CV05 (`CON04`). Altura mediana 3,8 m y máxima 6,0 m. Cubierta plana de color arena | OSM `way/26330272`, CV05, LiDAR, ortofoto |
 
 - **Sin verificar:** si estos dos edificios son las "dos casas réplica inauguradas en 1992" de la nota del registro, que no tiene fuente.

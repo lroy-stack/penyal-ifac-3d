@@ -12,8 +12,13 @@
 
 | Elemento | Qué sabemos | Qué falta |
 |---|---|---|
-| "El museo" | La GVA habla de **dos equipamientos** al inicio: el Centro de Información y el Centro de Visitantes. En OSM son dos edificios: "Centro de Interpretación" (651 m², `tourism=museum`, gratuito) y otro de 483 m². Alturas LiDAR: hasta 7,5 m y 6 m. Cubiertas planas ocres con terrazas y placas solares | Qué es cada uno, la exposición interior, las fachadas. En el casco urbano hay otro candidato, el Museu d'Història de Calp |
-| Caminos | El tramo piloto es **empedrado**. Las escaleras son de adoquín: 30 peldaños con barandilla y 10 peldaños con barandilla. El asfalto solo está en la avinguda del Port, a unos 150 m | Ancho y aspecto del empedrado; medidas de escalones y barandillas |
+| "El museo" | La GVA habla de **dos equipamientos** al inicio: el Centro de Información y el Centro de Visitantes. En OSM son dos edificios: "Centro de Interpretación" (651 m², `tourism=museum`, gratuito) y otro de 483 m². Alturas LiDAR: hasta 7,5 m y 6 m. Según una foto de Commons de 2014, `003-fotos-referencia.md` #1:
+  - teja árabe a cuatro aguas;
+  - torretas ocres con almenas blancas;
+  - porche de arcos encalado y muros ocres;
+  - terrazas con placas solares;
+  - muros de mampostería en seco y suelo de losas irregulares | Qué es cada uno, la exposición interior, las fachadas. En el casco urbano hay otro candidato, el Museu d'Història de Calp |
+| Caminos | El tramo piloto es **enlosado irregular de caliza clara tomada con mortero**. OSM lo etiqueta como `unhewn_cobblestone`; la foto #26 de `003-fotos-referencia.md` muestra cómo es en realidad. Las escaleras son de adoquín: 30 peldaños con barandilla y 10 peldaños con barandilla. El asfalto solo está en la avinguda del Port, a unos 150 m | Ancho y aspecto del empedrado; medidas de escalones y barandillas |
 | Equipamiento | Torniquete, aseos accesibles, dos fuentes y aparcamiento para personas con discapacidad (592 m²) | Su forma; dónde está el control de reservas |
 | Árboles | **186 copas medidas**, de 3 m o más, junto a los primeros 421 m. Mediana 6 m, máximo 10,8 m. Probablemente pino carrasco | Confirmar especies y cambios desde 2016 con la ortofoto de 2024 y fotos |
 | Matorral | 27 % de cobertura de más de 0,5 m. Paleta de especies con datos de iNaturalist | — |
