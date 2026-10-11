@@ -21,6 +21,7 @@ from penyal_pipeline import (
     trail,
     tunnel,
     tunnel_geometry,
+    vegetation,
 )
 from penyal_pipeline.catalog import CatalogError, load_catalog, select_sources
 from penyal_pipeline.nat64 import Nat64Resolver, parse_prefix
@@ -241,6 +242,28 @@ def _cmd_tunnel(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_vegetation(args: argparse.Namespace) -> int:
+    if args.analyse:
+        found = vegetation.detect(args.threshold)
+        print(vegetation.analysis_report(found, args.threshold))
+        return 0
+    doc = vegetation.run_vegetation(args.out, args.threshold)
+    counts, shrubs = doc["counts"], doc["understory"]
+    print(
+        f"crowns: {counts['crownsDetected']} detected, {counts['crownsTooTall']} too tall, "
+        f"{counts['crownsAbsent']} absent in the 2024 orthophoto (NDVI < "
+        f"{args.threshold}), {counts['crownsKept']} kept"
+    )
+    print(
+        f"pilot band (421 m + 40 m): {counts['pilotBandReference']} crowns on the clipped "
+        f"window (reference), {counts['pilotBandPark']} in the park run, "
+        f"{counts['pilotBandKept']} after NDVI"
+    )
+    print(f"understory: {shrubs['count']} instances")
+    print(f"wrote {args.out} ({args.out.stat().st_size} bytes)")
+    return 0
+
+
 def _cmd_verify_generated(args: argparse.Namespace) -> int:
     problems = provenance.verify_generated(args.assets_dir)
     for problem in problems:
@@ -358,6 +381,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     terrain_cmd.set_defaults(handler=_cmd_terrain)
 
+    vegetation_cmd = commands.add_parser(
+        "vegetation", help="build vegetation.json (LiDAR crowns, NDVI check, understory)"
+    )
+    vegetation_cmd.add_argument(
+        "--out", type=Path, default=vegetation.VEGETATION_GENERATED, help="%(default)s"
+    )
+    vegetation_cmd.add_argument(
+        "--threshold",
+        type=float,
+        default=vegetation.NDVI_ABSENT_THRESHOLD,
+        help="NDVI below which a crown counts as gone (default: %(default)s)",
+    )
+    vegetation_cmd.add_argument(
+        "--analyse",
+        action="store_true",
+        help="print counts and the NDVI histogram; writes nothing",
+    )
+    vegetation_cmd.set_defaults(handler=_cmd_vegetation)
+
     verify_cmd = commands.add_parser(
         "verify-generated",
         help="check that the inputs recorded in the generated artefacts still match the sources",
@@ -392,6 +434,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         tunnel.TunnelError,
         provenance.ProvenanceError,
         tunnel_geometry.GeometryError,
+        vegetation.VegetationError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

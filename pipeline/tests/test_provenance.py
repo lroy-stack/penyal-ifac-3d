@@ -19,13 +19,22 @@ RAW_FILES = {
     "osm-penyal": "osm-penyal.json",
     "icv-orto-2024-0848-7-2": "ortho.tif",
     "polyhaven-marble-cliff-05-diff-1k": "marble_cliff_05_diff_1k.jpg",
+    "icv-lidar-2016-766-4280": "a.laz",
+    "icv-lidar-2016-766-4282": "b.laz",
+    "icv-lidar-2016-768-4280": "c.laz",
+    "icv-lidar-2016-768-4282": "d.laz",
+    "polyhaven-shrub-04-gltf-1k": "shrub_04_1k.gltf",
+    "polyhaven-shrub-02-gltf-1k": "shrub_02_1k.gltf",
+    "polyhaven-grass-medium-02-gltf-1k": "grass_medium_02_1k.gltf",
 }
+TRAIL_JSON = Path("app") / "public" / "assets" / "generated" / "trail.json"
 ALL_JSON = {
     "terrain/manifest.json",
     "terrain/collision.json",
     "tunnel.json",
     "trail.json",
     "materials/manifest.json",
+    "vegetation.json",
 }
 
 
@@ -62,6 +71,8 @@ def repo(tmp_path: Path) -> Path:
     curated = root / "data" / "curated" / "tunnel.toml"
     curated.parent.mkdir(parents=True)
     curated.write_text(TOML_TEXT, encoding="utf-8")
+    (root / TRAIL_JSON).parent.mkdir(parents=True)
+    (root / TRAIL_JSON).write_text('{"route":{"segments":[]}}', encoding="utf-8")
     write_script(root / "tools" / "bin" / "ktx", "ktx version: v9.8.7")
     write_script(root / "node_modules" / ".bin" / "gltf-transform", "1.2.3")
     return root
@@ -86,6 +97,7 @@ def assets(repo: Path, tmp_path: Path) -> Path:
         ("terrain/collision.json", "collision"),
         ("tunnel.json", "tunnel"),
         ("trail.json", "trail"),
+        ("vegetation.json", "vegetation"),
     ):
         path = out / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,6 +145,23 @@ class TestInputs:
             ("collision", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
             ("trail", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
             ("tunnel", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
+            (
+                "vegetation",
+                {
+                    "icv-mdt-2016-0848",
+                    "icv-cv05-penyal",
+                    "osm-penyal",
+                    "icv-orto-2024-0848-7-2",
+                    "icv-lidar-2016-766-4280",
+                    "icv-lidar-2016-766-4282",
+                    "icv-lidar-2016-768-4280",
+                    "icv-lidar-2016-768-4282",
+                    "polyhaven-shrub-04-gltf-1k",
+                    "polyhaven-shrub-02-gltf-1k",
+                    "polyhaven-grass-medium-02-gltf-1k",
+                },
+                False,
+            ),
         ],
     )
     def test_each_artefact_lists_every_input_that_changes_it(
@@ -206,7 +235,24 @@ class TestVerify:
         shas = {source_id: sha(source_id) for source_id in RAW_FILES}
         shas["icv-orto-2024-0848-7-2"] = sha("new orthophoto")
         write_lock(repo, shas)
-        assert flagged(provenance.verify_generated(assets, repo)) == {"terrain/manifest.json"}
+        assert flagged(provenance.verify_generated(assets, repo)) == {
+            "terrain/manifest.json",
+            "vegetation.json",
+        }
+
+    def test_a_lidar_tile_change_flags_only_the_vegetation(self, repo: Path, assets: Path) -> None:
+        shas = {source_id: sha(source_id) for source_id in RAW_FILES}
+        shas["icv-lidar-2016-766-4282"] = sha("new tile")
+        write_lock(repo, shas)
+        assert flagged(provenance.verify_generated(assets, repo)) == {"vegetation.json"}
+
+    def test_regenerating_the_trail_makes_the_vegetation_stale(
+        self, repo: Path, assets: Path
+    ) -> None:
+        (repo / TRAIL_JSON).write_text('{"route":{"segments":[1]}}', encoding="utf-8")
+        problems = provenance.verify_generated(assets, repo)
+        assert flagged(problems) == {"vegetation.json"}
+        assert "trail.json" in problems[0].message
 
     def test_a_texture_source_change_flags_the_materials(self, repo: Path, assets: Path) -> None:
         shas = {source_id: sha(source_id) for source_id in RAW_FILES}

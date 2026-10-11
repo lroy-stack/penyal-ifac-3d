@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any
 
-from penyal_pipeline import dem, ortho, trail
+from penyal_pipeline import dem, ortho, trail, understory
 from penyal_pipeline.paths import REPO_ROOT, TUNNEL_CURATED
 from penyal_pipeline.provenance import ProvenanceError, relative, sha256_file, tool_versions
 from penyal_pipeline.rawdata import locate
@@ -34,6 +34,18 @@ def _osm_input(root: Path) -> Input:
     return raw_input(trail.OSM_SOURCE_ID, trail.OSM_FILE, root)
 
 
+def _vegetation_inputs(root: Path) -> list[Input]:
+    trail_json = root / "app" / "public" / "assets" / "generated" / "trail.json"
+    return [
+        *_dem_inputs(root),
+        _osm_input(root),
+        raw_input(ortho.ORTHO_SOURCE_ID, ortho.ORTHO_SUFFIX, root),
+        *(raw_input(source_id, ".laz", root) for source_id in dem.LIDAR_SOURCE_IDS),
+        {"file": relative(trail_json, root), "sha256": sha256_file(trail_json)},
+        *(raw_input(m.source_id, m.gltf, root) for m in understory.MODELS),
+    ]
+
+
 def _inputs(kind: str, root: Path) -> list[Input]:
     match kind:
         case "terrain":
@@ -45,6 +57,8 @@ def _inputs(kind: str, root: Path) -> list[Input]:
             ]
         case "collision" | "trail":
             return [*_dem_inputs(root), _osm_input(root), curated_input(root)]
+        case "vegetation":
+            return _vegetation_inputs(root)
         case "tunnel":
             # the shell is clipped against the carved DEM (run_tunnel), so the DEM is an input
             return [*_dem_inputs(root), _osm_input(root), curated_input(root)]
@@ -59,6 +73,8 @@ def _tools(kind: str) -> tuple[str, ...]:
             return ("bpy", "gltf-transform", "node")
         case "collision":
             return ("numpy", "rasterio", "shapely")
+        case "vegetation":
+            return ("numpy", "rasterio", "shapely", "laspy")
         case _:
             return ("numpy", "shapely")
 
