@@ -632,3 +632,150 @@ expected_bytes = 388910
 size_tolerance = 0.0
 licence = "CC BY 4.0"
 attribution = "Camille Vacher, XC930530. Accessible at www.xeno-canto.org/930530 (CC BY 4.0)"
+
+# --- Phase 4 (continued): visitor-centre materials for E3, approved by the user on 2026-10-11.
+# Sizes and URLs from api.polyhaven.com/files/<id> on 2026-10-11; chosen to match reference photo 01 (docs/research/003-fotos-referencia.md).
+
+[[source]]
+id = "polyhaven-white-stucco-diff-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven white_stucco albedo, 1k JPEG."
+used_for = "E3: whitewashed walls of the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_stucco/white_stucco_diff_1k.jpg"
+expected_bytes = 557550
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Amal Kumar (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-white-stucco-nor-gl-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven white_stucco normal map (OpenGL), 1k JPEG."
+used_for = "E3: whitewashed walls of the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_stucco/white_stucco_nor_gl_1k.jpg"
+expected_bytes = 932038
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Amal Kumar (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-white-stucco-arm-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven white_stucco AO/roughness/metalness packed map, 1k JPEG."
+used_for = "E3: whitewashed walls of the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_stucco/white_stucco_arm_1k.jpg"
+expected_bytes = 323604
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Amal Kumar (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-yellow-plaster-diff-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven yellow_plaster albedo, 1k JPEG."
+used_for = "E3: ochre inner walls and turrets of the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/yellow_plaster/yellow_plaster_diff_1k.jpg"
+expected_bytes = 376961
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-yellow-plaster-nor-gl-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven yellow_plaster normal map (OpenGL), 1k JPEG."
+used_for = "E3: ochre inner walls and turrets of the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/yellow_plaster/yellow_plaster_nor_gl_1k.jpg"
+expected_bytes = 522586
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-yellow-plaster-arm-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven yellow_plaster AO/roughness/metalness packed map, 1k JPEG."
+used_for = "E3: ochre inner walls and turrets of the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/yellow_plaster/yellow_plaster_arm_1k.jpg"
+expected_bytes = 113469
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-roof-tiles-diff-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven roof_tiles albedo, 1k JPEG."
+used_for = "E3: Arab-tile hip roofs of the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/roof_tiles/roof_tiles_diff_1k.jpg"
+expected_bytes = 1105673
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Stephan Seeliger (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-roof-tiles-nor-gl-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven roof_tiles normal map (OpenGL), 1k JPEG."
+used_for = "E3: Arab-tile hip roofs of the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/roof_tiles/roof_tiles_nor_gl_1k.jpg"
+expected_bytes = 883229
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Stephan Seeliger (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-roof-tiles-arm-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven roof_tiles AO/roughness/metalness packed map, 1k JPEG."
+used_for = "E3: Arab-tile hip roofs of the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/roof_tiles/roof_tiles_arm_1k.jpg"
+expected_bytes = 1079696
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Stephan Seeliger (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-stacked-stone-wall-diff-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven stacked_stone_wall albedo, 1k JPEG."
+used_for = "E3: dry-stone limestone walls around the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stacked_stone_wall/stacked_stone_wall_diff_1k.jpg"
+expected_bytes = 746206
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Dimitrios Savva (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-stacked-stone-wall-nor-gl-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven stacked_stone_wall normal map (OpenGL), 1k JPEG."
+used_for = "E3: dry-stone limestone walls around the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stacked_stone_wall/stacked_stone_wall_nor_gl_1k.jpg"
+expected_bytes = 1131732
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Dimitrios Savva (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-stacked-stone-wall-arm-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven stacked_stone_wall AO/roughness/metalness packed map, 1k JPEG."
+used_for = "E3: dry-stone limestone walls around the visitor centre."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stacked_stone_wall/stacked_stone_wall_arm_1k.jpg"
+expected_bytes = 807997
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Dimitrios Savva (no attribution required; credited as courtesy)"
