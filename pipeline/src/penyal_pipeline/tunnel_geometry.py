@@ -32,7 +32,6 @@ ARCH_RISE_FRACTION = 0.8
 ARC_SEGMENTS = 12
 OVERRUN = 1.0  # metres of shell and cut volume beyond each portal
 PLANE_TOLERANCE = 1e-9
-FLOOR_NORMAL_Y = 0.85  # inward normals at least this vertical belong to the floor
 MIN_PIECE_AREA = 1e-9
 
 type Floats = npt.NDArray[np.float64]
@@ -147,6 +146,9 @@ class ShellMesh:
     positions: npt.NDArray[np.float32]
     normals: npt.NDArray[np.float32]
     triangles: npt.NDArray[np.int32]
+    floor: npt.NDArray[
+        np.bool_
+    ]  # (n,) vertex belongs to the walkable floor strip, whatever its slope
 
 
 def build_shell(axis: Floats, width: float, height: float) -> ShellMesh:
@@ -157,11 +159,14 @@ def build_shell(axis: Floats, width: float, height: float) -> ShellMesh:
     positions: list[Floats] = []
     normals: list[Floats] = []
     triangles: list[Ints] = []
+    floor: list[npt.NDArray[np.bool_]] = []
     up = np.array([0.0, 1.0, 0.0])
     ring_count = axis.shape[0]
     offset = 0
-    for strip in strips(width, height):
+    all_strips = strips(width, height)
+    for index, strip in enumerate(all_strips):
         count = strip.uv.shape[0]
+        floor.append(np.full(ring_count * count, index == len(all_strips) - 1))
         for i in range(ring_count):
             u, v = strip.uv[:, 0:1], strip.uv[:, 1:2]
             positions.append(axis[i] + frame.left[i] * u * frame.miter[i] + up * v)
@@ -178,6 +183,7 @@ def build_shell(axis: Floats, width: float, height: float) -> ShellMesh:
         positions=np.concatenate(positions).astype(np.float32),
         normals=np.concatenate(normals).astype(np.float32),
         triangles=np.concatenate(triangles).astype(np.int32),
+        floor=np.concatenate(floor),
     )
 
 
@@ -191,12 +197,13 @@ def clip_shell_to_surface(
     ``surface(x, z)`` is the terrain height. Near a portal the terrain falls below the vault; the
     shell there would be a half-pipe lying on the ground, visible from outside. Triangles are cut
     where the (affine over a triangle) height excess crosses zero; new vertices are shared between
-    neighbours, with interpolated normals. Floor vertices (inward normal ``y >= FLOOR_NORMAL_Y``)
-    are never cut: the floor is the walkable surface and fills the opening in the terrain.
+    neighbours, with interpolated normals. Floor vertices (``shell.floor``, marked by the strip they
+    were built in, not by their normal) are never cut: the floor is the walkable surface, however
+    steep, and fills the opening in the terrain.
     """
     positions = shell.positions.astype(np.float64)
     excess = positions[:, 1] - (surface(positions[:, 0], positions[:, 2]) - skin)
-    excess[shell.normals[:, 1] >= FLOOR_NORMAL_Y] = -1.0
+    excess[shell.floor] = -1.0
     outside = excess > 0.0
     corner_out = outside[shell.triangles]
     count = corner_out.sum(axis=1)
@@ -241,10 +248,12 @@ def clip_shell_to_surface(
     used = np.unique(triangles.ravel())
     remap = np.full(all_positions.shape[0], -1, dtype=np.int64)
     remap[used] = np.arange(used.size)
+    all_floor = np.concatenate([shell.floor, np.zeros(len(new_positions), dtype=np.bool_)])
     return ShellMesh(
         positions=all_positions[used].astype(np.float32),
         normals=all_normals[used].astype(np.float32),
         triangles=remap[triangles].astype(np.int32),
+        floor=all_floor[used],
     )
 
 

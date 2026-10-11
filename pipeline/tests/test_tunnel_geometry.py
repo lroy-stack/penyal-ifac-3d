@@ -213,14 +213,38 @@ def ramp(x: npt.NDArray, z: npt.NDArray) -> npt.NDArray:
 def test_clip_removes_the_walls_and_vault_above_the_terrain_and_keeps_the_floor() -> None:
     shell = geo.build_shell(straight_axis(10.0), WIDTH, HEIGHT)
     clipped = geo.clip_shell_to_surface(shell, ramp, skin=0.25)
-    wall = clipped.normals[:, 1] < geo.FLOOR_NORMAL_Y
+    wall = ~clipped.floor
     p = clipped.positions.astype(np.float64)
     assert (p[wall, 1] <= ramp(p[wall, 0], p[wall, 2]) - 0.25 + 1e-5).all()
-    floor = shell.normals[:, 1] >= geo.FLOOR_NORMAL_Y
-    assert (clipped.normals[:, 1] >= geo.FLOOR_NORMAL_Y).sum() == floor.sum()
+    assert clipped.floor.sum() == shell.floor.sum()
     assert np.allclose(np.linalg.norm(clipped.normals, axis=1), 1.0, atol=1e-5)
     assert clipped.triangles.max() < len(clipped.positions)
     assert len(clipped.triangles) < len(shell.triangles)
+
+
+def test_clip_never_cuts_the_floor_even_when_it_is_steeper_than_the_floor_normal_threshold() -> (
+    None
+):
+    steepness = (
+        45.0  # degrees: the floor normal has y = cos(45) = 0.71, under the old 0.85 threshold
+    )
+    axis = straight_axis(10.0, rise=10.0 * np.tan(np.radians(steepness)))
+    shell = geo.build_shell(axis, WIDTH, HEIGHT)
+    floor_vertices = shell.positions[-2 * len(axis) :]  # the floor is the last strip
+    assert shell.normals[-2 * len(axis) :, 1].max() < 0.85, "steeper than the old normal test"
+    clipped = geo.clip_shell_to_surface(shell, lambda x, z: np.full_like(x, -50.0), skin=0.0)
+    kept = {tuple(p) for p in clipped.positions.tolist()}
+    assert all(tuple(p) in kept for p in floor_vertices.tolist()), "floor vertices were cut"
+    floor_triangles = shell.triangles[
+        shell.triangles.min(axis=1) >= shell.positions.shape[0] - 2 * len(axis)
+    ]
+    kept_triangles = {
+        tuple(sorted(tuple(clipped.positions[i].tolist()) for i in t)) for t in clipped.triangles
+    }
+    for t in floor_triangles:
+        assert tuple(sorted(tuple(shell.positions[i].tolist()) for i in t)) in kept_triangles
+    assert clipped.floor.sum() == 2 * len(axis)
+    assert not clipped.floor[clipped.normals[:, 1] < 0.0].any()
 
 
 def test_clip_leaves_a_shell_that_is_wholly_under_the_terrain_untouched() -> None:

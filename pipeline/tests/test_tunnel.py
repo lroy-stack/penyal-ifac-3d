@@ -602,7 +602,7 @@ class TestTunnelAgainstTheTerrain:
             curated.section.width,
             curated.section.height,
         )
-        floor = shell.positions[shell.normals[:, 1] > 0.85].astype(np.float64)
+        floor = shell.positions[shell.floor].astype(np.float64)
         axis = world["axis"]
         for portal, expected in ((axis[0], curated.west.value), (axis[-1], curated.east.value)):
             ring = floor[np.linalg.norm(floor[:, [0, 2]] - portal[[0, 2]], axis=1) < 1.2]
@@ -630,7 +630,6 @@ class TestTunnelAgainstTheTerrain:
 
 FOOTPRINT_STEP = 0.1  # metres between the top-down samples
 PORTAL_REACH = 6.0  # metres from a portal that are checked
-WALL_NORMAL_Y = 0.85  # inward normals below this are walls or vault, above it the floor
 # The shell is clipped to the carved DEM at its vertices (0.5 m rings) and then interpolated, so
 # across the steep edge of the west carve it can stand above the DEM by a chord error. Measured with
 # a 0.1 m step: 1.22 m west, 0 m east, for LOD 0, 1 and 2 alike (it is a property of the shell and
@@ -716,7 +715,7 @@ class TestShellSeenFromOutside:
         shell_y, shell_tri = top_hits(positions, shell.triangles, x, z)
         mesh = scene["meshes"][level]
         rock_y, _ = top_hits(mesh.positions.astype(np.float64), mesh.triangles, x, z)
-        wall = shell.normals[shell.triangles[np.maximum(shell_tri, 0), 0], 1] < WALL_NORMAL_Y
+        wall = ~shell.floor[shell.triangles[np.maximum(shell_tri, 0), 0]]
         exposed = np.isfinite(shell_y) & wall & (shell_y > rock_y + 1e-3)
         dem_y = scene["carved"].sample(x, z)
         protrusion = float(np.max(np.where(exposed, shell_y - dem_y, 0.0)))
