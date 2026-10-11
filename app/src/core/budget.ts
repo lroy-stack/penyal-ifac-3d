@@ -56,7 +56,7 @@ export const SYSTEM_BUDGETS: Readonly<Record<QualityTier, Readonly<Record<string
     low: {
       atmosphere: b(0, 0, 0.1, 0),
       sky: b(2, 5_000, 1, 0),
-      terrain: b(25, 350_000, 6, 20),
+      terrain: b(25, 350_000, 6, 24),
       tunnel: b(3, 10_000, 0.5, 1),
       sea: b(1, 2, 3, 1),
       vegetation: b(20, 100_000, 6, 2),
