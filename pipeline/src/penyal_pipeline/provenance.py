@@ -30,6 +30,7 @@ ARTEFACTS = (
     "tunnel.json",
     "trail.json",
     "materials/manifest.json",
+    "surfaces/manifest.json",
 )
 PYTHON_PACKAGES = ("bpy", "numpy", "rasterio", "shapely", "laspy", "pyproj")
 BINARIES = ("gltf-transform", "ktx", "node")

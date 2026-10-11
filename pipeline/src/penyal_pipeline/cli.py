@@ -17,6 +17,7 @@ from penyal_pipeline import (
     fetch,
     ortho,
     provenance,
+    surfaces,
     tiles,
     trail,
     tunnel,
@@ -141,6 +142,19 @@ def _cmd_trail(args: argparse.Namespace) -> int:
     )
     print(format_table(["GROUP", "OSM 2D", "2D", "3D", "ASCENT"], trail.report_rows(document)))
     print(f"anchors: {', '.join(document['anchors'])}")
+    return 0
+
+
+def _cmd_surfaces(args: argparse.Namespace) -> int:
+    manifest = surfaces.run_surfaces(args.out_dir, artefacts.provenance("surfaces"))
+    rows = [[name, f"{manifest['coverageM2'][name]:,.0f}"] for name in surfaces.CLASSES]
+    print(format_table(["CLASS", "COVERAGE m2"], rows))
+    sizes = sum(tile["bytes"] for tile in manifest["tiles"])
+    print(
+        f"surfaces: {len(manifest['tiles'])} tiles, {len(manifest['ways'])} ways, "
+        f"{_megabytes(sizes)} of PNG; skipped ways {manifest['skippedWays']}; "
+        f"widths are {manifest['widths']['status']}"
+    )
     return 0
 
 
@@ -358,6 +372,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     terrain_cmd.set_defaults(handler=_cmd_terrain)
 
+    surfaces_cmd = commands.add_parser(
+        "surfaces", help="rasterise the OSM path surfaces into per-tile class masks (PNG)"
+    )
+    surfaces_cmd.add_argument(
+        "--out-dir",
+        type=Path,
+        default=surfaces.SURFACES_GENERATED_DIR,
+        help="output directory (default: %(default)s)",
+    )
+    surfaces_cmd.set_defaults(handler=_cmd_surfaces)
+
     verify_cmd = commands.add_parser(
         "verify-generated",
         help="check that the inputs recorded in the generated artefacts still match the sources",
@@ -392,6 +417,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         tunnel.TunnelError,
         provenance.ProvenanceError,
         tunnel_geometry.GeometryError,
+        surfaces.SurfacesError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

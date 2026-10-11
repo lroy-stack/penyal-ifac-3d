@@ -26,6 +26,7 @@ ALL_JSON = {
     "tunnel.json",
     "trail.json",
     "materials/manifest.json",
+    "surfaces/manifest.json",
 }
 
 
@@ -86,6 +87,7 @@ def assets(repo: Path, tmp_path: Path) -> Path:
         ("terrain/collision.json", "collision"),
         ("tunnel.json", "tunnel"),
         ("trail.json", "trail"),
+        ("surfaces/manifest.json", "surfaces"),
     ):
         path = out / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,6 +135,7 @@ class TestInputs:
             ("collision", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
             ("trail", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
             ("tunnel", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
+            ("surfaces", {"osm-penyal"}, False),
         ],
     )
     def test_each_artefact_lists_every_input_that_changes_it(
@@ -207,6 +210,12 @@ class TestVerify:
         shas["icv-orto-2024-0848-7-2"] = sha("new orthophoto")
         write_lock(repo, shas)
         assert flagged(provenance.verify_generated(assets, repo)) == {"terrain/manifest.json"}
+
+    def test_an_osm_change_flags_the_surface_masks(self, repo: Path, assets: Path) -> None:
+        shas = {source_id: sha(source_id) for source_id in RAW_FILES}
+        shas["osm-penyal"] = sha("new osm extract")
+        write_lock(repo, shas)
+        assert "surfaces/manifest.json" in flagged(provenance.verify_generated(assets, repo))
 
     def test_a_texture_source_change_flags_the_materials(self, repo: Path, assets: Path) -> None:
         shas = {source_id: sha(source_id) for source_id in RAW_FILES}

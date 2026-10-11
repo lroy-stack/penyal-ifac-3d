@@ -43,6 +43,8 @@ def _inputs(kind: str, root: Path) -> list[Input]:
                 raw_input(ortho.ORTHO_SOURCE_ID, ortho.ORTHO_SUFFIX, root),
                 curated_input(root),
             ]
+        case "surfaces":
+            return [_osm_input(root)]
         case "collision" | "trail":
             return [*_dem_inputs(root), _osm_input(root), curated_input(root)]
         case "tunnel":
