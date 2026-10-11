@@ -1,6 +1,7 @@
 # claude-studio
 .claude/settings.local.json
 .claude/studio.local.json
+.claude/worktrees/
 CLAUDE.local.md
 .env
 .env.*
