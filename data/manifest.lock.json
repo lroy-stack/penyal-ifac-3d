@@ -1,5 +1,44 @@
 {
   "sources": {
+    "commons-cicadas-in-greece": {
+      "attribution": "\"Cicadas in Greece\" by Channel R, via Wikimedia Commons, public domain (credited as courtesy)",
+      "files": [
+        {
+          "bytes": 214994,
+          "name": "Cicadas_in_Greece.ogg",
+          "sha256": "f30fbcf00a38ebd3180fa20ef07956ab98f1a5489ce79a42daf78b4c1820d80c"
+        }
+      ],
+      "licence": "Public domain (released by the author on Wikimedia Commons)",
+      "retrieved": "2026-10-11",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Cicadas_in_Greece.ogg"
+    },
+    "commons-footstep-on-gravel": {
+      "attribution": "\"Footstep on Gravel\" by Gravity Sound, via Wikimedia Commons, CC BY 4.0",
+      "files": [
+        {
+          "bytes": 12142,
+          "name": "Footstep_on_Gravel_%28Gravity_Sound%29.mp3",
+          "sha256": "c319196dcd448bd94b53c3e5860b8a527ffe6a78eaa97f3739fff32d3fc81d3b"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "retrieved": "2026-10-11",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Footstep_on_Gravel_%28Gravity_Sound%29.mp3"
+    },
+    "commons-oceanwavescrushing": {
+      "attribution": "\"Oceanwavescrushing\" by Luftrum (https://freesound.org/people/Luftrum/sounds/48412/), via Wikimedia Commons, CC BY 3.0",
+      "files": [
+        {
+          "bytes": 2849514,
+          "name": "Oceanwavescrushing.ogg",
+          "sha256": "2a56648817264b6caa30426baa2245a03041b1febe9faa7b9235d7cc539aa9ca"
+        }
+      ],
+      "licence": "CC BY 3.0",
+      "retrieved": "2026-10-11",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Oceanwavescrushing.ogg"
+    },
     "icv-cv05-penyal": {
       "attribution": "Cartografia CV05 1:5000 © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0)",
       "files": [
@@ -157,6 +196,71 @@
       "retrieved": "2026-10-11",
       "url": "https://api.openstreetmap.org/api/0.6/map.json?bbox=0.0680,38.6290,0.0840,38.6420"
     },
+    "polyhaven-grass-medium-02-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 241181,
+          "name": "grass_medium_02_arm_1k.jpg",
+          "sha256": "f0d57bfd95bff7710526b49d47cf2326ee3796e425639d53b983d1472480b57d"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_02/grass_medium_02_arm_1k.jpg"
+    },
+    "polyhaven-grass-medium-02-bin": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 272048,
+          "name": "grass_medium_02.bin",
+          "sha256": "aa8493bc1544a89e08bf440c7ba361042bfe6ea48b1fefc7e4af2dfff42fdf4a"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/grass_medium_02/grass_medium_02.bin"
+    },
+    "polyhaven-grass-medium-02-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 161235,
+          "name": "grass_medium_02_diff_1k.jpg",
+          "sha256": "91ae99005b449011aceb207a68a937258fd9bfd66ff367d344c50398b1df389c"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_02/grass_medium_02_diff_1k.jpg"
+    },
+    "polyhaven-grass-medium-02-gltf-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 8864,
+          "name": "grass_medium_02_1k.gltf",
+          "sha256": "7037f8d2dfc6aeec0bf72f4eeb96cfa3f6b3a5e6c6f0bc5de537c055b2fd5d04"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/grass_medium_02/grass_medium_02_1k.gltf"
+    },
+    "polyhaven-grass-medium-02-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 118146,
+          "name": "grass_medium_02_nor_gl_1k.jpg",
+          "sha256": "0b464550366ed72a6cad9c357e19ac4c83fc9adc87272771479138129853b300"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_02/grass_medium_02_nor_gl_1k.jpg"
+    },
     "polyhaven-marble-cliff-05-arm-1k": {
       "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
       "files": [
@@ -235,6 +339,97 @@
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_cliff_05/marble_cliff_05_nor_gl_2k.jpg"
     },
+    "polyhaven-pine-tree-01-bark-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 801278,
+          "name": "pine_tree_01_bark_arm_1k.jpg",
+          "sha256": "336a4680cd571b6076b67afee2310b290b8900d9d126eb39ec1ae92e95be2ea9"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_bark_arm_1k.jpg"
+    },
+    "polyhaven-pine-tree-01-bark-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 725265,
+          "name": "pine_tree_01_bark_diff_1k.jpg",
+          "sha256": "5c76836b01c3536fa0e24207b67bf4f3315b53ebe2b4ecc6f08dfcf3f8d74929"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_bark_diff_1k.jpg"
+    },
+    "polyhaven-pine-tree-01-bark-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 1016849,
+          "name": "pine_tree_01_bark_nor_gl_1k.jpg",
+          "sha256": "05c46455531781b6cf18cae0648cf627f60ee942adaa8bcbfd1592fc2506a9e0"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_bark_nor_gl_1k.jpg"
+    },
+    "polyhaven-pine-tree-01-twig-alpha-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 195206,
+          "name": "pine_tree_01_twig_alpha_1k.jpg",
+          "sha256": "bee10734c529a874570da6e4091758de5cc7dee17a359eeacd9c67fde1cb0947"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_twig_alpha_1k.jpg"
+    },
+    "polyhaven-pine-tree-01-twig-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 474787,
+          "name": "pine_tree_01_twig_arm_1k.jpg",
+          "sha256": "47facef9985e8c073184a64d15ea14bd2dc3b3debfb93f3671b6d5ad0dbc163d"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_twig_arm_1k.jpg"
+    },
+    "polyhaven-pine-tree-01-twig-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 510932,
+          "name": "pine_tree_01_twig_diff_1k.jpg",
+          "sha256": "e649f0f9bc74d1af5f1a45eaf2fe7a29adaaddfab251f746b983da301e4b80e1"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_twig_diff_1k.jpg"
+    },
+    "polyhaven-pine-tree-01-twig-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 797935,
+          "name": "pine_tree_01_twig_nor_gl_1k.jpg",
+          "sha256": "2a02a482a18d20255c800845902d5e0061d2a2d14107d7c4ed0b789414153141"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_twig_nor_gl_1k.jpg"
+    },
     "polyhaven-rocks-ground-05-arm-1k": {
       "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
       "files": [
@@ -312,6 +507,136 @@
       "licence": "CC0 1.0",
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rocks_ground_05/rocks_ground_05_nor_gl_2k.jpg"
+    },
+    "polyhaven-shrub-02-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 313715,
+          "name": "shrub_02_arm_1k.jpg",
+          "sha256": "7186bf604d5c02f873aef6de2346cc06b6fa48f47d054edbef36d2c3772c0890"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_arm_1k.jpg"
+    },
+    "polyhaven-shrub-02-bin": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 758692,
+          "name": "shrub_02.bin",
+          "sha256": "5c1b79da1cfdbac90599542ccd1f75ba433a3a4d356b1ea03655adb39b0e2c96"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/shrub_02/shrub_02.bin"
+    },
+    "polyhaven-shrub-02-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 395120,
+          "name": "shrub_02_diff_1k.jpg",
+          "sha256": "9956eff294034d70516d867e9668428a23d782feb3d4c34061dce5e44bacd5a8"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_diff_1k.jpg"
+    },
+    "polyhaven-shrub-02-gltf-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 8083,
+          "name": "shrub_02_1k.gltf",
+          "sha256": "99de0a70fe88ad414615cc8d8e020617c8512e2abfe08b911b153a6fcc40d93e"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/shrub_02/shrub_02_1k.gltf"
+    },
+    "polyhaven-shrub-02-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 490815,
+          "name": "shrub_02_nor_gl_1k.jpg",
+          "sha256": "54c24e433365d5410223b7ebd2b33042b80831f80976e10768114db5ef6911d7"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_nor_gl_1k.jpg"
+    },
+    "polyhaven-shrub-04-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 332957,
+          "name": "shrub_04_arm_1k.jpg",
+          "sha256": "d1085df021928b29b0f38dde7e58e9a2e304c4e8d838e390b37cf57f8aa492e8"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_arm_1k.jpg"
+    },
+    "polyhaven-shrub-04-bin": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 749084,
+          "name": "shrub_04.bin",
+          "sha256": "cb442c39682e54cc63f912aa78ab17a03566f947a61adbbbaaa6473166744f01"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/shrub_04/shrub_04.bin"
+    },
+    "polyhaven-shrub-04-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 373350,
+          "name": "shrub_04_diff_1k.jpg",
+          "sha256": "0b0fa0a474753d13f3093858cea79d0de05da1e6a0c5d6e181cd351080980b6c"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_diff_1k.jpg"
+    },
+    "polyhaven-shrub-04-gltf-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 2882,
+          "name": "shrub_04_1k.gltf",
+          "sha256": "782832cbc57e96686b78c6ef9df6234c25f564f78421c8ed4bd42c3631f5aeae"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/shrub_04/shrub_04_1k.gltf"
+    },
+    "polyhaven-shrub-04-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 449241,
+          "name": "shrub_04_nor_gl_1k.jpg",
+          "sha256": "200d791e0474495bfc876ba1c289dade669c6a5b124647c55bc840a875f6b51c"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_nor_gl_1k.jpg"
     }
   },
   "version": 1

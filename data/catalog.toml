@@ -301,3 +301,310 @@ expected_bytes = 947022
 size_tolerance = 0.0
 licence = "CC0 1.0"
 attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+# --- Phase 4: phase B pilot-stretch assets (approved by the user on 2026-10-11):
+# vegetation (lane L3, docs/specs/002/vegetacion-especies.md) and ambient sound (lane L2,
+# docs/specs/002/sonido-licencias.md). Poly Haven sizes and URLs from api.polyhaven.com/files/<id>;
+# Wikimedia Commons sizes, licences and authors from the Commons API (prop=imageinfo), both on 2026-10-11.
+# glTF models are split into one source per file (.gltf, .bin, textures); the vegetation step
+# reassembles the relative layout the .gltf expects before importing it.
+
+[[source]]
+id = "polyhaven-pine-tree-01-twig-diff-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven pine_tree_01 needle-twig albedo, 1k JPEG. Texture only: the 948.8 MB per-needle mesh is not downloaded."
+used_for = "Phase B L3 (B5): procedural Aleppo-pine stand-in, needle cards and trunk."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_twig_diff_1k.jpg"
+expected_bytes = 510932
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-pine-tree-01-twig-alpha-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven pine_tree_01 needle-twig opacity mask, 1k JPEG. Texture only: the 948.8 MB per-needle mesh is not downloaded."
+used_for = "Phase B L3 (B5): procedural Aleppo-pine stand-in, needle cards and trunk."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_twig_alpha_1k.jpg"
+expected_bytes = 195206
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-pine-tree-01-twig-nor-gl-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven pine_tree_01 needle-twig normal map (OpenGL), 1k JPEG. Texture only: the 948.8 MB per-needle mesh is not downloaded."
+used_for = "Phase B L3 (B5): procedural Aleppo-pine stand-in, needle cards and trunk."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_twig_nor_gl_1k.jpg"
+expected_bytes = 797935
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-pine-tree-01-twig-arm-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven pine_tree_01 needle-twig AO/roughness/metalness packed map, 1k JPEG. Texture only: the 948.8 MB per-needle mesh is not downloaded."
+used_for = "Phase B L3 (B5): procedural Aleppo-pine stand-in, needle cards and trunk."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_twig_arm_1k.jpg"
+expected_bytes = 474787
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-pine-tree-01-bark-diff-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven pine_tree_01 bark albedo, 1k JPEG. Texture only: the 948.8 MB per-needle mesh is not downloaded."
+used_for = "Phase B L3 (B5): procedural Aleppo-pine stand-in, needle cards and trunk."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_bark_diff_1k.jpg"
+expected_bytes = 725265
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-pine-tree-01-bark-nor-gl-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven pine_tree_01 bark normal map (OpenGL), 1k JPEG. Texture only: the 948.8 MB per-needle mesh is not downloaded."
+used_for = "Phase B L3 (B5): procedural Aleppo-pine stand-in, needle cards and trunk."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_bark_nor_gl_1k.jpg"
+expected_bytes = 1016849
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-pine-tree-01-bark-arm-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven pine_tree_01 bark AO/roughness/metalness packed map, 1k JPEG. Texture only: the 948.8 MB per-needle mesh is not downloaded."
+used_for = "Phase B L3 (B5): procedural Aleppo-pine stand-in, needle cards and trunk."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_bark_arm_1k.jpg"
+expected_bytes = 801278
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-shrub-04-gltf-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven shrub_04 glTF 1k: the .gltf JSON (references shrub_04.bin and textures/)."
+used_for = "Phase B L3 (B5): lentisk (Pistacia lentiscus) stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/shrub_04/shrub_04_1k.gltf"
+expected_bytes = 2882
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-shrub-04-bin"
+phase = 4
+kind = "file"
+description = "Poly Haven shrub_04 geometry buffer (shrub_04.bin), shared by every resolution."
+used_for = "Phase B L3 (B5): lentisk (Pistacia lentiscus) stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/shrub_04/shrub_04.bin"
+expected_bytes = 749084
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-shrub-04-arm-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven shrub_04 texture shrub_04_arm_1k.jpg (glTF path textures/shrub_04_arm_1k.jpg)."
+used_for = "Phase B L3 (B5): lentisk (Pistacia lentiscus) stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_arm_1k.jpg"
+expected_bytes = 332957
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-shrub-04-diff-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven shrub_04 texture shrub_04_diff_1k.jpg (glTF path textures/shrub_04_diff_1k.jpg)."
+used_for = "Phase B L3 (B5): lentisk (Pistacia lentiscus) stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_diff_1k.jpg"
+expected_bytes = 373350
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-shrub-04-nor-gl-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven shrub_04 texture shrub_04_nor_gl_1k.jpg (glTF path textures/shrub_04_nor_gl_1k.jpg)."
+used_for = "Phase B L3 (B5): lentisk (Pistacia lentiscus) stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_nor_gl_1k.jpg"
+expected_bytes = 449241
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-shrub-02-gltf-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven shrub_02 glTF 1k: the .gltf JSON (references shrub_02.bin and textures/)."
+used_for = "Phase B L3 (B5): rosemary / toothed lavender stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/shrub_02/shrub_02_1k.gltf"
+expected_bytes = 8083
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-shrub-02-bin"
+phase = 4
+kind = "file"
+description = "Poly Haven shrub_02 geometry buffer (shrub_02.bin), shared by every resolution."
+used_for = "Phase B L3 (B5): rosemary / toothed lavender stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/shrub_02/shrub_02.bin"
+expected_bytes = 758692
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-shrub-02-arm-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven shrub_02 texture shrub_02_arm_1k.jpg (glTF path textures/shrub_02_arm_1k.jpg)."
+used_for = "Phase B L3 (B5): rosemary / toothed lavender stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_arm_1k.jpg"
+expected_bytes = 313715
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-shrub-02-diff-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven shrub_02 texture shrub_02_diff_1k.jpg (glTF path textures/shrub_02_diff_1k.jpg)."
+used_for = "Phase B L3 (B5): rosemary / toothed lavender stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_diff_1k.jpg"
+expected_bytes = 395120
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-shrub-02-nor-gl-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven shrub_02 texture shrub_02_nor_gl_1k.jpg (glTF path textures/shrub_02_nor_gl_1k.jpg)."
+used_for = "Phase B L3 (B5): rosemary / toothed lavender stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_nor_gl_1k.jpg"
+expected_bytes = 490815
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-grass-medium-02-gltf-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven grass_medium_02 glTF 1k: the .gltf JSON (references grass_medium_02.bin and textures/)."
+used_for = "Phase B L3 (B5): scrub grasses stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/grass_medium_02/grass_medium_02_1k.gltf"
+expected_bytes = 8864
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-grass-medium-02-bin"
+phase = 4
+kind = "file"
+description = "Poly Haven grass_medium_02 geometry buffer (grass_medium_02.bin), shared by every resolution."
+used_for = "Phase B L3 (B5): scrub grasses stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/grass_medium_02/grass_medium_02.bin"
+expected_bytes = 272048
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-grass-medium-02-arm-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven grass_medium_02 texture grass_medium_02_arm_1k.jpg (glTF path textures/grass_medium_02_arm_1k.jpg)."
+used_for = "Phase B L3 (B5): scrub grasses stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_02/grass_medium_02_arm_1k.jpg"
+expected_bytes = 241181
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-grass-medium-02-diff-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven grass_medium_02 texture grass_medium_02_diff_1k.jpg (glTF path textures/grass_medium_02_diff_1k.jpg)."
+used_for = "Phase B L3 (B5): scrub grasses stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_02/grass_medium_02_diff_1k.jpg"
+expected_bytes = 161235
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-grass-medium-02-nor-gl-1k"
+phase = 4
+kind = "file"
+description = "Poly Haven grass_medium_02 texture grass_medium_02_nor_gl_1k.jpg (glTF path textures/grass_medium_02_nor_gl_1k.jpg)."
+used_for = "Phase B L3 (B5): scrub grasses stand-in."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_02/grass_medium_02_nor_gl_1k.jpg"
+expected_bytes = 118146
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "commons-oceanwavescrushing"
+phase = 4
+kind = "file"
+description = "Waves on a rocky shore, 2:00 Ogg Vorbis, recorded at Røsnæs (Denmark) per the Commons page; mentions a very distant vessel, to be trimmed. Commons sha1 3a598af423610eefef04c06bed6bcd6be8a28680."
+used_for = "Phase B L2 (B4): sea-on-rock ambience layer."
+url = "https://upload.wikimedia.org/wikipedia/commons/f/f1/Oceanwavescrushing.ogg"
+expected_bytes = 2849514
+size_tolerance = 0.0
+licence = "CC BY 3.0"
+attribution = "\"Oceanwavescrushing\" by Luftrum (https://freesound.org/people/Luftrum/sounds/48412/), via Wikimedia Commons, CC BY 3.0"
+
+[[source]]
+id = "commons-cicadas-in-greece"
+phase = 4
+kind = "file"
+description = "Cicadas, 0:28 Ogg Vorbis, Ithaca (Greece), July 2008. Summer only. Commons sha1 db9ebe32ca51f051d242dc48f86b306ab0c8053b."
+used_for = "Phase B L2 (B4): summer cicada layer (silent outside summer)."
+url = "https://upload.wikimedia.org/wikipedia/commons/f/f4/Cicadas_in_Greece.ogg"
+expected_bytes = 214994
+size_tolerance = 0.0
+licence = "Public domain (released by the author on Wikimedia Commons)"
+attribution = "\"Cicadas in Greece\" by Channel R, via Wikimedia Commons, public domain (credited as courtesy)"
+
+[[source]]
+id = "commons-footstep-on-gravel"
+phase = 4
+kind = "file"
+description = "One footstep on gravel, 0.6 s MP3. Licence read on Commons, not on the author's own site. Commons sha1 8a8af97de95a2e3f8ed1dc74c0769dd547000abf."
+used_for = "Phase B L2 (B4): footstep variations for the hiker."
+url = "https://upload.wikimedia.org/wikipedia/commons/f/f7/Footstep_on_Gravel_%28Gravity_Sound%29.mp3"
+expected_bytes = 12142
+size_tolerance = 0.0
+licence = "CC BY 4.0"
+attribution = "\"Footstep on Gravel\" by Gravity Sound, via Wikimedia Commons, CC BY 4.0"
