@@ -54,7 +54,7 @@ export class FrameStats {
     this.scratch = new Float64Array(window);
   }
 
-  /** Records one frame time in ms; values that are not finite and positive are ignored. */
+  /** Records one frame time in ms; values that are not finite and non-negative are ignored. */
   push(milliseconds: number): void {
     if (!Number.isFinite(milliseconds) || milliseconds < 0) return;
     if (this.count === this.ring.length) {

@@ -38,9 +38,13 @@ const STRING_FIELD = /^([A-Za-z_][\w-]*)\s*=\s*"((?:[^"\\]|\\.)*)"\s*(?:#.*)?$/;
 const SCALAR_FIELD = /^([A-Za-z_][\w-]*)\s*=\s*(-?[\d.]+|true|false|\[[^\]"]*\])\s*(?:#.*)?$/;
 
 function unescapeBasic(value: string): string {
-  return value.replace(/\\(["\\ntr]|u[0-9a-fA-F]{4})/g, (_match, code: string) => {
-    if (code.startsWith("u")) return String.fromCharCode(Number.parseInt(code.slice(1), 16));
-    return { '"': '"', "\\": "\\", n: "\n", t: "\t", r: "\r" }[code] as string;
+  return value.replace(/\\(u[0-9a-fA-F]{4}|.)/gs, (_match, code: string) => {
+    if (code.length === 5) return String.fromCharCode(Number.parseInt(code.slice(1), 16));
+    const decoded = { '"': '"', "\\": "\\", n: "\n", t: "\t", r: "\r" }[code];
+    if (decoded === undefined) {
+      throw new Error(`Unsupported escape "\\${code}" in data/catalog.toml: ${value}`);
+    }
+    return decoded;
   });
 }
 

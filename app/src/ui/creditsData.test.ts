@@ -83,6 +83,28 @@ describe("parseCreditsMarkdown", () => {
   });
 });
 
+describe("parseCatalog escapes", () => {
+  const source = (attribution: string): string =>
+    [
+      "[[source]]",
+      'id = "a"',
+      "phase = 1",
+      'licence = "CC0"',
+      `attribution = "${attribution}"`,
+    ].join("\n");
+
+  it("decodes the escapes TOML basic strings define that the catalogue may use", () => {
+    expect(parseCatalog(source("a\\tb\\u00e9")).at(0)?.attribution).toBe("a\tb\u00e9");
+  });
+
+  it.each(["\\b", "\\f", "\\U0001F600", "\\x41", "\\u12"])(
+    "throws on the escape %s instead of keeping it as text",
+    (sequence) => {
+      expect(() => parseCatalog(source(`x${sequence}y`))).toThrow(/escape/);
+    },
+  );
+});
+
 describe("buildCredits from the real files", () => {
   const credits = buildCredits(catalog, creditsMd);
 
@@ -108,13 +130,16 @@ describe("buildCredits from the real files", () => {
     expect(credits.code).toContain("EUPL-1.2");
   });
 
-  it("keeps the on-screen attribution line in step with the licences of the data in use", () => {
-    const line = STRINGS.es.attributionLine;
-    for (const licence of new Set(credits.sources.map((s) => s.licence.replace(/ 1\.0$/, "")))) {
-      expect(line, `attribution line mentions ${licence}`).toContain(licence);
-    }
-    expect(line).toContain("OpenStreetMap");
-    expect(line).toContain("Poly Haven");
-    expect(line).toContain("Institut Cartogràfic Valencià");
-  });
+  it.each(["es", "va", "en"] as const)(
+    "keeps the on-screen attribution line (%s) in step with the licences of the data in use",
+    (locale) => {
+      const line = STRINGS[locale].attributionLine;
+      for (const licence of new Set(credits.sources.map((s) => s.licence.replace(/ 1\.0$/, "")))) {
+        expect(line, `attribution line mentions ${licence}`).toContain(licence);
+      }
+      expect(line).toContain("OpenStreetMap");
+      expect(line).toContain("Poly Haven");
+      expect(line).toContain("Institut Cartogràfic Valencià");
+    },
+  );
 });
