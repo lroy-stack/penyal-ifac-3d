@@ -1,5 +1,4 @@
 import type { Object3D } from "three";
-import { JSON_TIMEOUT_MS } from "../core/http";
 import type { WorldSystem } from "./systems";
 import {
   loadTunnel,
@@ -61,7 +60,6 @@ export function createTunnelSystem(deps: TunnelSystemDeps = DEFAULT_DEPS): {
     id: "tunnel",
     phase: "postPlayer",
     load: "critical",
-    initTimeoutMs: JSON_TIMEOUT_MS + 5_000,
     async init(ctx) {
       const file = await deps.loadTunnel(ctx.assets.url(TUNNEL_PATH), ctx.signal);
       if (file.status === "missing") {

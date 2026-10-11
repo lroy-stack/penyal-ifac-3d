@@ -1,4 +1,3 @@
-import { JSON_TIMEOUT_MS } from "../../core/http";
 import type { WorldSystem } from "../systems";
 import { INITIAL_TERRAIN_GATE, stepTerrainGate, type TerrainGateOutcome } from "./gate";
 import { loadTerrainManifest } from "./manifest";
@@ -12,7 +11,6 @@ import {
 } from "./streamer";
 
 /** The manifest request has its own 30 s limit; the init must not give up before it does. */
-const INIT_TIMEOUT_MS = JSON_TIMEOUT_MS + 5_000;
 export const TERRAIN_MANIFEST_PATH = "assets/generated/terrain/manifest.json";
 /** While the terrain loads, its readiness is checked every N frames. */
 export const GATE_CHECK_FRAMES = 6;
@@ -69,7 +67,6 @@ export function createTerrainSystem(deps: TerrainSystemDeps = DEFAULT_DEPS): {
     id: "terrain",
     phase: "postPlayer",
     load: "critical",
-    initTimeoutMs: INIT_TIMEOUT_MS,
     async init(ctx) {
       const manifestUrl = ctx.assets.url(TERRAIN_MANIFEST_PATH);
       const manifest = await deps.loadManifest(manifestUrl, ctx.signal);

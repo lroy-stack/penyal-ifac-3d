@@ -1,6 +1,7 @@
 import { Group, type PerspectiveCamera, type Scene, type WebGLRenderer } from "three";
 import type { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { PoiRegistry } from "../content/poi";
+import { BINARY_TIMEOUT_MS, JSON_TIMEOUT_MS } from "../core/http";
 import type { QualityProfile } from "../core/quality";
 import type { PlayerState } from "../player";
 import type { StringKey } from "../ui/strings";
@@ -124,8 +125,14 @@ export interface WorldSystem {
   readonly id: string;
   readonly phase: UpdatePhase;
   readonly load: LoadPriority;
-  /** Default 20 000 (critical, beforeWalk) and 60 000 (background). */
+  /** Default `JSON_TIMEOUT_MS` + 5 000 (critical, beforeWalk) and 60 000 (background). */
   readonly initTimeoutMs?: number;
+  /**
+   * With `isSettled`: how long after init the gate waits for it to turn true. On expiry the
+   * system is `degraded`, one error is logged and the gate proceeds. Default
+   * `DEFAULT_SETTLE_TIMEOUT_MS`, which outlasts the terrain stall limit.
+   */
+  readonly settleTimeoutMs?: number;
   readonly notices?: { readonly missing?: StringKey; readonly failed?: StringKey };
   init(ctx: SystemContext): Promise<InitOutcome>;
   /** Walk gate, polled every 6 frames; default: init resolved. */
@@ -163,8 +170,13 @@ export type WorldDeps = Omit<SystemContext, "root" | "signal" | "report" | "qual
   readonly testHooks: boolean;
 };
 
-export const DEFAULT_INIT_TIMEOUT_MS = 20_000;
+/** Outlasts the JSON request timeout, so a hung request fails first with its own message. */
+export const DEFAULT_INIT_TIMEOUT_MS = JSON_TIMEOUT_MS + 5_000;
 export const DEFAULT_BACKGROUND_INIT_TIMEOUT_MS = 60_000;
+/** Outlasts the terrain stall limit (`BINARY_TIMEOUT_MS` + 30 000), the slowest legitimate settle. */
+export const DEFAULT_SETTLE_TIMEOUT_MS = BINARY_TIMEOUT_MS + 60_000;
+/** While the tab is hidden the frames (and so the systems) make no progress: look again later. */
+const SETTLE_HIDDEN_RECHECK_MS = 1_000;
 /** Samples kept for the rolling median of a system's update time. */
 const CPU_SAMPLES = 60;
 
@@ -178,6 +190,10 @@ type Entry = {
   beforeDisabled: SystemStatus | null;
   /** A problem a system reported while it was still initialising. */
   reported: SystemStatus | null;
+  /** The message of the degradation already logged, so a repeat is not logged again. */
+  loggedDegraded: string | null;
+  settleExpired: boolean;
+  settleTimer: ReturnType<typeof setTimeout> | null;
   started: boolean;
   initDone: boolean;
   enabled: boolean;
@@ -218,6 +234,9 @@ export function createWorld(systems: readonly WorldSystem[], deps: WorldDeps): W
       status: { state: "pending" },
       beforeDisabled: null,
       reported: null,
+      loggedDegraded: null,
+      settleExpired: false,
+      settleTimer: null,
       started: false,
       initDone: false,
       enabled: true,
@@ -243,6 +262,12 @@ export function createWorld(systems: readonly WorldSystem[], deps: WorldDeps): W
     console.error(`[world:${entry.system.id}] ${message}`);
   };
 
+  const logDegraded = (entry: Entry, message: string): void => {
+    if (entry.loggedDegraded === message) return;
+    entry.loggedDegraded = message;
+    console.warn(`[world:${entry.system.id}] ${message}`);
+  };
+
   /** Runs one call into a system; a throw marks the system failed instead of escaping. */
   const guarded = <T>(entry: Entry, what: string, call: () => T): T | undefined => {
     try {
@@ -261,14 +286,39 @@ export function createWorld(systems: readonly WorldSystem[], deps: WorldDeps): W
       if (entry.status.state === "failed") return;
       const status: SystemStatus = { state: problem.state, message: problem.message };
       if (problem.state === "failed") {
-        entry.status = status;
-        entry.root.visible = false;
+        fail(entry, problem.message);
         return;
       }
+      logDegraded(entry, problem.message);
       if (entry.initDone) setStatus(entry, status);
       else entry.reported = status;
     },
   });
+
+  const pageHidden = (): boolean => typeof document !== "undefined" && document.hidden;
+
+  /** After init, a system whose `isSettled` stays false must not hold the walk gate forever. */
+  const armSettleDeadline = (entry: Entry): void => {
+    const { system } = entry;
+    const settled = system.isSettled;
+    if (settled === undefined || entry.status.state === "failed") return;
+    if (entry.status.state === "missing") return;
+    const timeoutMs = system.settleTimeoutMs ?? DEFAULT_SETTLE_TIMEOUT_MS;
+    const expire = (): void => {
+      entry.settleTimer = null;
+      if (entry.status.state === "failed" || entry.status.state === "missing") return;
+      if (pageHidden()) {
+        entry.settleTimer = setTimeout(expire, SETTLE_HIDDEN_RECHECK_MS);
+        return;
+      }
+      if (guarded(entry, "isSettled", () => settled.call(system)) ?? true) return;
+      entry.settleExpired = true;
+      const message = `did not settle within ${timeoutMs} ms`;
+      setStatus(entry, { state: "degraded", message });
+      console.error(`[world:${system.id}] ${message}`);
+    };
+    entry.settleTimer = setTimeout(expire, timeoutMs);
+  };
 
   const startInit = (entry: Entry): Promise<void> => {
     entry.started = true;
@@ -285,6 +335,7 @@ export function createWorld(systems: readonly WorldSystem[], deps: WorldDeps): W
         clearTimeout(timer);
         entry.initDone = true;
         apply();
+        armSettleDeadline(entry);
         resolve();
       };
       const timer = setTimeout(
@@ -322,6 +373,7 @@ export function createWorld(systems: readonly WorldSystem[], deps: WorldDeps): W
   const settledOf = (entry: Entry): boolean => {
     if (!entry.initDone) return false;
     if (entry.status.state === "failed" || entry.status.state === "missing") return true;
+    if (entry.settleExpired) return true;
     const settled = entry.system.isSettled;
     if (settled === undefined) return true;
     return guarded(entry, "isSettled", () => settled.call(entry.system)) ?? true;
@@ -397,6 +449,7 @@ export function createWorld(systems: readonly WorldSystem[], deps: WorldDeps): W
     dispose() {
       for (const entry of [...entries].reverse()) {
         entry.cancelInit();
+        if (entry.settleTimer !== null) clearTimeout(entry.settleTimer);
         entry.abort.abort(new Error("The world was disposed."));
         guarded(entry, "dispose", () => entry.system.dispose());
         deps.scene.remove(entry.root);

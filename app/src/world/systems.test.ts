@@ -1,11 +1,14 @@
 import { PerspectiveCamera, Scene, type WebGLRenderer } from "three";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { JSON_TIMEOUT_MS } from "../core/http";
 import { profileFor, type QualityProfile } from "../core/quality";
 import { createAtmosphere } from "./atmosphere";
 import type { GroundSurface } from "./ground";
 import {
   createGroundRegistry,
   createWorld,
+  DEFAULT_INIT_TIMEOUT_MS,
+  DEFAULT_SETTLE_TIMEOUT_MS,
   type FrameInfo,
   type InitOutcome,
   type LoadPriority,
@@ -15,6 +18,7 @@ import {
   type WorldDeps,
   type WorldSystem,
 } from "./systems";
+import { TERRAIN_STALL_LIMIT_MS } from "./terrain/gate";
 
 const DEVICE = { coarsePointer: false, softwareRenderer: false } as const;
 const FRAME: FrameInfo = {
@@ -35,6 +39,7 @@ type FakeOptions = {
   readonly update?: (frame: FrameInfo) => void;
   readonly settled?: () => boolean;
   readonly initTimeoutMs?: number;
+  readonly settleTimeoutMs?: number;
   readonly dispose?: () => void;
 };
 
@@ -45,6 +50,7 @@ function fake(id: string, shared: string[], options: FakeOptions = {}): Fake {
     phase: options.phase ?? "postPlayer",
     load: options.load ?? "critical",
     ...(options.initTimeoutMs === undefined ? {} : { initTimeoutMs: options.initTimeoutMs }),
+    ...(options.settleTimeoutMs === undefined ? {} : { settleTimeoutMs: options.settleTimeoutMs }),
     log,
     ctx: null,
     init: async (ctx) => {
@@ -229,6 +235,104 @@ describe("status", () => {
   });
 });
 
+describe("reported problems", () => {
+  it("treats a reported failure like any other: logged once, root hidden, signal aborted", async () => {
+    const log: string[] = [];
+    const a = fake("a", log);
+    const { world } = setup([a]);
+    await world.init("critical");
+    a.ctx?.report({ state: "failed", message: "gone" });
+    a.ctx?.report({ state: "failed", message: "gone again" });
+    expect(world.status().a).toEqual({ state: "failed", message: "gone" });
+    expect(errors).toHaveBeenCalledTimes(1);
+    expect(errors).toHaveBeenCalledWith("[world:a] gone");
+    expect(a.ctx?.signal.aborted).toBe(true);
+    expect(a.ctx?.root.visible).toBe(false);
+  });
+
+  it("logs a reported degradation once as a warning, not as an error", async () => {
+    const log: string[] = [];
+    const warnings = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const a = fake("a", log);
+    const { world } = setup([a]);
+    await world.init("critical");
+    a.ctx?.report({ state: "degraded", message: "slow" });
+    a.ctx?.report({ state: "degraded", message: "slow" });
+    expect(warnings).toHaveBeenCalledTimes(1);
+    expect(warnings).toHaveBeenCalledWith("[world:a] slow");
+    expect(errors).not.toHaveBeenCalled();
+    expect(a.ctx?.signal.aborted).toBe(false);
+  });
+
+  it("logs a degradation reported during init", async () => {
+    const warnings = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { world } = setup([
+      fake("a", [], {
+        init: async (ctx) => {
+          ctx.report({ state: "degraded", message: "mesh missing" });
+          return { status: "ready" };
+        },
+      }),
+    ]);
+    await world.init("critical");
+    expect(warnings).toHaveBeenCalledWith("[world:a] mesh missing");
+  });
+});
+
+describe("settle deadline", () => {
+  it("lets the gate proceed with a degraded status and one logged error when a system never settles", async () => {
+    vi.useFakeTimers();
+    const { world } = setup([
+      fake("stuck", [], { load: "beforeWalk", settled: () => false, settleTimeoutMs: 1_000 }),
+    ]);
+    await world.init("beforeWalk");
+    expect(world.isSettled()).toBe(false);
+    await vi.advanceTimersByTimeAsync(999);
+    expect(world.isSettled()).toBe(false);
+    await vi.advanceTimersByTimeAsync(2);
+    expect(world.isSettled()).toBe(true);
+    expect(world.status().stuck).toEqual({
+      state: "degraded",
+      message: "did not settle within 1000 ms",
+    });
+    expect(errors).toHaveBeenCalledTimes(1);
+    expect(errors).toHaveBeenCalledWith("[world:stuck] did not settle within 1000 ms");
+  });
+
+  it("does nothing for a system that settled in time", async () => {
+    vi.useFakeTimers();
+    let done = false;
+    const { world } = setup([fake("a", [], { settled: () => done, settleTimeoutMs: 1_000 })]);
+    await world.init("critical");
+    done = true;
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(world.status().a).toEqual({ state: "ready" });
+    expect(errors).not.toHaveBeenCalled();
+  });
+
+  it("does not run for systems without isSettled, nor after dispose", async () => {
+    vi.useFakeTimers();
+    const { world } = setup([
+      fake("plain", [], { settleTimeoutMs: 100 }),
+      fake("stuck", [], { settled: () => false, settleTimeoutMs: 100 }),
+    ]);
+    await world.init("critical");
+    world.dispose();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(errors).not.toHaveBeenCalled();
+  });
+
+  it("has a default longer than the terrain stall limit", () => {
+    expect(DEFAULT_SETTLE_TIMEOUT_MS).toBeGreaterThan(TERRAIN_STALL_LIMIT_MS);
+  });
+});
+
+describe("init timeout default", () => {
+  it("is longer than the JSON timeout so the request fails first", () => {
+    expect(DEFAULT_INIT_TIMEOUT_MS).toBe(JSON_TIMEOUT_MS + 5_000);
+  });
+});
+
 describe("isolation", () => {
   it("marks a system whose init rejects as failed and keeps the others", async () => {
     const log: string[] = [];
@@ -283,7 +387,7 @@ describe("isolation", () => {
     expect(world.status().slow?.state).toBe("failed");
   });
 
-  it("uses 20 s for critical and 60 s for background inits by default", async () => {
+  it("uses the JSON timeout plus 5 s for critical and 60 s for background inits by default", async () => {
     vi.useFakeTimers();
     const log: string[] = [];
     const never = (): Promise<InitOutcome> => new Promise(() => undefined);
@@ -292,7 +396,7 @@ describe("isolation", () => {
       fake("background", log, { load: "background", init: never }),
     ]);
     const critical = world.init("critical");
-    await vi.advanceTimersByTimeAsync(19_999);
+    await vi.advanceTimersByTimeAsync(DEFAULT_INIT_TIMEOUT_MS - 1);
     expect(world.status().critical?.state).toBe("loading");
     await vi.advanceTimersByTimeAsync(1);
     await critical;
