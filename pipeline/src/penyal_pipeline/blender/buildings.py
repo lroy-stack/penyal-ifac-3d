@@ -22,7 +22,7 @@ MATERIAL_PREFIX = "buildings_"
 COLOUR_LAYER = "Col"
 UV_LAYER = "UVMap"
 ROUGHNESS = 0.9
-JPEG_QUALITY = 85
+JPEG_QUALITY = 95  # intermediate: the optimise step re-encodes to KTX2
 EXPORT_OVERRIDES: dict[str, Any] = {
     "export_image_format": "JPEG",
     "export_jpeg_quality": JPEG_QUALITY,
@@ -32,7 +32,8 @@ EXPORT_OVERRIDES: dict[str, Any] = {
 def _material(bpy: Any, surface: str, texture: Path) -> Any:
     image = bpy.data.images.load(str(texture))
     image.name = f"{MATERIAL_PREFIX}{surface}"
-    image.scale(TEXTURE_SIZE, TEXTURE_SIZE)
+    if tuple(image.size) != (TEXTURE_SIZE, TEXTURE_SIZE):
+        image.scale(TEXTURE_SIZE, TEXTURE_SIZE)
     image.pack()
     material = bpy.data.materials.new(f"{MATERIAL_PREFIX}{surface}")
     material.use_backface_culling = True

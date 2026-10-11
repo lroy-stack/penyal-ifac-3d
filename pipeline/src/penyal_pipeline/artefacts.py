@@ -103,7 +103,7 @@ def _tools(kind: str) -> tuple[str, ...]:
         case "tunnel" | "structures":
             return ("bpy", "gltf-transform", "node")
         case "buildings":
-            return ("bpy", "gltf-transform", "node", "numpy", "shapely", "laspy", "rasterio")
+            return ("bpy", "gltf-transform", "ktx", "node", "numpy", "shapely", "laspy", "rasterio")
         case "collision":
             return ("numpy", "rasterio", "shapely")
         case "surfaces":

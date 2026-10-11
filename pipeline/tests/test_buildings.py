@@ -35,7 +35,7 @@ needs_dem = build_marks(TERRAIN_BUILD_DIR / "dem.f32", TERRAIN_BUILD_DIR / "dem.
 needs_optimizer = pytest.mark.skipif(
     shutil.which("node") is None
     or not (REPO_ROOT / "node_modules" / ".bin" / "gltf-transform").exists(),
-    reason="node and `pnpm install` are needed to optimise GLBs",
+    reason="node, tools/bin/ktx and `pnpm install` are needed to optimise GLBs",
 )
 
 
@@ -253,7 +253,9 @@ class TestTextureCoordinates:
 
 class TestTints:
     def test_a_tint_pulls_a_texture_towards_its_photo_colour_without_brightening(self) -> None:
-        means = dict.fromkeys(buildings.SURFACES, (0.5, 0.5, 0.5))
+        means: dict[str, tuple[float, float, float]] = dict.fromkeys(
+            buildings.SURFACES, (0.5, 0.5, 0.5)
+        )
         tints = buildings.texture_tints(means)
         wanted = buildings.default_tints()
         for name, tint in tints.items():
@@ -446,6 +448,7 @@ class TestRun:
         assert {t["source"] for t in document["textures"].values()} <= {
             i["id"] for i in document["inputs"]
         }
-        assert "not yet KTX2" in document["textureNote"]
+        assert "ktx" in document["tools"]
+        assert {x["encoding"] for x in document["textures"].values()} == {"KTX2 ETC1S"}
         assert reports[0].triangles == sum(b["mesh"]["triangles"] for b in document["buildings"])
         assert (tmp_path / "first" / "buildings.glb").stat().st_size == reports[0].glb_bytes

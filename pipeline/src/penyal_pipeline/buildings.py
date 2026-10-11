@@ -92,8 +92,10 @@ TEXTURES: dict[str, tuple[str, float]] = {
     "plinth": ("polyhaven-stacked-stone-wall-diff-1k", 2.5),
 }
 TEXTURE_SUFFIX = ".jpg"
-TEXTURE_SIZE = 512  # pixels: the 1k maps are scaled down so four of them cost ~5 MiB of GPU memory
-TEXTURE_ENCODING = "JPEG"  # not yet KTX2: `ktx` is unavailable, re-encode when it is back
+TEXTURE_SIZE = (
+    1024  # pixels: the 1k maps as downloaded; four ETC1S KTX2 maps cost ~5 MiB on the GPU
+)
+TEXTURE_ENCODING = "KTX2 ETC1S"
 COLOUR_SOURCE = {
     "photo": "data/manual/fotos-referencia/commons/01-Calpe-penon-de-ifach-panoramio.jpg",
     "boxes": {
@@ -831,8 +833,7 @@ def build_document(
             }
             for name, (source_id, tile) in TEXTURES.items()
         },
-        "textureNote": "albedo only, CC0 Poly Haven, scaled to 512 px and kept as JPEG: the "
-        "textures are not yet KTX2-compressed (ktx was unavailable); re-encode when it is back",
+        "textureNote": "albedo only, CC0 Poly Haven, 1k, encoded to KTX2 ETC1S by the optimise",
         "colours": {k: list(v) for k, v in COLOURS.items()},
         "colourSource": COLOUR_SOURCE,
         "approximations": [
@@ -873,7 +874,7 @@ def run_buildings(
     raw_glb = blender_buildings.export_buildings(
         merged, [paths[name] for name in SURFACES], build_dir / BUILDINGS_GLB
     )
-    glb_bytes = tiles.optimize_glb(raw_glb, out_dir / BUILDINGS_GLB, None)
+    glb_bytes = tiles.optimize_glb(raw_glb, out_dir / BUILDINGS_GLB)
     document = build_document(result, osm, raw.sha256, provenance or {"inputs": [], "tools": {}})
     path = out_dir / BUILDINGS_JSON
     path.write_text(json.dumps(document, separators=(",", ":"), ensure_ascii=False) + "\n", "utf-8")

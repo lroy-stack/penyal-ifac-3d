@@ -365,6 +365,7 @@ class TestVerify:
         problems = provenance.verify_generated(assets, repo)
         assert flagged(problems) == {
             "terrain/manifest.json",
+            "buildings.json",
             "materials/manifest.json",
             "surfaces/manifest.json",
             "vegetation/pine.json",
@@ -379,6 +380,7 @@ class TestVerify:
         problems = provenance.verify_generated(assets, repo)
         assert flagged(problems) == {
             "terrain/manifest.json",
+            "buildings.json",
             "materials/manifest.json",
             "surfaces/manifest.json",
             "vegetation/pine.json",
