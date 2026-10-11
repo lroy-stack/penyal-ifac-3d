@@ -30,13 +30,8 @@ import { dayAtmosphere } from "./world/atmosphere/defaults";
 import { COLLISION_PATH, loadCollisionField } from "./world/collision";
 import { type HeightField, PolygonCorridor } from "./world/ground";
 import { createWorldSystems } from "./world/index";
-import {
-  createGroundRegistry,
-  createWorld,
-  EMPTY_POIS,
-  type FrameInfo,
-  type Route,
-} from "./world/systems";
+import { createPoiRegistry } from "./world/poi";
+import { createGroundRegistry, createWorld, type FrameInfo, type Route } from "./world/systems";
 import type { TerrainStats } from "./world/terrain";
 import type { TerrainGateOutcome } from "./world/terrain/gate";
 import { GATE_CHECK_FRAMES } from "./world/terrain/system";
@@ -157,9 +152,12 @@ async function bootstrap(): Promise<void> {
   });
 
   const atmosphere = createAtmosphere(dayAtmosphere(workAreaCentre()));
+  const pois = createPoiRegistry();
   const { systems, handles } = createWorldSystems({
     atmosphere,
     debugTrail: debugFlags(params).has("trail"),
+    pois,
+    showDrafts: import.meta.env.DEV,
   });
   handles.tunnel.onMesh = (result) => {
     if (result.ok) {
@@ -179,7 +177,7 @@ async function bootstrap(): Promise<void> {
     atmosphere,
     quality,
     ground,
-    pois: EMPTY_POIS,
+    pois: pois.registry,
     route,
     collision: collisionField,
     params,

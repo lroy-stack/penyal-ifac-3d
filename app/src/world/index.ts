@@ -1,6 +1,8 @@
+import { loadPois } from "../content/loadPois";
 import type { AtmosphereWriter } from "./atmosphere";
 import { createAtmosphereSystem } from "./atmosphere/system";
 import { createTrailDebugSystem } from "./debugTrailSystem";
+import { createPoiSystem, type PoiRegistryControl } from "./poi";
 import { createSeaSystem } from "./sea/system";
 import { createSkySystem } from "./sky";
 import type { WorldSystem } from "./systems";
@@ -12,6 +14,10 @@ export type WorldSystemsDeps = {
   readonly atmosphere: AtmosphereWriter;
   /** `?debug=trail` lists the trail overlay. */
   readonly debugTrail: boolean;
+  /** Where the poi system places the cards and announces discoveries. */
+  readonly pois: PoiRegistryControl;
+  /** Drafts are placed only in development. */
+  readonly showDrafts: boolean;
 };
 
 /** Typed handles the bootstrap reads to feed `__appState.terrain` and `__appState.tunnel`. */
@@ -38,6 +44,9 @@ export function createWorldSystems(deps: WorldSystemsDeps): {
     terrain.system,
     tunnel.system,
   ];
+  systems.push(
+    createPoiSystem({ control: deps.pois, load: loadPois, showDrafts: deps.showDrafts }),
+  );
   if (deps.debugTrail) systems.push(createTrailDebugSystem());
   return { systems, handles: { terrain: terrain.handle, tunnel: tunnel.handle } };
 }

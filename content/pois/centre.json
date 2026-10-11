@@ -1,0 +1,117 @@
+{
+  "id": "centre",
+  "status": "draft",
+  "anchor": "centre",
+  "discoveryRadius": 15,
+  "title": { "es": "Centro de Visitantes" },
+  "summary": [
+    {
+      "text": {
+        "es": "Estás en el Centro de Visitantes del Parque Natural del Penyal d'Ifac, declarado parque natural en 1987."
+      },
+      "facts": ["centre-name", "park-declaration"]
+    },
+    {
+      "text": {
+        "es": "Para subir a la cima hace falta reserva: es personal, una por persona y día, incluidos los niños, y se puede hacer con hasta 10 días de antelación."
+      },
+      "facts": ["access-booking"]
+    },
+    {
+      "text": { "es": "El aforo es de 300 personas al día." },
+      "facts": ["access-capacity"]
+    }
+  ],
+  "expand": [
+    {
+      "kind": "facts",
+      "heading": { "es": "El centro" },
+      "items": [
+        {
+          "text": { "es": "En valenciano se llama Centre d'Informació i de Visitants." },
+          "facts": ["centre-name"]
+        }
+      ]
+    },
+    {
+      "kind": "facts",
+      "heading": { "es": "Horario del centro" },
+      "items": [
+        { "text": { "es": "De lunes a viernes, de 8:30 a 14:30." }, "facts": ["centre-hours"] },
+        {
+          "text": { "es": "Fines de semana y festivos, de 9:00 a 14:00." },
+          "facts": ["centre-hours"]
+        },
+        {
+          "text": {
+            "es": "Cerrado el 1 y el 6 de enero y el 24, el 25 y el 31 de diciembre."
+          },
+          "facts": ["centre-hours"]
+        }
+      ]
+    },
+    {
+      "kind": "facts",
+      "heading": { "es": "Horario del sendero" },
+      "items": [
+        {
+          "text": {
+            "es": "De la salida a la puesta del sol. Está prohibido el acceso nocturno."
+          },
+          "facts": ["trail-hours"]
+        }
+      ]
+    },
+    {
+      "kind": "facts",
+      "heading": { "es": "Antes de subir" },
+      "items": [
+        {
+          "text": { "es": "Calzado de montaña, nada de sandalias ni tacones." },
+          "facts": ["access-safety"]
+        },
+        {
+          "text": { "es": "Agua, porque solo hay fuentes al inicio." },
+          "facts": ["access-safety"]
+        },
+        {
+          "text": { "es": "Con lluvia o niebla, no sigas después del túnel." },
+          "facts": ["access-safety"]
+        },
+        { "text": { "es": "Emergencias: 112." }, "facts": ["access-safety"] }
+      ]
+    },
+    {
+      "kind": "facts",
+      "heading": { "es": "Normas" },
+      "items": [
+        { "text": { "es": "Perros siempre atados." }, "facts": ["access-prohibitions"] },
+        { "text": { "es": "Drones prohibidos." }, "facts": ["access-prohibitions"] },
+        { "text": { "es": "Sin bicicletas en la subida." }, "facts": ["access-prohibitions"] },
+        {
+          "text": {
+            "es": "No se puede hacer fuego, fumar, acampar ni salir del sendero."
+          },
+          "facts": ["access-prohibitions"]
+        }
+      ]
+    },
+    {
+      "kind": "facts",
+      "heading": { "es": "El parque" },
+      "items": [
+        { "text": { "es": "53,3 ha desde la ampliación de 2015." }, "facts": ["park-area"] },
+        { "text": { "es": "Unos 100.000 visitantes al año." }, "facts": ["park-visitors"] }
+      ]
+    },
+    {
+      "kind": "notice",
+      "text": {
+        "es": "Esta experiencia no es la web oficial del parque. Antes de ir, comprueba reservas, horarios y normas en la web oficial."
+      },
+      "source": "gva-park-home"
+    }
+  ],
+  "images": [],
+  "translations": { "va": { "status": "missing" }, "en": { "status": "missing" } }
+}

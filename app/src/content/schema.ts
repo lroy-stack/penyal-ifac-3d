@@ -40,11 +40,13 @@ export function isValidIsoDate(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
-const kebabId = z.string().refine(isKebabCase, { message: "must be kebab-case (a-z, 0-9, '-')" });
-const isoDate = z
+export const kebabId = z
+  .string()
+  .refine(isKebabCase, { message: "must be kebab-case (a-z, 0-9, '-')" });
+export const isoDate = z
   .string()
   .refine(isValidIsoDate, { message: "must be a real calendar date formatted YYYY-MM-DD" });
-const httpsUrl = z.url({ protocol: /^https$/ });
+export const httpsUrl = z.url({ protocol: /^https$/ });
 
 export const sourceSchema = z.strictObject({
   id: kebabId,

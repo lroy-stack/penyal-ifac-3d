@@ -93,7 +93,7 @@ describe("registry check", () => {
   });
 
   it("has a row for every system the world registers today", () => {
-    expect(missingBudgetRows(["atmosphere", "sky", "sea", "terrain", "tunnel"])).toEqual([]);
+    expect(missingBudgetRows(["atmosphere", "sky", "sea", "terrain", "tunnel", "poi"])).toEqual([]);
   });
 });
 

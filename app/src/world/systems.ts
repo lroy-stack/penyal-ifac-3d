@@ -1,7 +1,7 @@
 import { Group, type PerspectiveCamera, type Scene, type WebGLRenderer } from "three";
 import type { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import type { PoiRegistry } from "../content/poi";
 import type { QualityProfile } from "../core/quality";
-import type { LocalPoint } from "../geo/frame";
 import type { PlayerState } from "../player";
 import type { StringKey } from "../ui/strings";
 import type { AtmosphereReader } from "./atmosphere";
@@ -47,16 +47,6 @@ export type Route = {
   readonly start: Anchor;
   readonly startYaw: number;
 };
-
-/** A point of interest as the systems see it; the content schema narrows it. */
-export interface PoiRegistry {
-  list(): readonly { readonly poi: { readonly id: string }; readonly position: LocalPoint }[];
-  /** Once per POI per visit; listener errors are caught. Returns the unsubscribe function. */
-  onDiscover(listener: (poi: { readonly id: string }) => void): () => void;
-}
-
-/** No point of interest is published yet: the registry the bootstrap passes until commit 9 of B0. */
-export const EMPTY_POIS: PoiRegistry = { list: () => [], onDiscover: () => () => undefined };
 
 export interface GroundRegistry {
   /** Both add* throw once the walk has started. */
