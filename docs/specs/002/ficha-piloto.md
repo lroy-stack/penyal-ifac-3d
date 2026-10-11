@@ -21,8 +21,7 @@
 
 - **Fundación** [`pobla-founding`]:
   - en 1298 Roger de Llúria obtiene permiso para fundar la villa;
-  - tras su muerte, en 1305, la continúa su hija Margarida de Llúria;
-  - en 1282 Pere III ya había ordenado fundar una villa, sin éxito.
+  - tras su muerte, en 1305, la continúa su hija Margarida de Llúria.
 - **Tamaño** [`pobla-size`]: más de 70.000 m², más de 800 m de muralla, 11 torres y 3 puertas.
 - **Excavación** [`pobla-excavation`]: desde 2005 la excava el MARQ, de la Diputación de Alicante, con el parque y el Ajuntament de Calp. La dirige José Luis Menéndez Fueyo.
 - **Las fuentes no coinciden.** Se muestran todas las versiones y no se elige ninguna:
@@ -40,10 +39,7 @@
 
 ### Ampliar
 
-- **El centro** [`centre-name`]:
-  - en valenciano se llama Centre d'Informació i de Visitants;
-  - el mapa oficial lo rotula «Aula de la Natura»;
-  - ocupa dos casas réplica inauguradas en 1992.
+- **El centro** [`centre-name`]: en valenciano se llama Centre d'Informació i de Visitants.
 - **Horario del centro** [`centre-hours`]:
   - de lunes a viernes, de 8:30 a 14:30;
   - fines de semana y festivos, de 9:00 a 14:00;
@@ -71,6 +67,11 @@
   - los nombres propios se mantienen: Pobla d'Ifac, Penyal d'Ifac, Centre d'Informació i de Visitants, MARQ;
   - en valenciano, el texto lo revisa la persona revisora (tarea humana del plan 002);
   - en inglés no hay revisión externa prevista. Se marca como traducción del equipo.
+- **Solo valores con fuente**: las notas de `content/facts.json` no tienen fuente y no se usan en las fichas (ADR 0005; revisión del ADR 0010). Se han quitado tres frases que venían de notas:
+  - el intento de fundación de Pere III en 1282 (nota de `pobla-founding`);
+  - el rótulo «Aula de la Natura» del mapa oficial (nota de `centre-name`);
+  - las dos casas réplica inauguradas en 1992 (nota de `centre-name`).
+  - Si se quieren recuperar, primero se registran como valores con su fuente.
 - **Datos, no copias**: cuando exista el contrato de puntos de interés de B0, la ficha guarda los identificadores de los datos y el texto por idioma. Las cifras no se copian a mano. Una prueba compara las cifras del texto con `content/facts.json` para detectar si se desincronizan.
 - **Pendiente de decidir en L7**:
   - si los textos de las discrepancias se muestran siempre o tras un toque en "¿Por qué hay dos fechas?";
