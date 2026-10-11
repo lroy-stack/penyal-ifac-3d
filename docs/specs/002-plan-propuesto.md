@@ -39,8 +39,10 @@
 ### Progreso de la Fase A (11/10/2026)
 - A1: identidad de git local configurada; 7 commits por áreas; CI de GitHub Actions escrita (`.github/workflows/ci.yml`). **Pendiente:** el remoto privado necesita `gh auth login` del usuario desde una red con IPv4 (el punto de acceso actual no llega a GitHub). B1 resuelto: el fichero suelto ya no existe.
 - A2: T1.8b y T1.10 cerradas (túnel recorrible en ambas cámaras; paseo automático a la cima y a Carabiners). **Pendiente:** M5, la carcasa del túnel asoma por fuera junto a la boca este.
-- A3: `CREDITS.md` al día (M2). La atribución en pantalla y el diálogo de créditos están en curso, junto con A4 y A6.
-- A5: hecho (commits 3cdddbf, e6108e1): procedencia en manifiestos, `penyal verify-generated`, bloque ADR 0009 verificado sobre datos reales (39 celdas, 13,30 m) y `PENYAL_REQUIRE_DATA=1`. Pendiente: regenerar terreno, túnel y materiales en su sitio cuando termine el agente de A3/A4/A6.
+- A3: `CREDITS.md` al día (M2). La atribución en pantalla y el diálogo de créditos están hechos (commit d7bf9aa).
+  - Falta el orden de carga, que va con A4 y A6, en curso.
+- A5: hecho (commits 3cdddbf, e6108e1): procedencia en manifiestos, `penyal verify-generated`, bloque ADR 0009 verificado sobre datos reales (39 celdas, 13,30 m) y `PENYAL_REQUIRE_DATA=1`. El manifiesto de materiales ya está regenerado: las 12 texturas KTX2 son idénticas byte a byte.
+  - Pendiente: regenerar el terreno y después el túnel, cuando termine M5, hasta que `penyal verify-generated` salga con 0.
 - A7: pendiente de los móviles de referencia.
 
 **Riesgos:** sin móviles de referencia no se puede cerrar A7; la fase se cierra igualmente, con la medición pendiente anotada.

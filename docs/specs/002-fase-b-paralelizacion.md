@@ -116,6 +116,22 @@ Estas tareas no tocan código y pueden empezar ya:
 - **L8:** borrador del guion de la prueba con vecinos y del protocolo de fotos (puntos, horas y material), para que el vecino del equipo pueda hacer las fotos cuanto antes.
 - **L7:** texto de la ficha piloto en castellano (≤ 60 palabras + ampliación), con los datos de `content/facts.json`, listo para traducir.
 
+### Estado del arranque anticipado (11/10/2026)
+
+- [ ] L3: especies y modelos de plantas → `docs/specs/002/vegetacion-especies.md`. En curso.
+- [ ] L2: sonidos con licencia → `docs/specs/002/sonido-licencias.md`. En curso.
+- [x] L8: guion de vecinos y protocolo de fotos → `docs/specs/002/pruebas-vecinos.md` y `docs/specs/002/protocolo-fotos.md`.
+  - Los puntos F1–F5 llevan coordenadas y rumbos calculados a partir de `trail.json`.
+- [x] L7: ficha piloto, en dos variantes → `docs/specs/002/ficha-piloto.md`.
+- [x] Correo al parque → `docs/specs/002/consulta-parque.md`. Recoge las 11 discrepancias, los 4 datos sin verificar, el Mirador de Ponent, las paradas, la reserva, los menores y las medidas del túnel.
+  - **Lo envía el responsable del proyecto.**
+  - Abre una decisión: cómo citar una respuesta por correo, porque el esquema exige una URL. Irá como enmienda del ADR 0005.
+- [ ] B0: diseño de contratos → `docs/adr/0010-world-systems-and-shared-contracts.md`, del agente `architect`, con estado "Propuesto". En curso.
+  - La implementación de B0 espera al cierre de la fase A.
+- [ ] Fase A: M5, la carcasa del túnel en la boca este, del agente `implementer`. En curso.
+  - Después se regeneran el terreno y el túnel hasta que `penyal verify-generated` salga con 0.
+  - El manifiesto de materiales ya está regenerado: las 12 texturas KTX2 son idénticas byte a byte.
+
 ## Riesgos de la paralelización
 
 | Riesgo | Respuesta |
