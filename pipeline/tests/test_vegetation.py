@@ -394,6 +394,23 @@ class TestWithData:
             lean <= vegetation.MAX_LEAN_PER_HEIGHT * found.crowns.height[found.kept] + 1e-6
         ).all()
 
+    def test_a_moved_trunk_keeps_the_crown_at_its_measured_elevation(
+        self, found: vegetation.Detection
+    ) -> None:
+        kept = found.kept
+        crowns = found.crowns.select(kept)
+        vertical = found.vertical
+        moved = (found.feet.x[kept] != crowns.x) | (found.feet.z[kept] != crowns.z)
+        assert int(moved.sum()) > 5
+        foot_y, apex_y = vertical.foot_y[kept], vertical.apex_y[kept]
+        assert np.allclose(apex_y, crowns.y + crowns.height)  # the measured top, moved or not
+        assert (np.abs(foot_y - crowns.y)[moved] <= vegetation.MAX_FOOT_DROP + 1e-6).all()
+        assert (apex_y - foot_y).min() >= vegetation.MIN_CROWN_HEIGHT
+        slope = dem.slope_at(
+            dem.slope_degrees(found.grid), found.grid, found.feet.x[kept], found.feet.z[kept]
+        )
+        assert not (moved & (slope >= vegetation.CLIFF_SLOPE)).any()
+
     def test_the_pine_is_never_stretched_more_than_the_ratio(
         self, found: vegetation.Detection
     ) -> None:
@@ -953,3 +970,59 @@ def test_the_budget_estimate_counts_triangles_by_distance_and_draw_calls_by_grou
     # trees at 5 m (lod0), 50 m (lod1), 100 m (card), 500 m (out); bushes at 3 m, 20 m, out
     assert estimate.triangles == 1000 + 100 + 4 + 50 + 10
     assert estimate.calls == 5  # tree lod0, lod1, card + bush lod0, lod1
+
+
+# --- the moved foot and the apex elevation ------------------------------------------------------
+
+
+def tilted_grid(per_metre_z: float, base: float = 100.0) -> Grid:
+    """Ground rising ``per_metre_z`` metres per metre towards the south (z grows)."""
+    z = np.arange(200, dtype=np.float64) - 100.0
+    column = (base + z * per_metre_z).astype(np.float32)
+    return Grid(np.tile(column[:, None], (1, 200)), x0=-100.0, z0=-100.0)
+
+
+def apex_crown(grid: Grid, z: float = 0.5, height: float = 8.0) -> Crowns:
+    x = np.array([0.0])
+    zz = np.array([z])
+    return Crowns(x, np.asarray(grid.sample(x, zz)), zz, np.array([height]), np.array([2.0]))
+
+
+def vertical_of(grid: Grid, **kwargs: float) -> vegetation.Vertical:
+    crowns = apex_crown(grid)
+    feet = vegetation.place_feet(crowns.x, crowns.z, crowns.height, PATH_CORRIDOR)
+    return vegetation.check_vertical(feet, crowns, grid, dem.slope_degrees(grid), **kwargs)
+
+
+def test_a_moved_foot_records_the_apex_elevation_and_the_vertical_scale() -> None:
+    grid = tilted_grid(0.2)  # a 11 degree bank: the foot (z = 3.5) is 0.6 m above the apex ground
+    vertical = vertical_of(grid)
+    assert vertical.ok.tolist() == [True]
+    assert vertical.apex_y[0] == pytest.approx(grid.sample(0.0, 0.5) + 8.0)
+    assert vertical.foot_y[0] == pytest.approx(grid.sample(0.0, 3.5), abs=0.05)
+    # the crown is 8 m above the apex ground, so 0.6 m less above the higher foot
+    assert vertical.apex_y[0] - vertical.foot_y[0] == pytest.approx(8.0 - 0.6, abs=0.05)
+
+
+def test_a_foot_across_a_step_taller_than_the_limit_is_dropped() -> None:
+    assert vertical_of(tilted_grid(0.2), max_drop=0.5).ok.tolist() == [False]
+    assert vertical_of(tilted_grid(1.0)).ok.tolist() == [False]  # 3 m of ground between
+
+
+def test_a_foot_on_a_cliff_is_dropped_whatever_the_step() -> None:
+    grid = tilted_grid(0.0)
+    heights = grid.heights.copy()
+    heights[105:, :] += 3.5  # a wall one row beyond the foot (z = 3.5): its cell reads 60.3 degrees
+    walled = Grid(heights, grid.x0, grid.z0)
+    assert dem.slope_at(dem.slope_degrees(walled), walled, 0.0, 3.5) >= vegetation.CLIFF_SLOPE
+    assert vertical_of(walled, max_drop=10.0).ok.tolist() == [False]
+
+
+def test_an_unmoved_crown_keeps_its_own_ground_and_always_passes() -> None:
+    grid = tilted_grid(1.0)
+    crowns = apex_crown(grid, z=40.0)  # far from the corridor
+    feet = vegetation.place_feet(crowns.x, crowns.z, crowns.height, PATH_CORRIDOR)
+    vertical = vegetation.check_vertical(feet, crowns, grid, dem.slope_degrees(grid))
+    assert vertical.ok.tolist() == [True]
+    assert vertical.foot_y[0] == pytest.approx(crowns.y[0])
+    assert vertical.apex_y[0] == pytest.approx(crowns.y[0] + 8.0)

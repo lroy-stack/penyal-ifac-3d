@@ -102,6 +102,13 @@ MAX_CROWN_HEIGHT = 25.0
 # vertical); a crown that would need more is not a tree beside the path but something over it
 # (a pergola, a vehicle, a hedge of the forecourt) and is dropped.
 FOOT_MARGIN = 0.5  # metres outside the corridor polygon
+# Moving the foot changes the ground it stands on, but the apex keeps its measured elevation:
+# the crown is re-measured from the new foot (apex elevation - foot elevation) and ``apexY``
+# is stored. A foot more than 1.5 m above or below the ground under the apex (a bank, a wall or
+# a terrace between the path and the tree: 14 of 48 moved trees were off by more than 1 m and 4
+# by more than 2 m before this rule) or on a cliff slope is not a trunk beside the path, and the
+# crown is dropped as overPath.
+MAX_FOOT_DROP = 1.5  # metres
 TUNNEL_STRIP_CUT = 1.5  # metres around the tunnel axis that are not surface corridor
 MAX_LEAN_PER_HEIGHT = 0.6
 # The pine is modelled 10 m tall with a 3.2 m crown radius. Scaling it to a measured height and
@@ -389,6 +396,36 @@ def plausible(crowns: Crowns) -> npt.NDArray[np.bool_]:
     return np.asarray(crowns.height <= MAX_CROWN_HEIGHT, dtype=np.bool_)
 
 
+@dataclass(frozen=True)
+class Vertical:
+    """Ground under each trunk foot, elevation of each crown apex, and whether the foot is valid."""
+
+    foot_y: Floats
+    apex_y: Floats
+    ok: npt.NDArray[np.bool_]
+
+
+def check_vertical(
+    feet: Feet,
+    crowns: Crowns,
+    grid: dem.Grid,
+    slopes: Floats,
+    max_drop: float = MAX_FOOT_DROP,
+) -> Vertical:
+    """Foot ground and apex elevation; a moved foot on a cliff slope, further than ``max_drop`` in
+    elevation from the ground under the apex, or leaving less than a crown of height is invalid."""
+    apex_y = np.asarray(crowns.y + crowns.height, dtype=np.float64)
+    moved = (feet.x != crowns.x) | (feet.z != crowns.z)
+    foot_y = np.where(moved, grid.sample(feet.x, feet.z), crowns.y)
+    foot_slope = dem.slope_at(slopes, grid, feet.x, feet.z)
+    valid = ~moved | (
+        (foot_slope < CLIFF_SLOPE)
+        & (np.abs(foot_y - crowns.y) <= max_drop)
+        & (apex_y - foot_y >= MIN_CROWN_HEIGHT)
+    )
+    return Vertical(np.asarray(foot_y, dtype=np.float64), apex_y, np.asarray(valid, dtype=np.bool_))
+
+
 def crowns_in(crowns: Crowns, area: BaseGeometry) -> npt.NDArray[np.bool_]:
     return np.asarray(shapely.contains_xy(area, crowns.x, crowns.z), dtype=np.bool_)
 
@@ -503,6 +540,7 @@ def crown_columns(
     slope: Floats,
     reason: list[str] | None = None,
     lean: tuple[Floats, Floats] | None = None,
+    apex_y: Floats | None = None,
 ) -> dict[str, Any]:
     """Columnar crowns: ``variant`` and ``yaw`` come from the hash of the crown cell."""
     ix = np.rint(crowns.x).astype(np.int64)
@@ -528,6 +566,8 @@ def crown_columns(
     if lean is not None:
         columns["leanX"] = _column(lean[0], 2)
         columns["leanZ"] = _column(lean[1], 2)
+    if apex_y is not None:
+        columns["apexY"] = _column(apex_y, 2)
     return columns
 
 
@@ -543,6 +583,7 @@ class Detection:
     cliff: npt.NDArray[np.bool_]
     over_path: npt.NDArray[np.bool_]
     feet: Feet
+    vertical: Vertical
     kept: npt.NDArray[np.bool_]
     pilot_park: int
     pilot_kept: int
@@ -576,7 +617,8 @@ def detect(threshold: float = NDVI_ABSENT_THRESHOLD) -> Detection:
     cliff = ~absent & ~cliff_keep(crowns, slope, ndvi)
     corridor = surface_corridor(json.loads(TRAIL_GENERATED.read_text(encoding="utf-8")))
     feet = place_feet(crowns.x, crowns.z, crowns.height, corridor)
-    over_path = ~absent & ~cliff & ~feet.ok
+    vertical = check_vertical(feet, crowns, grid, dem.slope_degrees(grid))
+    over_path = ~absent & ~cliff & ~(feet.ok & vertical.ok)
     kept = ~absent & ~cliff & ~over_path
     band = pilot_band(route)
     in_band = crowns_in(crowns, band)
@@ -589,6 +631,7 @@ def detect(threshold: float = NDVI_ABSENT_THRESHOLD) -> Detection:
         cliff=cliff,
         over_path=over_path,
         feet=feet,
+        vertical=vertical,
         kept=kept,
         pilot_park=int(in_band.sum()),
         pilot_kept=int((in_band & kept).sum()),
@@ -663,9 +706,8 @@ def budget_lines(found: "Detection", shrubs: dict[str, Any]) -> list[str]:
         return ["budget: run `penyal pine` and `penyal plants` first to estimate it"]
     pine_manifest = json.loads(pine_json.read_text(encoding="utf-8"))
     plants_manifest = json.loads(plants_json.read_text(encoding="utf-8"))
-    at_apex = found.crowns.select(found.kept)
-    foot_x, foot_z = found.feet.x[found.kept], found.feet.z[found.kept]
-    feet = Crowns(foot_x, at_apex.y, foot_z, at_apex.height, at_apex.radius)
+    feet, _, _ = kept_at_feet(found)
+    foot_x, foot_z = feet.x, feet.z
     columns = crown_columns(feet, found.ndvi[found.kept], found.slope[found.kept])
     keep, variant = np.array(columns["keep"]), np.array(columns["variant"])
     limit = MEDIUM_DENSITY * 100.0
@@ -762,20 +804,21 @@ def analysis_report(found: Detection, threshold: float) -> str:
     return "\n".join(lines)
 
 
+def kept_at_feet(found: Detection) -> tuple[Crowns, tuple[Floats, Floats], Floats]:
+    """The kept crowns as the app places them: at the trunk foot, with the height above that foot
+    (apex elevation - foot elevation), the lean to the apex and the apex elevation."""
+    apex = found.crowns.select(found.kept)
+    foot_x, foot_z = found.feet.x[found.kept], found.feet.z[found.kept]
+    foot_y, apex_y = found.vertical.foot_y[found.kept], found.vertical.apex_y[found.kept]
+    at_foot = Crowns(foot_x, foot_y, foot_z, apex_y - foot_y, apex.radius)
+    return at_foot, (apex.x - foot_x, apex.z - foot_z), apex_y
+
+
 def document(found: Detection, understory_doc: dict[str, Any], threshold: float) -> dict[str, Any]:
     gone = ~found.kept
     reasons = np.where(found.absent, "ndvi", np.where(found.cliff, "cliff", "overPath"))
     reason = [str(r) for r in reasons[gone]]
-    at_apex = found.crowns.select(found.kept)
-    foot_x, foot_z = found.feet.x[found.kept], found.feet.z[found.kept]
-    kept = Crowns(
-        foot_x,
-        np.asarray(found.grid.sample(foot_x, foot_z), dtype=np.float64),
-        foot_z,
-        at_apex.height,
-        at_apex.radius,
-    )
-    lean = (at_apex.x - foot_x, at_apex.z - foot_z)
+    kept, lean, apex_y = kept_at_feet(found)
     return {
         "licence": trail.LICENCE,
         "attribution": [
@@ -808,7 +851,9 @@ def document(found: Detection, understory_doc: dict[str, Any], threshold: float)
             "the ground on the rendered terrain tiles, which differ where ADR 0009 corrected it",
             "trunk": f"x, z, y are the trunk foot: the LiDAR apex moved out of the walkable "
             f"corridor + {FOOT_MARGIN} m when it lies inside it; leanX, leanZ = apex - foot "
-            f"(at most {MAX_LEAN_PER_HEIGHT} x height, else the crown is dropped as overPath)",
+            f"(at most {MAX_LEAN_PER_HEIGHT} x height); height is the crown above its foot and "
+            "apexY the measured elevation of its top; a foot on a cliff slope or more than "
+            f"{MAX_FOOT_DROP} m above or below the ground under the apex drops it (overPath)",
             "cliff": f"on slopes >= {CLIFF_SLOPE:.0f} degrees a crown needs a radius over "
             f"{MIN_CROWN_RADIUS} m and NDVI >= {CLIFF_MIN_NDVI}, else it is dropped",
             "seed": SEED,
@@ -827,7 +872,9 @@ def document(found: Detection, understory_doc: dict[str, Any], threshold: float)
             "pilotBandKept": found.pilot_kept,
         },
         "variants": VARIANT_COUNT,
-        "crowns": crown_columns(kept, found.ndvi[found.kept], found.slope[found.kept], lean=lean),
+        "crowns": crown_columns(
+            kept, found.ndvi[found.kept], found.slope[found.kept], lean=lean, apex_y=apex_y
+        ),
         "droppedCrowns": crown_columns(
             found.crowns.select(gone), found.ndvi[gone], found.slope[gone], reason
         ),
