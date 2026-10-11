@@ -11,6 +11,11 @@ from penyal_pipeline.rawdata import locate
 type Input = dict[str, str]
 
 BLENDER_TOOLS = ("bpy", "gltf-transform", "ktx", "node")
+PINE_TEXTURES = (
+    ("polyhaven-pine-tree-01-twig-diff-1k", ".jpg"),
+    ("polyhaven-pine-tree-01-twig-alpha-1k", ".jpg"),
+    ("polyhaven-pine-tree-01-bark-diff-1k", ".jpg"),
+)
 
 
 def raw_input(source_id: str, suffix: str, root: Path = REPO_ROOT) -> Input:
@@ -59,6 +64,8 @@ def _inputs(kind: str, root: Path) -> list[Input]:
             return [*_dem_inputs(root), _osm_input(root), curated_input(root)]
         case "vegetation":
             return _vegetation_inputs(root)
+        case "pine":
+            return [raw_input(*source, root) for source in PINE_TEXTURES]
         case "tunnel":
             # the shell is clipped against the carved DEM (run_tunnel), so the DEM is an input
             return [*_dem_inputs(root), _osm_input(root), curated_input(root)]
@@ -68,6 +75,8 @@ def _inputs(kind: str, root: Path) -> list[Input]:
 def _tools(kind: str) -> tuple[str, ...]:
     match kind:
         case "terrain":
+            return BLENDER_TOOLS
+        case "pine":
             return BLENDER_TOOLS
         case "tunnel":
             return ("bpy", "gltf-transform", "node")

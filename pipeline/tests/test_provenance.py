@@ -26,6 +26,9 @@ RAW_FILES = {
     "polyhaven-shrub-04-gltf-1k": "shrub_04_1k.gltf",
     "polyhaven-shrub-02-gltf-1k": "shrub_02_1k.gltf",
     "polyhaven-grass-medium-02-gltf-1k": "grass_medium_02_1k.gltf",
+    "polyhaven-pine-tree-01-twig-diff-1k": "twig_diff.jpg",
+    "polyhaven-pine-tree-01-twig-alpha-1k": "twig_alpha.jpg",
+    "polyhaven-pine-tree-01-bark-diff-1k": "bark_diff.jpg",
 }
 TRAIL_JSON = Path("app") / "public" / "assets" / "generated" / "trail.json"
 ALL_JSON = {
@@ -35,6 +38,7 @@ ALL_JSON = {
     "trail.json",
     "materials/manifest.json",
     "vegetation.json",
+    "vegetation/pine.json",
 }
 
 
@@ -98,6 +102,7 @@ def assets(repo: Path, tmp_path: Path) -> Path:
         ("tunnel.json", "tunnel"),
         ("trail.json", "trail"),
         ("vegetation.json", "vegetation"),
+        ("vegetation/pine.json", "pine"),
     ):
         path = out / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -159,6 +164,15 @@ class TestInputs:
                     "polyhaven-shrub-04-gltf-1k",
                     "polyhaven-shrub-02-gltf-1k",
                     "polyhaven-grass-medium-02-gltf-1k",
+                },
+                False,
+            ),
+            (
+                "pine",
+                {
+                    "polyhaven-pine-tree-01-twig-diff-1k",
+                    "polyhaven-pine-tree-01-twig-alpha-1k",
+                    "polyhaven-pine-tree-01-bark-diff-1k",
                 },
                 False,
             ),
@@ -240,6 +254,12 @@ class TestVerify:
             "vegetation.json",
         }
 
+    def test_a_pine_texture_change_flags_only_the_pine(self, repo: Path, assets: Path) -> None:
+        shas = {source_id: sha(source_id) for source_id in RAW_FILES}
+        shas["polyhaven-pine-tree-01-twig-alpha-1k"] = sha("other alpha")
+        write_lock(repo, shas)
+        assert flagged(provenance.verify_generated(assets, repo)) == {"vegetation/pine.json"}
+
     def test_a_lidar_tile_change_flags_only_the_vegetation(self, repo: Path, assets: Path) -> None:
         shas = {source_id: sha(source_id) for source_id in RAW_FILES}
         shas["icv-lidar-2016-766-4282"] = sha("new tile")
@@ -265,7 +285,11 @@ class TestVerify:
     ) -> None:
         write_script(repo / "tools" / "bin" / "ktx", "ktx version: v9.9.0")
         problems = provenance.verify_generated(assets, repo)
-        assert flagged(problems) == {"terrain/manifest.json", "materials/manifest.json"}
+        assert flagged(problems) == {
+            "terrain/manifest.json",
+            "materials/manifest.json",
+            "vegetation/pine.json",
+        }
         assert all("ktx" in p.message and "9.8.7" in p.message for p in problems)
 
     def test_a_recorded_tool_that_can_no_longer_be_read_flags_the_artefact(
@@ -273,7 +297,11 @@ class TestVerify:
     ) -> None:
         (repo / "tools" / "bin" / "ktx").unlink()
         problems = provenance.verify_generated(assets, repo)
-        assert flagged(problems) == {"terrain/manifest.json", "materials/manifest.json"}
+        assert flagged(problems) == {
+            "terrain/manifest.json",
+            "materials/manifest.json",
+            "vegetation/pine.json",
+        }
         assert all("ktx" in p.message for p in problems)
 
     def test_an_artefact_without_a_provenance_block_is_reported(

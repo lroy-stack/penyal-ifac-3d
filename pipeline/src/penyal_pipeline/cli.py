@@ -28,6 +28,8 @@ from penyal_pipeline.nat64 import Nat64Resolver, parse_prefix
 from penyal_pipeline.paths import (
     BUILD_DIR,
     GENERATED_DIR,
+    PINE_BUILD,
+    PINE_GENERATED,
     SPIKE_GLB,
     TERRAIN_BUILD_DIR,
     TERRAIN_GENERATED_DIR,
@@ -264,6 +266,16 @@ def _cmd_vegetation(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_pine(args: argparse.Namespace) -> int:
+    from penyal_pipeline.blender import pine
+
+    document = pine.run_pine(args.out_dir, args.build_dir)
+    rows = [[m["name"], str(m["triangles"]), str(m["vertices"])] for m in document["meshes"]]
+    print(format_table(["MESH", "TRIANGLES", "VERTICES"], rows))
+    print(f"{pine.PINE_GLB}: {document['file']['bytes']} bytes in {args.out_dir}")
+    return 0
+
+
 def _cmd_verify_generated(args: argparse.Namespace) -> int:
     problems = provenance.verify_generated(args.assets_dir)
     for problem in problems:
@@ -380,6 +392,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="ETC1S quality passed to scripts/optimize.mjs (default: %(default)s)",
     )
     terrain_cmd.set_defaults(handler=_cmd_terrain)
+
+    pine_cmd = commands.add_parser(
+        "pine", help="build the procedural Aleppo-pine GLB (variants, LODs, far card)"
+    )
+    pine_cmd.add_argument(
+        "--out-dir", type=Path, default=PINE_GENERATED, help="pine.glb + pine.json (%(default)s)"
+    )
+    pine_cmd.add_argument(
+        "--build-dir", type=Path, default=PINE_BUILD, help="unoptimised GLB (%(default)s)"
+    )
+    pine_cmd.set_defaults(handler=_cmd_pine)
 
     vegetation_cmd = commands.add_parser(
         "vegetation", help="build vegetation.json (LiDAR crowns, NDVI check, understory)"
