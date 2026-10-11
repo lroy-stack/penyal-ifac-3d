@@ -33,6 +33,12 @@ POINTS_FOR_SECOND = 12  # points that make the second one certain
 MIN_HEIGHT, MAX_HEIGHT = 0.3, 3.0  # metres, instance height
 TALL_SHRUB_FROM = 1.0  # median height from which a cell holds the tall shrub
 LOW_SHRUB_FROM = 0.4  # ... the low shrub; below it, grass
+# Silene hifacensis lives in cliff fissures between 60 and 385 m (docs/specs/002/
+# vegetacion-especies.md, section 4), and the project must never show where. A cliff mask would
+# be a map of its habitat, so no understory is placed on a slope of 50 degrees or more inside that
+# elevation band: cliff vegetation is deliberately absent from the 3D world (CREDITS.md).
+SILENE_BAND = (60.0, 385.0)  # metres a.s.l.
+SILENE_CLIFF_SLOPE = 50.0  # degrees
 CORRIDOR_CLEARANCE = 0.75  # metres kept free around the ADR 0006 corridor
 FOOTPATH_CLEARANCE = 1.5  # metres around OSM paths (provisional: E1's surface widths replace it)
 ROAD_CLEARANCE = 4.0  # metres around other OSM highways (provisional)
@@ -189,11 +195,17 @@ def instances(
 ) -> dict[str, Any]:
     """The understory instances (columnar), inside ``area`` and outside ``exclusion``."""
     found = candidates(summarise_cells(points))
-    x, z = found["x"], found["z"]
+    x, z = (
+        np.round(found["x"], 2),
+        np.round(found["z"], 2),
+    )  # as written: filters see what is stored
     ground = grid.sample(x, z)
     ok = np.asarray(shapely.contains_xy(area, x, z), dtype=np.bool_)
     ok &= ~np.asarray(shapely.contains_xy(exclusion, x, z), dtype=np.bool_)
     ok &= ground >= dem.SEA_LEVEL_TOLERANCE
+    slope = dem.slope_at(dem.slope_degrees(grid), grid, x, z)
+    habitat = (ground >= SILENE_BAND[0]) & (ground <= SILENE_BAND[1])
+    ok &= ~(habitat & (slope >= SILENE_CLIFF_SLOPE))
     order = np.lexsort((x, z))
     order = order[ok[order]]
     return {

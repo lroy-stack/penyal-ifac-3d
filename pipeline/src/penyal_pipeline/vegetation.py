@@ -344,13 +344,6 @@ def detect_crowns(points: VegetationPoints, grid: dem.Grid) -> Crowns:
     return Crowns(x, grid.sample(x, z), z, height, radius)
 
 
-def sample_slope(slopes: Floats, grid: dem.Grid, x: Floats, z: Floats) -> Floats:
-    """DEM slope in degrees at the cell nearest to each position."""
-    rows = np.clip(np.rint((z - grid.z0) / grid.cell), 0, grid.height - 1).astype(np.intp)
-    cols = np.clip(np.rint((x - grid.x0) / grid.cell), 0, grid.width - 1).astype(np.intp)
-    return np.asarray(slopes[rows, cols], dtype=np.float64)
-
-
 def cliff_keep(crowns: Crowns, slope: Floats, ndvi: Floats) -> npt.NDArray[np.bool_]:
     """False for crowns on a cliff that are not wider than the minimum radius or not green."""
     on_cliff = slope >= CLIFF_SLOPE
@@ -576,7 +569,7 @@ def detect(threshold: float = NDVI_ABSENT_THRESHOLD) -> Detection:
     with ortho.open_ortho(ortho.locate_ortho().path) as src:
         raster = read_ndvi(src, (x_min, z_min, x_max, z_max))
     ndvi = crown_ndvi(raster, crowns)
-    slope = sample_slope(dem.slope_degrees(grid), grid, crowns.x, crowns.z)
+    slope = dem.slope_at(dem.slope_degrees(grid), grid, crowns.x, crowns.z)
     absent = ~present_mask(ndvi, threshold)
     cliff = ~absent & ~cliff_keep(crowns, slope, ndvi)
     corridor = surface_corridor(json.loads(TRAIL_GENERATED.read_text(encoding="utf-8")))

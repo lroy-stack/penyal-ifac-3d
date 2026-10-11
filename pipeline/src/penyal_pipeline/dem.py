@@ -372,6 +372,15 @@ def lidar_ground_samples(
     return LidarSamples(cat[0], cat[1], cat[2], cat[3], noise)
 
 
+def slope_at(
+    slopes: npt.NDArray[np.float64], grid: Grid, x: npt.ArrayLike, z: npt.ArrayLike
+) -> npt.NDArray[np.float64]:
+    """Slope in degrees (from ``slope_degrees(grid)``) at the cell nearest to each position."""
+    rows = np.clip(np.rint((np.asarray(z) - grid.z0) / grid.cell), 0, grid.height - 1)
+    cols = np.clip(np.rint((np.asarray(x) - grid.x0) / grid.cell), 0, grid.width - 1)
+    return np.asarray(slopes[rows.astype(np.intp), cols.astype(np.intp)], dtype=np.float64)
+
+
 def error_stats(errors: npt.NDArray[np.float64]) -> dict[str, float]:
     return {
         "count": float(errors.size),

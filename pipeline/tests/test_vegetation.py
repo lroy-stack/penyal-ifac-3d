@@ -445,6 +445,18 @@ class TestWithData:
         assert set(shrubs["model"]) <= set(range(len(understory.MODELS)))
         assert [m["id"] for m in shrubs["models"]] == ["shrub_04", "shrub_02", "grass_medium_02"]
 
+    def test_no_understory_stands_on_a_cliff_in_the_silene_band(
+        self, found: vegetation.Detection
+    ) -> None:
+        exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
+        shrubs = understory.place(found.points, found.grid, found.area, exclusion)
+        x, z, y = (np.array(shrubs[k]) for k in ("x", "z", "y"))
+        slope = dem.slope_at(dem.slope_degrees(found.grid), found.grid, x, z)
+        low, high = understory.SILENE_BAND
+        in_band = (y >= low) & (y <= high)
+        assert not (in_band & (slope >= understory.SILENE_CLIFF_SLOPE)).any()
+        assert int(in_band.sum()) > 1000  # the rule removes the cliffs, not the band
+
     def test_the_understory_is_reproducible(self, found: vegetation.Detection) -> None:
         exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
         first = understory.place(found.points, found.grid, found.area, exclusion)
@@ -623,3 +635,42 @@ def test_the_crown_columns_carry_the_clamped_scale() -> None:
     )
     columns = vegetation.crown_columns(crowns, np.array([0.3, 0.3]), np.array([10.0, 10.0]))
     assert columns["scaleXZ"] == [0.3, 1.0]
+
+
+# --- no understory on the cliffs of the Silene band ---------------------------------------------
+
+
+def ramp_grid(base: float, rise_per_metre: float) -> Grid:
+    """A 200 x 200 m grid: flat at ``base`` for x < 0, rising ``rise_per_metre`` for x >= 0."""
+    x = np.arange(200, dtype=np.float64) - 100.0
+    row = base + np.maximum(x, 0.0) * rise_per_metre
+    return Grid(np.tile(row.astype(np.float32), (200, 1)), x0=-100.0, z0=-100.0)
+
+
+def understory_on_both_sides() -> VegetationPoints:
+    pts = [
+        (float(x) + 0.5, float(z) + 0.5, 0.8)
+        for x in range(-40, 40, 4)
+        for z in range(-40, 40, 4)
+        for _ in range(7)
+    ]
+    return points_of(pts, lidar_class=4)
+
+
+def instances_of(grid: Grid) -> dict[str, Any]:
+    area = shapely.box(-100, -100, 100, 100)
+    return understory.instances(understory_on_both_sides(), grid, area, shapely.Point(500, 500))
+
+
+def test_no_understory_on_a_cliff_inside_the_silene_elevation_band() -> None:
+    doc = instances_of(ramp_grid(base=100.0, rise_per_metre=2.0))  # 63 degrees at 100-180 m
+    x = np.array(doc["x"])
+    assert len(x) > 100
+    assert (x < 1.0).all()  # the ramp starts at x = 0 and the cell centre smears it by a metre
+
+
+def test_cliff_understory_stays_outside_the_band_and_below_the_slope_threshold() -> None:
+    below = instances_of(ramp_grid(base=5.0, rise_per_metre=1.0))  # steep, but under 60 m
+    assert (np.array(below["x"]) >= 0).any()
+    gentle = instances_of(ramp_grid(base=100.0, rise_per_metre=1.0))  # 45 degrees: under 50
+    assert (np.array(gentle["x"]) >= 0).any()
