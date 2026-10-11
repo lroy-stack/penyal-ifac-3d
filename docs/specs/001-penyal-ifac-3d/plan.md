@@ -151,12 +151,12 @@ Alternatives, one line each: WebGPU (uneven on mid-range phones), Blender.app in
   - Acceptance: portal floor heights equal the curated values (west ≈ 171 m, east 193.0 m); the `trail.json` tunnel and portal-steps segments use them; the corridor inside the tunnel is ≤ tunnel half-width − 0.3 m; a ray along the axis from 2 m outside each portal hits no terrain before the tunnel; outputs deterministic.
   - Verify: `uv run --project pipeline pytest -q pipeline/tests/test_tunnel.py pipeline/tests/test_trail.py && uv run --project pipeline penyal tunnel`
   - Result 2026-10-11: west floor 171.0 m (170–172.5), east 193.0 m; +22 m over 49 m (24°); section 2.0 × 2.6 m placeholder (no scale in the CC photos); exact triangle clipping opens both portals in `t_2_-4`; west approach carved per ADR 0009; deterministic.
-- [ ] **T1.8b — Tunnel in the app** · S · `implementer` (builds against the `tunnel.json` contract with a fixture, then the real file)
+- [x] **T1.8b — Tunnel in the app** · S · `implementer` (builds against the `tunnel.json` contract with a fixture, then the real file)
   - Goal: the player walks through the tunnel on its floor, in both cameras, with the interior rendered.
   - Files: `app/src/world/tunnel.ts`, `app/src/main.ts`, `app/e2e/tunnel.spec.ts`
   - Acceptance: walking from `tunnel-west` to `tunnel-east` stays grounded on the tunnel floor (|y − floor| < 0.2 m), never inside the rock; the third-person camera stays inside the tunnel.
   - Verify: `pnpm --filter @penyal/app e2e -- tunnel`
-- [ ] **T1.10 — Auto-walk and full-route E2E** · M · `implementer` (same agent as T1.8b)
+- [x] **T1.10 — Auto-walk and full-route E2E** · M · `implementer` (same agent as T1.8b)
   - Goal: an auto-walk mode that follows the official route (also an accessibility feature), and the proof that the whole route is walkable.
   - Files: `app/src/player/autowalk.ts`, `app/src/main.ts`, `app/e2e/route.spec.ts`
   - Acceptance: `?autowalk=summit` from the turnstile reaches the summit anchor and `?autowalk=carabiners` reaches the Mirador de Carabiners, grounded all the way and never outside the corridor; frame-time p95 recorded; screenshots at the 6 anchors attached to the phase report.

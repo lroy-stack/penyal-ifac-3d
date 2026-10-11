@@ -36,6 +36,13 @@
 | A6 Métricas reales | Delta de `requestAnimationFrame` sin recortar; p50/p95/p99 y fotogramas > 50 ms; cálculo cada N fotogramas (m2). | `implementer` | Prueba unitaria + lectura en el móvil |
 | A7 Medición en móvil | T1.11 en los dos móviles de referencia, servido por la red local. | Responsable técnico + usuario | `perf.md` con modelo, navegador y cifras |
 
+### Progreso de la Fase A (11/10/2026)
+- A1: identidad de git local configurada; 7 commits por áreas; CI de GitHub Actions escrita (`.github/workflows/ci.yml`). **Pendiente:** el remoto privado necesita `gh auth login` del usuario desde una red con IPv4 (el punto de acceso actual no llega a GitHub). B1 resuelto: el fichero suelto ya no existe.
+- A2: T1.8b y T1.10 cerradas (túnel recorrible en ambas cámaras; paseo automático a la cima y a Carabiners). **Pendiente:** M5, la carcasa del túnel asoma por fuera junto a la boca este.
+- A3: `CREDITS.md` al día (M2). La atribución en pantalla y el diálogo de créditos están en curso, junto con A4 y A6.
+- A5: en curso (agente del pipeline).
+- A7: pendiente de los móviles de referencia.
+
 **Riesgos:** sin móviles de referencia no se puede cerrar A7; la fase se cierra igualmente, con la medición pendiente anotada.
 
 ## Fase B — Tramo piloto (escena E1) a calidad de entrega
