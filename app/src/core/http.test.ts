@@ -58,11 +58,11 @@ describe("fetch timeouts", () => {
     expect(state).toBe("rejected");
   });
 
-  it("still rejects with the caller's reason when the caller aborts first", async () => {
+  it("still rejects as an abort, not a timeout, when the caller aborts first", async () => {
     hangingFetch();
     const controller = new AbortController();
     const result = fetchChecked("/a.json", controller.signal);
-    const assertion = expect(result).rejects.toBe(controller.signal.reason);
+    const assertion = expect(result).rejects.toMatchObject({ name: "AbortError" });
 
     controller.abort();
 
