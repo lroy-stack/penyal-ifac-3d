@@ -66,12 +66,18 @@
 - [x] **E2.1–E2.4, árboles y matorral** (`penyal vegetation`, `penyal pine` y `penyal plants`), integrados en `main` el 11/10/2026 (6fdc30f) tras dos rondas de revisión.
   - 1.224 árboles en el parque, 178 de ellos en el tramo piloto, y 6.547 matas.
   - `verify-generated`: 10 artefactos al día.
-  - Pendiente antes de E2.5:
-    - la cota de la copa en los árboles inclinados;
-    - un control automático del presupuesto;
-    - excluir el matorral de los firmes y de los aparcamientos;
-    - romper el patrón regular del matorral;
-    - un tinte de follaje sacado de las fotos.
+  - Pendientes de la revisión cerrados el 11/10/2026 (9adf438 a 8ce8b73):
+    - cada copa conserva su cota medida (`apexY`);
+    - control automático del presupuesto, medido cada 5 m: `medium` da 239.940 triángulos y 21 llamadas, frente a 250.000 y 40;
+    - NDVI recalibrado (ausente < 0,12; acantilado ≥ 0,24);
+    - matorral fuera de firmes y aparcamientos, y agrupado según los puntos LiDAR;
+    - tinte de follaje sacado de las fotos 26 y 17.
+  - Cifras finales: 1.147 árboles, 175 de ellos en el tramo piloto, y 6.439 matas. Pipeline con 619 pruebas en verde.
+  - **A revisar en la app (E2.5 y L1):**
+    - el tinte de los pinos tira a oliva parduzco y parece seco, cuando el pino carrasco es verde amarillento o grisáceo;
+    - como el multiplicador oscurece, se ajusta con la luz y la exposición reales;
+    - hay que comprobar que el cargador respeta `COLOR_0`.
+  - Entradas del catálogo sin usar por ahora, que **se conservan** por si sirven como normal y ARM en calidad alta: `shrub_04`, `shrub_02` y `grass_medium_02` (gltf, bin, arm y nor), y del pino `twig-arm`, `twig-nor-gl`, `bark-arm` y `bark-nor-gl`.
 - **Vista previa fuera de la app** (11/10/2026): `docs/research/003-capturas/preview-e2-aereo.jpg` y `preview-e2-torniquete.jpg`.
   - Render de Blender con las teselas del terreno, los árboles y el matorral en sus posiciones medidas, y las escaleras.
   - Aún no lleva las máscaras de firmes ni la inclinación de los troncos, y el terreno no tiene las texturas de detalle de la app.
