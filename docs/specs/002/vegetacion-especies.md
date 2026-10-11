@@ -35,6 +35,11 @@ Rupícolas de la GVA que no pongo en la paleta 3D (sección 4): *Teucrium hiface
 
 Nota de hábitat: `silene-biology` (verificado) sitúa *Silene hifacensis* en fisuras de acantilado entre 60 y 385 m. Todo el tramo piloto cae en esa franja. Por eso no debe usarse la máscara de cortados para colocar vegetación rupícola.
 
+**Regla de colocación (decisión del responsable técnico, 11/10/2026, al revisar E2):**
+- No se coloca ningún matorral en pendientes de 50° o más entre 60 y 385 m de altitud, aunque el LiDAR detecte vegetación ahí.
+- Las copas en pendientes de 60° o más solo se mantienen con un radio mayor que el mínimo y un NDVI ≥ 0,20.
+- El motivo es no publicar posiciones de vegetación rupícola de las fisuras, que podrían coincidir con la *Silene*.
+
 ## 2. Abundancia en iNaturalist
 
 Caja: lat 38,636–38,640, lon 0,0725–0,0760 (≈ 0,44 × 0,30 km). Incluye el tramo, la explanada del centro y la ladera de la Pobla.
