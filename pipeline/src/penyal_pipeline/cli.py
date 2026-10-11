@@ -153,7 +153,7 @@ def _cmd_surfaces(args: argparse.Namespace) -> int:
     sizes = sum(tile["bytes"] for tile in manifest["tiles"])
     print(
         f"surfaces: {len(manifest['tiles'])} tiles, {len(manifest['ways'])} ways, "
-        f"{_megabytes(sizes)} of PNG; skipped ways {manifest['skippedWays']}; "
+        f"{_megabytes(sizes)} of KTX2; skipped ways {manifest['skippedWays']}; "
         f"widths are {manifest['widths']['status']}"
     )
     return 0
@@ -397,7 +397,7 @@ def build_parser() -> argparse.ArgumentParser:
     terrain_cmd.set_defaults(handler=_cmd_terrain)
 
     surfaces_cmd = commands.add_parser(
-        "surfaces", help="rasterise the OSM path surfaces into per-tile class masks (PNG)"
+        "surfaces", help="rasterise the OSM path surfaces into per-tile class masks (KTX2)"
     )
     surfaces_cmd.add_argument(
         "--out-dir",

@@ -2,14 +2,18 @@
 
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 import numpy as np
 import pytest
 import rasterio
 from conftest import raw_marks
+from shapely.geometry import LineString, Point
+from shapely.ops import unary_union
 
 from penyal_pipeline import surfaces, trail
+from penyal_pipeline.paths import REPO_ROOT
 from penyal_pipeline.rawdata import locate
 from penyal_pipeline.surfaces import SurfaceWay
 from penyal_pipeline.trail import OsmData, Way
@@ -17,6 +21,31 @@ from penyal_pipeline.trail import OsmData, Way
 pytestmark = pytest.mark.filterwarnings("ignore::rasterio.errors.NotGeoreferencedWarning")
 
 CHANNELS = len(surfaces.CLASSES)
+KTX = REPO_ROOT / "tools" / "bin" / "ktx"
+needs_ktx = pytest.mark.skipif(not KTX.exists(), reason="tools/bin/ktx is needed (tools/README.md)")
+ON, OFF = 235, 20  # UASTC is near-lossless, not lossless: a class is "on" above ON, "off" below OFF
+
+
+def decode_ktx2(path: Path, work: Path) -> np.ndarray:
+    """Top mip level of a KTX2 file as an (h, w, 4) uint8 array, through ``ktx extract``."""
+    out = work / f"{path.stem}.decoded.png"
+    done = subprocess.run(
+        [str(KTX), "extract", "--transcode", "rgba8", str(path), str(out)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr
+    with rasterio.open(out) as src:
+        return np.moveaxis(src.read(), 0, -1)
+
+
+def assert_only_class(values: list[int], channel: int | None) -> None:
+    for k, value in enumerate(values):
+        if k == channel:
+            assert value >= ON, values
+        else:
+            assert value <= OFF, values
 
 
 def straight_way(
@@ -30,6 +59,7 @@ def straight_way(
         surface=surface,
         surface_class=cls,
         width=surfaces.HIGHWAY_WIDTHS[highway],
+        width_source="table",
         xz=np.array([a, b], dtype=np.float64),
     )
 
@@ -181,6 +211,7 @@ class TestSelection:
         selected, skipped = surfaces.select_ways(OsmData(xz=xz, node_tags={}, ways=ways))
         assert [w.way_id for w in selected] == [10]
         assert selected[0].width == surfaces.HIGHWAY_WIDTHS["footway"]
+        assert selected[0].width_source == "table"
         assert skipped == {
             "noSurfaceTag": 1,
             "surfaceWithoutOverlay": 1,
@@ -197,6 +228,19 @@ class TestSelection:
         )
         selected, _ = surfaces.select_ways(osm)
         assert selected[0].width == 2.5
+        assert selected[0].width_source == "osm"
+
+    @pytest.mark.parametrize("tag", ["0", "0.0", "-1", "wide", ""])
+    def test_a_width_tag_that_is_zero_or_unreadable_falls_back_to_the_table(self, tag: str) -> None:
+        cx, cz = centre_of(2, -4)
+        osm = OsmData(
+            xz={1: (cx - 10, cz), 2: (cx + 10, cz)},
+            node_tags={},
+            ways={10: Way((1, 2), {"highway": "path", "surface": "dirt", "width": tag})},
+        )
+        selected, _ = surfaces.select_ways(osm)
+        assert selected[0].width == surfaces.HIGHWAY_WIDTHS["path"]
+        assert selected[0].width_source == "table"
 
 
 # --- the real extract --------------------------------------------------------------------------
@@ -225,46 +269,44 @@ def run_a(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, dict[str, obj
     return out, surfaces.run_surfaces(out, {"inputs": [], "tools": {}})
 
 
-def class_at(out: Path, x: float, z: float) -> list[int]:
+def class_at(out: Path, work: Path, x: float, z: float) -> list[int]:
     i, j = tile_of(x, z)
-    path = out / f"t_{i}_{j}.png"
-    if not path.is_file():
-        return [0, 0, 0, 0]
-    with rasterio.open(path) as src:
-        pixels = np.moveaxis(src.read(), 0, -1)
-    return surfaces.value_at(pixels, i, j, x, z).tolist()
+    path = out / f"t_{i}_{j}.ktx2"
+    assert path.is_file(), f"{path.name} was not written"
+    return surfaces.value_at(decode_ktx2(path, work), i, j, x, z).tolist()
 
 
 @pytest.mark.data
+@needs_ktx
 class TestRealExtract:
     pytestmark = pytestmark_data
 
     def test_the_pilot_trail_is_cobblestone(
-        self, osm: OsmData, run_a: tuple[Path, dict[str, object]]
+        self, osm: OsmData, run_a: tuple[Path, dict[str, object]], tmp_path: Path
     ) -> None:
         x, z = midpoint(osm, 26330273)
-        assert class_at(run_a[0], x, z) == [255, 0, 0, 0]
+        assert_only_class(class_at(run_a[0], tmp_path, x, z), 0)
 
     def test_avinguda_del_port_is_asphalt(
-        self, osm: OsmData, run_a: tuple[Path, dict[str, object]]
+        self, osm: OsmData, run_a: tuple[Path, dict[str, object]], tmp_path: Path
     ) -> None:
         x, z = midpoint(osm, 85587115)
-        assert class_at(run_a[0], x, z) == [0, 0, 0, 255]
+        assert_only_class(class_at(run_a[0], tmp_path, x, z), 3)
 
     def test_the_centre_steps_are_paving_stones(
-        self, osm: OsmData, run_a: tuple[Path, dict[str, object]]
+        self, osm: OsmData, run_a: tuple[Path, dict[str, object]], tmp_path: Path
     ) -> None:
         x, z = midpoint(osm, 26330269)
-        assert class_at(run_a[0], x, z) == [0, 0, 255, 0]
+        assert_only_class(class_at(run_a[0], tmp_path, x, z), 2)
 
     def test_the_service_track_is_compacted(
-        self, osm: OsmData, run_a: tuple[Path, dict[str, object]]
+        self, osm: OsmData, run_a: tuple[Path, dict[str, object]], tmp_path: Path
     ) -> None:
         x, z = midpoint(osm, 37656546)
-        assert class_at(run_a[0], x, z) == [0, 255, 0, 0]
+        assert_only_class(class_at(run_a[0], tmp_path, x, z), 1)
 
     def test_a_point_twenty_metres_off_the_trail_has_no_surface(
-        self, osm: OsmData, run_a: tuple[Path, dict[str, object]]
+        self, osm: OsmData, run_a: tuple[Path, dict[str, object]], tmp_path: Path
     ) -> None:
         way = osm.ways[26330273]
         nodes = np.array([osm.xz[n] for n in way.nodes])
@@ -272,11 +314,26 @@ class TestRealExtract:
         direction = (b - a) / np.linalg.norm(b - a)
         normal = np.array([-direction[1], direction[0]])
         x, z = (a + b) / 2 + normal * 20.0
-        everything = np.array([osm.xz[n] for w in osm.ways.values() for n in w.nodes])
-        assert float(np.hypot(*(everything - [x, z]).T).min()) > 10.0
-        assert class_at(run_a[0], x, z) == [0, 0, 0, 0]
+        every_way = unary_union(
+            [LineString([osm.xz[n] for n in w.nodes]) for w in osm.ways.values()]
+        )
+        assert every_way.distance(Point(x, z)) > 10.0
+        assert_only_class(class_at(run_a[0], tmp_path, x, z), None)
 
-    def test_the_manifest_exposes_widths_coverage_and_tiles(
+    def test_the_decoded_tile_matches_the_rasterised_mask(
+        self, osm: OsmData, run_a: tuple[Path, dict[str, object]], tmp_path: Path
+    ) -> None:
+        ways, _ = surfaces.select_ways(osm)
+        decoded = decode_ktx2(run_a[0] / "t_2_-4.ktx2", tmp_path)
+        expected = surfaces.rasterise_tile(ways, 2, -4)
+        difference = np.abs(decoded.astype(int) - expected.astype(int))
+        assert decoded.shape == expected.shape
+        assert float(difference.mean()) < 0.5
+        assert int(difference.max()) <= 80
+        covered = expected[..., 0] == 255
+        assert float((decoded[..., 0][covered] >= ON).mean()) > 0.99
+
+    def test_the_manifest_exposes_widths_coverage_encoding_and_tiles(
         self, run_a: tuple[Path, dict[str, object]]
     ) -> None:
         out, returned = run_a
@@ -288,11 +345,20 @@ class TestRealExtract:
         assert manifest["cellSize"] == 0.25
         assert manifest["tilePixels"] == 1024
         assert all(manifest["coverageM2"][c] > 0 for c in surfaces.CLASSES)
+        encoding = manifest["encoding"]
+        assert encoding["format"] == "ktx2"
+        assert encoding["codec"] == "uastc"
+        assert encoding["transfer"] == "linear"
+        assert encoding["ktxCreateArgs"] == surfaces.KTX_CREATE_ARGS
+        assert "resident" in encoding["loading"]
         for tile in manifest["tiles"]:
             data = (out / tile["url"]).read_bytes()
+            assert tile["url"].endswith(".ktx2")
             assert hashlib.sha256(data).hexdigest() == tile["sha256"]
             assert len(data) == tile["bytes"]
-        assert {w["id"] for w in manifest["ways"]} >= {26330273, 85587115, 26330269}
+        by_id = {w["id"]: w for w in manifest["ways"]}
+        assert {26330273, 85587115, 26330269} <= set(by_id)
+        assert {w["widthSource"] for w in by_id.values()} <= {"osm", "table"}
 
     def test_two_runs_write_identical_files(
         self, run_a: tuple[Path, dict[str, object]], tmp_path: Path
@@ -300,6 +366,8 @@ class TestRealExtract:
         surfaces.run_surfaces(tmp_path, {"inputs": [], "tools": {}})
         names = sorted(p.name for p in run_a[0].iterdir())
         assert names == sorted(p.name for p in tmp_path.iterdir())
+        assert any(name.endswith(".ktx2") for name in names)
+        assert not any(name.endswith(".png") for name in names)
         for name in names:
             first = hashlib.sha256((run_a[0] / name).read_bytes()).hexdigest()
             second = hashlib.sha256((tmp_path / name).read_bytes()).hexdigest()

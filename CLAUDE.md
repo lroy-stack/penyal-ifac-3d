@@ -22,7 +22,7 @@ A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Ca
 | Frame-time overlay (p50/p95/p99, frames > 50 ms) | open the app with `?perf` |
 | Pipeline health | `uv run --project pipeline penyal doctor` |
 | Rebuild generated data | `uv run --project pipeline penyal dem && … penyal trail && … penyal terrain` (`penyal tunnel` re-cuts only the tiles touching the portals) |
-| Path surface masks (OSM → per-tile RGBA PNG, 0.25 m/px, `app/public/assets/generated/surfaces/`) | `uv run --project pipeline penyal surfaces` (widths are provisional, see `CREDITS.md`) |
+| Path surface masks (OSM → per-tile linear UASTC KTX2 RGBA, 0.25 m/px, `app/public/assets/generated/surfaces/`) | `uv run --project pipeline penyal surfaces` (widths are provisional, see `CREDITS.md`) |
 | Staircases (OSM `highway=steps` → `structures.glb` + `structures.json` with step collision treads; constants provisional) | `uv run --project pipeline penyal structures` |
 | Generated assets up to date with their inputs | `uv run --project pipeline penyal verify-generated` (exit 1 if a manifest's recorded `inputs` no longer match) |
 | Data-dependent tests must run, not skip | `PENYAL_REQUIRE_DATA=1 uv run --project pipeline pytest -q` (default on a clean clone: they skip) |

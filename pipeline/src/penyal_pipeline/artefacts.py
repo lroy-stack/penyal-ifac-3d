@@ -61,6 +61,8 @@ def _tools(kind: str) -> tuple[str, ...]:
             return ("bpy", "gltf-transform", "node")
         case "collision":
             return ("numpy", "rasterio", "shapely")
+        case "surfaces":
+            return ("numpy", "ktx")
         case _:
             return ("numpy", "shapely")
 

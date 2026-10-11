@@ -1,7 +1,7 @@
 """Surface-class masks for the terrain material, from OpenStreetMap ways (spec 003, E1.1).
 
-One RGBA8 PNG per near terrain tile (``t_{i}_{j}.png``), at 0.25 m per pixel, so 1024 x 1024
-pixels for a 256 m tile. Only tiles with at least one covered pixel are written.
+One RGBA8 KTX2 (UASTC) per near terrain tile (``t_{i}_{j}.ktx2``), at 0.25 m per pixel, so
+1024 x 1024 pixels for a 256 m tile. Only tiles with at least one covered pixel are written.
 
 **Why this layout** (what ``terrain/material.ts`` can sample most cheaply): the image is aligned
 with the terrain tile's mesh extent and rows run north to south exactly like the orthophoto, so
@@ -10,9 +10,15 @@ texture read, no per-tile transform, no extra draw call. The four channels are i
 coverages in 0..1 of the four classes in :data:`CLASSES` (R, G, B, A); hardware bilinear
 filtering then blends both the soft edge and the transition between two classes correctly, which
 a class-id channel could not do. After compositing, the four channels of a pixel sum to at most 1
-(255), and ``1 - sum`` is the share of bare terrain. Load it as data, not as colour: no sRGB, no
-premultiplied alpha (the A channel is the asphalt coverage), ``flipY = false`` (glTF convention).
-A tile costs 4 MiB of GPU memory without mipmaps; the manifest lists which tiles exist.
+(255), and ``1 - sum`` is the share of bare terrain. Load it as data, not as colour: the KTX2
+carries a linear transfer function (no sRGB), the A channel is the asphalt coverage and must not
+be premultiplied, ``flipY = false`` (glTF convention).
+
+**Why KTX2 UASTC and not PNG:** a browser may premultiply the alpha of a PNG decoded through an
+``HTMLImageElement`` and wipe RGB where A = 0 (asphalt is A), and a decoded RGBA8 tile is 4 MiB
+of GPU memory (8 tiles = 32 MiB) against about 1 MiB per tile once UASTC is transcoded to ASTC 4x4
+or BC7. UASTC, not ETC1S: ETC1S mixes channels. Only the tiles the player has resident load their
+mask; the manifest lists which tiles exist. The PNG is only the intermediate fed to ``ktx create``.
 
 **Classes.** ``dirt``, ``ground``, ``gravel`` and ``compacted`` are merged into one class,
 ``compacted``: they are unbound earth or fines surfaces that look alike at the resolution of a
@@ -33,7 +39,10 @@ import json
 import logging
 import math
 import re
+import shutil
 import struct
+import subprocess
+import tempfile
 import zlib
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -47,7 +56,7 @@ import numpy.typing as npt
 from penyal_pipeline import tiles
 from penyal_pipeline.geo import ORIGIN_E, ORIGIN_N
 from penyal_pipeline.ortho import LocalRect
-from penyal_pipeline.paths import GENERATED_DIR
+from penyal_pipeline.paths import GENERATED_DIR, REPO_ROOT
 from penyal_pipeline.rawdata import locate
 from penyal_pipeline.trail import ATTRIBUTION, LICENCE, OSM_FILE, OSM_SOURCE_ID, OsmData, load_osm
 
@@ -60,7 +69,7 @@ CELL_SIZE = 0.25  # metres per pixel
 TILE_PIXELS = round(tiles.NEAR_TILE_SIZE / CELL_SIZE)
 EDGE_FALLOFF = 0.75  # metres: coverage goes from 1 to 0 across this distance, centred on the edge
 
-# Channel order of the PNG: R, G, B, A.
+# Channel order of the mask: R, G, B, A.
 CLASSES = ("unhewn_cobblestone", "compacted", "paving_stones", "asphalt")
 # Later classes are painted over earlier ones where ways cross.
 PAINT_ORDER = ("compacted", "unhewn_cobblestone", "paving_stones", "asphalt")
@@ -75,6 +84,28 @@ SURFACE_CLASS: dict[str, str] = {
     "sett": "paving_stones",
     "asphalt": "asphalt",
 }
+
+# Linear data, never sRGB; UASTC (not ETC1S, which mixes channels) with Zstandard; one thread and
+# no RDO so that the output is deterministic. The mip chain is box filtered (a coverage average).
+KTX_CREATE_ARGS = [
+    "--format",
+    "R8G8B8A8_UNORM",
+    "--assign-tf",
+    "linear",
+    "--assign-primaries",
+    "none",
+    "--encode",
+    "uastc",
+    "--uastc-quality",
+    "2",
+    "--zstd",
+    "19",
+    "--generate-mipmap",
+    "--mipmap-filter",
+    "box",
+    "--threads",
+    "1",
+]
 
 WIDTHS_STATUS = "provisional"
 # PROVISIONAL widths in metres per OSM ``highway`` value: approximations, not measurements. They
@@ -106,6 +137,7 @@ class SurfaceWay:
     surface: str
     surface_class: str
     width: float
+    width_source: str  # "osm" (a width tag) or "table" (HIGHWAY_WIDTHS, provisional)
     xz: Float2
 
 
@@ -162,11 +194,15 @@ def select_ways(osm: OsmData) -> tuple[list[SurfaceWay], dict[str, int]]:
         if klass is None:
             skipped["surfaceWithoutOverlay"] += 1
             continue
-        width = _width_tag(way.tags) or HIGHWAY_WIDTHS.get(highway)
-        if width is None:
+        tagged = _width_tag(way.tags)
+        if tagged is not None and tagged > 0.0:
+            width, source = tagged, "osm"
+        elif highway in HIGHWAY_WIDTHS:
+            width, source = HIGHWAY_WIDTHS[highway], "table"
+        else:
             skipped["highwayWithoutWidth"] += 1
             continue
-        selected.append(SurfaceWay(way_id, highway, surface, klass, width, xz))
+        selected.append(SurfaceWay(way_id, highway, surface, klass, width, source, xz))
     return selected, skipped
 
 
@@ -246,6 +282,30 @@ def encode_png(mask: Mask) -> bytes:
     )
 
 
+def _ktx_binary() -> str:
+    local = REPO_ROOT / "tools" / "bin" / "ktx"
+    found = str(local) if local.is_file() else shutil.which("ktx")
+    if found is None:
+        raise SurfacesError("`ktx` not found in tools/bin or on PATH (see tools/README.md)")
+    return found
+
+
+def encode_ktx2(mask: Mask) -> bytes:
+    """The mask as a linear UASTC KTX2 with a box-filtered mip chain, through ``ktx create``."""
+    with tempfile.TemporaryDirectory(prefix="penyal-surfaces-") as work:
+        source, target = Path(work) / "mask.png", Path(work) / "mask.ktx2"
+        source.write_bytes(encode_png(mask))
+        done = subprocess.run(
+            [_ktx_binary(), "create", *KTX_CREATE_ARGS, str(source), str(target)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if done.returncode != 0:
+            raise SurfacesError(f"ktx create failed: {done.stderr or done.stdout}")
+        return target.read_bytes()
+
+
 def _touches(way: SurfaceWay, rect: LocalRect) -> bool:
     reach = way.width / 2.0 + EDGE_FALLOFF
     low, high = way.xz.min(axis=0) - reach, way.xz.max(axis=0) + reach
@@ -282,10 +342,17 @@ def build_manifest(
         "edgeFalloff": EDGE_FALLOFF,
         "channels": list(CLASSES),
         "encoding": {
-            "format": "png",
-            "bitDepth": 8,
+            "format": "ktx2",
+            "codec": "uastc",
+            "supercompression": "zstd",
+            "ktxCreateArgs": KTX_CREATE_ARGS,
+            "mipmaps": "full chain, box filter",
             "channelsPerPixel": 4,
-            "colorSpace": "data (not sRGB, not premultiplied)",
+            "transfer": "linear",
+            "usage": "data, not colour: no sRGB decode, no alpha premultiplication",
+            "channelOrder": list(CLASSES),
+            "loading": "only tiles the player has resident load their mask (the terrain tile "
+            "LODs that load a mask); the manifest lists which tiles have one",
             "rows": "row 0 is the tile's north edge (z_min), column 0 its west edge (x_min)",
             "uv": "the tile mesh UV: u = (x - x_min) / tileSize, v = (z - z_min) / tileSize, "
             "x_min = tileSize * i - 0.5, z_min = tileSize * j - 0.5; load with flipY = false",
@@ -302,6 +369,7 @@ def build_manifest(
                 "surface": w.surface,
                 "class": w.surface_class,
                 "width": w.width,
+                "widthSource": w.width_source,
             }
             for w in ways
         ],
@@ -313,7 +381,7 @@ def build_manifest(
 def run_surfaces(
     out_dir: Path = SURFACES_GENERATED_DIR, provenance: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    """Write a PNG per near tile with a covered pixel, plus ``manifest.json``, into ``out_dir``."""
+    """Write a KTX2 per near tile with a covered pixel, plus ``manifest.json``, into ``out_dir``."""
     raw = locate(OSM_SOURCE_ID, OSM_FILE)
     ways, skipped = select_ways(load_osm(raw.path))
     if not ways:
@@ -330,8 +398,8 @@ def run_surfaces(
         mask = rasterise_tile(near, i, j)
         if not mask.any():
             continue
-        name = f"{tiles.tile_id(i, j)}.png"
-        data = encode_png(mask)
+        name = f"{tiles.tile_id(i, j)}.ktx2"
+        data = encode_ktx2(mask)
         (out_dir / name).write_bytes(data)
         kept.add(name)
         tile_covered = _coverage_m2(mask)
@@ -347,7 +415,7 @@ def run_surfaces(
             }
         )
         log.info("%s: %d bytes", name, len(data))
-    for stale in out_dir.glob("t_*.png"):
+    for stale in out_dir.glob("t_*"):
         if stale.name not in kept:
             stale.unlink()
     manifest = build_manifest(
