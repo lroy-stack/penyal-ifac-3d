@@ -1,12 +1,13 @@
 """Shrubs and grass from the LiDAR low and medium vegetation (E2.4).
 
-The ground is cut into 4 m cells aligned to whole metres. Each cell holds up to two instances; the
-chance of each grows with the number of class 3 and 4 points in the cell, and every random choice
-(slot, jitter, yaw, priority) is a hash of the cell id (``cellhash.hash_cells``), so the result
-does not depend on the order the cells are visited in. The model comes from the median height of
-the points. Nothing is placed on the walkable corridor (ADR 0006) or on paths, roads and buildings
-of OSM, and the three plants are generic stand-ins: no protected species is represented
-(``docs/specs/002/vegetacion-especies.md`` §4).
+A class 3 or 4 LiDAR point gets an instance when the hash of its position is under ``POINT_KEEP``
+(a Poisson thinning of the points, so the instances clump where the measured vegetation does and
+form no lattice), placed within ``POINT_JITTER`` of the point. The model comes from the median
+height of the points of its 4 m cell. Every random choice is a hash of the point's position
+(``cellhash.hash_cells``), so the result does not depend on the order of the points. Nothing is
+placed on the walkable corridor (ADR 0006), on paths, roads, buildings, hardstanding or E1's
+surface masks, nor on cliffs of the Silene band, and the three plants are generic stand-ins: no
+protected species is represented (``docs/specs/002/vegetacion-especies.md`` section 4).
 """
 
 import json
@@ -28,8 +29,8 @@ if TYPE_CHECKING:
 
 CELL = 4.0  # metres
 UNDERSTORY_CLASSES = (3, 4)
-POINTS_FOR_CERTAIN = 6  # points in a cell that make its first instance certain
-POINTS_FOR_SECOND = 12  # points that make the second one certain
+POINT_KEEP = 0.15  # share of the class 3 / 4 points that get an instance
+POINT_JITTER = 0.5  # metres: an instance sits within this of its point on each axis
 MIN_HEIGHT, MAX_HEIGHT = 0.3, 3.0  # metres, instance height
 TALL_SHRUB_FROM = 1.0  # median height from which a cell holds the tall shrub
 LOW_SHRUB_FROM = 0.4  # ... the low shrub; below it, grass
@@ -44,8 +45,7 @@ FOOTPATH_CLEARANCE = 1.5  # metres around OSM paths (provisional: E1's surface w
 ROAD_CLEARANCE = 4.0  # metres around other OSM highways (provisional)
 BUILDING_CLEARANCE = 1.0
 FOOTPATH_HIGHWAYS = frozenset({"path", "footway", "steps", "pedestrian", "bridleway", "cycleway"})
-SALT_FIRST = 10  # one salt block per slot: x, z, yaw, priority, chance
-SALT_SLOTS = 8
+SALT_POINT = 10  # five salts from here: choice, x, z, yaw, priority
 
 PROTECTED_SPECIES = (
     "Silene hifacensis",
@@ -205,27 +205,45 @@ def model_for(median: float) -> int:
     return LOW if median >= LOW_SHRUB_FROM else GRASS
 
 
-def candidates(cells: list[Cell]) -> dict[str, Floats]:
-    """Up to two jittered instances per cell, before the area and exclusion filters."""
-    ix = np.array([c.ix for c in cells], dtype=np.int64)
-    iz = np.array([c.iz for c in cells], dtype=np.int64)
-    count = np.array([c.count for c in cells], dtype=np.float64)
-    p90 = np.array([c.p90 for c in cells], dtype=np.float64)
-    model = np.array([model_for(c.median) for c in cells], dtype=np.float64)
-    columns: dict[str, list[Floats]] = {k: [] for k in ("x", "z", "height", "yaw", "keep", "model")}
-    for slot in range(2):
-        salt = SALT_FIRST + slot * SALT_SLOTS
-        floor = 0.0 if slot == 0 else POINTS_FOR_CERTAIN
-        span = POINTS_FOR_CERTAIN if slot == 0 else POINTS_FOR_SECOND - POINTS_FOR_CERTAIN
-        chance = np.clip((count - floor) / span, 0.0, 1.0)
-        placed = unit_float(hash_cells(ix, iz, salt + 4)) < chance
-        columns["x"].append(((ix + unit_float(hash_cells(ix, iz, salt))) * CELL)[placed])
-        columns["z"].append(((iz + unit_float(hash_cells(ix, iz, salt + 1))) * CELL)[placed])
-        columns["height"].append(np.clip(p90, MIN_HEIGHT, MAX_HEIGHT)[placed])
-        columns["yaw"].append(np.floor(unit_float(hash_cells(ix, iz, salt + 2)) * 360.0)[placed])
-        columns["keep"].append(np.floor(unit_float(hash_cells(ix, iz, salt + 3)) * 100.0)[placed])
-        columns["model"].append(model[placed])
-    return {k: np.concatenate(v) for k, v in columns.items()}
+def candidates(points: "VegetationPoints") -> dict[str, Floats]:
+    """One instance beside each kept class 3 / 4 LiDAR point, before the area and exclusion filters.
+
+    A point is kept when the hash of its position (to the centimetre) is under ``POINT_KEEP``:
+    a Poisson thinning of the points, so the instances follow the clumping of the measured low and
+    mid vegetation instead of a grid (a jittered 4 m grid read as polka dots from above). Each
+    instance sits within ``POINT_JITTER`` of its point; its model and height come from the 4 m
+    cell of the point, and nothing depends on the order of the points or on other cells.
+    """
+    keys = ("x", "z", "height", "yaw", "keep", "model")
+    selected = np.isin(points.lidar_class, UNDERSTORY_CLASSES)
+    cells = summarise_cells(points)
+    if not cells or not selected.any():
+        return {k: np.zeros(0) for k in keys}
+    px, pz = points.x[selected], points.z[selected]
+    qx, qz = np.rint(px * 100.0).astype(np.int64), np.rint(pz * 100.0).astype(np.int64)
+    chosen = unit_float(hash_cells(qx, qz, SALT_POINT)) < POINT_KEEP
+    px, pz, qx, qz = px[chosen], pz[chosen], qx[chosen], qz[chosen]
+    cell_keys = np.array([_cell_key(c.ix, c.iz) for c in cells], dtype=np.int64)
+    at = np.searchsorted(
+        cell_keys,
+        _cell_key(np.floor(px / CELL).astype(np.int64), np.floor(pz / CELL).astype(np.int64)),
+    )
+    p90 = np.array([c.p90 for c in cells])[at]
+    model = np.array([model_for(c.median) for c in cells], dtype=np.float64)[at]
+    jitter = 2.0 * POINT_JITTER
+    return {
+        "x": px + (unit_float(hash_cells(qx, qz, SALT_POINT + 1)) - 0.5) * jitter,
+        "z": pz + (unit_float(hash_cells(qx, qz, SALT_POINT + 2)) - 0.5) * jitter,
+        "height": np.clip(p90, MIN_HEIGHT, MAX_HEIGHT),
+        "yaw": np.floor(unit_float(hash_cells(qx, qz, SALT_POINT + 3)) * 360.0),
+        "keep": np.floor(unit_float(hash_cells(qx, qz, SALT_POINT + 4)) * 100.0),
+        "model": model,
+    }
+
+
+def _cell_key(ix: Any, iz: Any) -> Any:
+    """One sortable integer for a cell id (``summarise_cells`` lists cells in this order)."""
+    return ix * (1 << 24) + iz
 
 
 def instances(
@@ -236,7 +254,7 @@ def instances(
     rejects: Sequence[Reject] = (),
 ) -> dict[str, Any]:
     """The understory instances (columnar), inside ``area`` and outside ``exclusion``."""
-    found = candidates(summarise_cells(points))
+    found = candidates(points)
     x, z = (
         np.round(found["x"], 2),
         np.round(found["z"], 2),

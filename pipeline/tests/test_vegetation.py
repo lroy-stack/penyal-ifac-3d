@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 import rasterio
 import shapely
@@ -281,31 +282,84 @@ def test_models_follow_the_median_height() -> None:
     assert understory.model_for(0.1) == understory.GRASS
 
 
-def test_cells_with_more_points_get_more_instances() -> None:
-    sparse = understory.candidates(understory.summarise_cells(understory_points(1, 0.8)))
-    dense = understory.candidates(understory.summarise_cells(understory_points(14, 0.8)))
-    assert len(dense["x"]) == 2 * 12 * 12
-    assert 0 < len(sparse["x"]) < len(dense["x"]) / 2
+def random_field(points_total: int, seed: int, height: float = 0.8) -> VegetationPoints:
+    """Understory LiDAR points scattered uniformly at random over 192 x 192 m."""
+    rng = np.random.default_rng(seed)
+    return VegetationPoints(
+        rng.uniform(-96.0, 96.0, points_total),
+        rng.uniform(-96.0, 96.0, points_total),
+        np.full(points_total, height),
+        np.full(points_total, 4, dtype=np.uint8),
+    )
 
 
-def test_candidates_stay_inside_their_cell_and_are_reproducible() -> None:
-    cells = understory.summarise_cells(understory_points(8, 0.8))
-    a, b = understory.candidates(cells), understory.candidates(cells)
+def nearest_neighbour_distances(
+    x: npt.NDArray[np.float64], z: npt.NDArray[np.float64]
+) -> npt.NDArray[np.float64]:
+    p = np.stack([x, z], axis=1)
+    out = []
+    for start in range(0, len(p), 500):
+        block = p[start : start + 500]
+        d = np.hypot(block[:, None, 0] - p[None, :, 0], block[:, None, 1] - p[None, :, 1])
+        d[np.arange(len(block)), np.arange(start, start + len(block))] = np.inf
+        out.append(d.min(axis=1))
+    return np.concatenate(out)
+
+
+def test_more_lidar_points_give_proportionally_more_instances() -> None:
+    sparse = understory.candidates(random_field(8000, 1))
+    dense = understory.candidates(random_field(32000, 1))
+    assert len(sparse["x"]) > 0
+    assert len(dense["x"]) == pytest.approx(4 * len(sparse["x"]), rel=0.15)
+
+
+def test_candidates_are_reproducible_and_stay_beside_their_lidar_point() -> None:
+    points = random_field(8000, 2)
+    a, b = understory.candidates(points), understory.candidates(points)
     for key in a:
         assert np.array_equal(a[key], b[key])
-    assert (a["x"] >= 0).all()
-    assert (a["x"] <= 12 * understory.CELL).all()
     assert set(np.unique(a["keep"])) <= set(range(100))
     assert a["height"].min() >= understory.MIN_HEIGHT
     assert a["height"].max() <= understory.MAX_HEIGHT
+    sample = slice(0, 400)
+    gaps = np.hypot(
+        a["x"][sample, None] - points.x[None, :], a["z"][sample, None] - points.z[None, :]
+    ).min(axis=1)
+    assert gaps.max() <= understory.POINT_JITTER * np.sqrt(2.0) + 1e-6  # each has a source point
 
 
-def test_a_cell_gets_the_same_instances_whichever_cells_surround_it() -> None:
-    alone = understory.candidates(understory.summarise_cells(understory_points(8, 0.8, cells=1)))
-    among = understory.candidates(understory.summarise_cells(understory_points(8, 0.8, cells=6)))
-    in_cell = (among["x"] < understory.CELL) & (among["z"] < understory.CELL)
-    first = np.sort(among["x"][in_cell])
-    assert np.array_equal(np.sort(alone["x"]), first)
+def test_an_instance_depends_only_on_its_point_and_the_points_of_its_cell() -> None:
+    points = random_field(60000, 3)
+    in_cell = (np.floor(points.x / 4.0) == 3) & (np.floor(points.z / 4.0) == -2)
+    alone = understory.candidates(
+        VegetationPoints(
+            points.x[in_cell],
+            points.z[in_cell],
+            points.height[in_cell],
+            points.lidar_class[in_cell],
+        )
+    )
+    among = understory.candidates(points)
+    assert len(alone["x"]) > 0
+    # every instance of the cell alone is found, identical, among all the points (a jittered
+    # instance may cross the cell edge, so the cell of the result is not compared)
+    assert np.isin(alone["x"], among["x"]).all()
+    assert np.isin(alone["z"], among["z"]).all()
+    index = np.searchsorted(np.sort(among["x"]), alone["x"])
+    assert len(np.unique(index)) == len(alone["x"])
+
+
+def test_the_understory_is_clumped_like_its_lidar_not_a_lattice() -> None:
+    """A jittered 4 m grid read as polka dots from above (nearest-neighbour distance CV 0.43 and
+    Clark-Evans R 1.10 on a saturated field); points of a random field must give a random one."""
+    found = understory.candidates(random_field(60000, 5))
+    x, z = found["x"], found["z"]
+    nearest = nearest_neighbour_distances(x, z)
+    density = len(x) / (192.0 * 192.0)
+    assert nearest.std() / nearest.mean() >= 0.48
+    assert (
+        nearest.mean() / (0.5 / np.sqrt(density)) <= 1.04
+    )  # Clark-Evans: 1 is random, > 1 regular
 
 
 def test_place_keeps_out_of_the_exclusion_zone_and_outside_the_area() -> None:
@@ -494,7 +548,8 @@ class TestWithData:
         self, found: vegetation.Detection
     ) -> None:
         shrubs = vegetation.place_understory(found)
-        x, z, y = (np.array(shrubs[k]) for k in ("x", "z", "y"))
+        x, z = (np.array(shrubs[k]) for k in ("x", "z"))
+        y = found.grid.sample(x, z)  # the stored y is rounded to 1 cm
         slope = dem.slope_at(dem.slope_degrees(found.grid), found.grid, x, z)
         low, high = understory.SILENE_BAND
         in_band = (y >= low) & (y <= high)
@@ -887,15 +942,7 @@ def test_the_cell_hash_and_the_variant_and_yaw_of_a_known_cell_are_pinned() -> N
 
 
 def test_keep_values_thin_the_understory_in_nested_subsets() -> None:
-    points = points_of(
-        [
-            (float(x) + 0.5, float(z) + 0.5, 0.8)
-            for x in range(-96, 96, 4)
-            for z in range(-96, 96, 4)
-            for _ in range(14)
-        ],
-        lidar_class=4,
-    )
+    points = random_field(60000, 7)
     area = shapely.box(-100, -100, 100, 100)
     keep = np.array(
         understory.instances(points, flat_grid(), area, shapely.Point(500, 500))["keep"]
@@ -1097,7 +1144,7 @@ def test_the_budget_assumptions_are_written_for_the_app() -> None:
     described = budget.describe()
     medium = described["tiers"]["medium"]  # type: ignore[index]
     assert medium["treeLodM"] == [30.0, 70.0, 120.0]
-    assert medium["understoryLodM"] == [12.0, 30.0, 60.0]
+    assert medium["understoryLodM"] == [8.0, 24.0, 60.0]
     assert medium["density"] == 0.7
     assert (medium["drawCalls"], medium["triangles"]) == (40, 250_000)
 
