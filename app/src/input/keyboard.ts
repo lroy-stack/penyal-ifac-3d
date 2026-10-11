@@ -1,4 +1,4 @@
-import { isHandledKeyCode, isKeyCode, KEY_CODES, keysToMove } from "./mapping";
+import { isHandledKeyCode, isKeyCode, KEY_CODES, keysToMove, keysToTurn } from "./mapping";
 import type { InputHub } from "./state";
 
 function isEditable(target: EventTarget | null): boolean {
@@ -13,12 +13,16 @@ function isDialogOpen(): boolean {
   return document.querySelector("dialog[open]") !== null;
 }
 
-/** WASD / arrows, Shift to run, C to toggle the camera, E to interact, P to toggle auto-walk; by `event.code`. */
+/**
+ * W/S and Up/Down walk, A/Q and D/E strafe, Left/Right turn, Shift runs, C toggles the camera, F
+ * interacts, P toggles auto-walk; by `event.code`.
+ */
 export function attachKeyboard(hub: InputHub, target: Window = window): () => void {
   const pressed = new Set<string>();
 
   const sync = (): void => {
     hub.keyboardMove = keysToMove(pressed);
+    hub.keyboardTurn = keysToTurn(pressed);
     hub.run = KEY_CODES.run.some((code) => pressed.has(code));
   };
 

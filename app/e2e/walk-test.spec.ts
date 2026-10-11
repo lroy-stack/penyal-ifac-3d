@@ -56,6 +56,65 @@ test.describe("keyboard and mouse", () => {
     expect(errors).toEqual([]);
   });
 
+  test("Left and Right turn the view smoothly without pointer lock", async ({ page }) => {
+    const before = await openCourse(page);
+
+    await page.keyboard.down("ArrowLeft");
+    await expect
+      .poll(async () => (await readState(page)).elapsed - before.elapsed, { timeout: 30_000 })
+      .toBeGreaterThanOrEqual(1);
+    await page.keyboard.up("ArrowLeft");
+    const left = await readState(page);
+
+    // 90 degrees per second at full speed, reached smoothly (0.1 s time constant).
+    const rate = (left.yaw - before.yaw) / (left.elapsed - before.elapsed);
+    expect(rate).toBeGreaterThan(1.1);
+    expect(rate).toBeLessThan(Math.PI / 2 + 0.05);
+    expect(horizontalDistance(before, left)).toBeLessThan(0.05);
+
+    await page.keyboard.down("ArrowRight");
+    await expect
+      .poll(async () => (await readState(page)).elapsed - left.elapsed, { timeout: 30_000 })
+      .toBeGreaterThanOrEqual(1);
+    await page.keyboard.up("ArrowRight");
+    const right = await readState(page);
+
+    expect(right.yaw).toBeLessThan(left.yaw - 1);
+    expect(await page.evaluate(() => document.pointerLockElement)).toBeNull();
+  });
+
+  test("Q and E strafe instead of turning", async ({ page }) => {
+    const before = await openCourse(page);
+
+    await page.keyboard.down("KeyE");
+    await expect
+      .poll(async () => (await readState(page)).elapsed - before.elapsed, { timeout: 30_000 })
+      .toBeGreaterThanOrEqual(0.5);
+    await page.keyboard.up("KeyE");
+    const right = await readState(page);
+    expect(right.x).toBeGreaterThan(before.x + 0.4);
+    expect(right.yaw).toBeCloseTo(before.yaw, 6);
+
+    await page.keyboard.down("KeyQ");
+    await expect
+      .poll(async () => (await readState(page)).elapsed - right.elapsed, { timeout: 30_000 })
+      .toBeGreaterThanOrEqual(1);
+    await page.keyboard.up("KeyQ");
+    expect((await readState(page)).x).toBeLessThan(right.x - 0.4);
+  });
+
+  test("dragging the mouse looks around with no pointer lock", async ({ page }) => {
+    const before = await openCourse(page);
+
+    await page.mouse.move(400, 300);
+    await page.mouse.down();
+    await page.mouse.move(500, 300, { steps: 5 });
+    await page.mouse.up();
+
+    await expect.poll(async () => (await readState(page)).yaw).toBeLessThan(before.yaw - 0.1);
+    expect(await page.evaluate(() => document.pointerLockElement)).toBeNull();
+  });
+
   test("C switches to third person and back", async ({ page }) => {
     await openCourse(page);
     await page.keyboard.press("KeyC");

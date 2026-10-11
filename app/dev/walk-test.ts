@@ -243,7 +243,7 @@ function bootstrap(): void {
       `pos ${position.x.toFixed(2)} ${position.y.toFixed(2)} ${position.z.toFixed(2)}  ` +
       `${grounded ? "grounded" : "airborne"}  ${cameraMode}-person` +
       (corridorHit ? "  [corridor]" : "") +
-      "\nWASD/arrows move, Shift run, C camera, click canvas for mouse look (Esc releases)\n" +
+      "\nW/S/Up/Down walk, A/D/Q/E strafe, Left/Right turn, Shift run, C camera, click canvas for mouse look (Esc releases)\n" +
       "touch: left half joystick, right half look, button toggles camera";
   });
   loop.start();

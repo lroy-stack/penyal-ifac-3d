@@ -40,10 +40,11 @@ describe("InputHub", () => {
   it("keeps held state across frames and drops it on reset", () => {
     const hub = new InputHub();
     hub.keyboardMove = { x: 0, y: 1 };
+    hub.keyboardTurn = 1;
     hub.run = true;
-    expect(hub.consume()).toMatchObject({ moveY: 1, run: true });
-    expect(hub.consume()).toMatchObject({ moveY: 1, run: true });
+    expect(hub.consume()).toMatchObject({ moveY: 1, turn: 1, run: true });
+    expect(hub.consume()).toMatchObject({ moveY: 1, turn: 1, run: true });
     hub.reset();
-    expect(hub.consume()).toMatchObject({ moveY: 0, run: false });
+    expect(hub.consume()).toMatchObject({ moveY: 0, turn: 0, run: false });
   });
 });

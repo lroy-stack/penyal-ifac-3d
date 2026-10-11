@@ -6,7 +6,7 @@ import {
   type Scene,
 } from "three";
 import { createInput } from "../input";
-import { applyLookDelta, type Look } from "../input/mapping";
+import { applyLookDelta, type Look, stepKeyboardTurn, TURN_RATE } from "../input/mapping";
 import type { Corridor, Enclosure, GroundSurface, HeightField } from "../world/ground";
 import { AutoWalker, type AutoWalkRoute } from "./autowalk";
 import { type CameraMode, CameraRig } from "./cameras";
@@ -33,6 +33,8 @@ export type PlayerOptions = {
   readonly start: ControllerOptions["start"];
   /** Initial yaw (rad, 0 looks along -Z, positive turns left); defaults to 0. */
   readonly startYaw?: number;
+  /** Full-speed keyboard turn (rad/s); defaults to `TURN_RATE` (90 degrees per second). */
+  readonly turnRate?: number;
 };
 
 /** Live, read-only view of the player; updated in place by `update`. */
@@ -111,6 +113,8 @@ export function createPlayer(options: PlayerOptions): Player {
     autowalk: { active: false, target: null as string | null, progress: 0 },
   };
   let walker: AutoWalker | null = null;
+  let turnVelocity = 0;
+  const turnRate = options.turnRate ?? TURN_RATE;
 
   const stopAutoWalk = (): void => {
     walker = null;
@@ -144,11 +148,17 @@ export function createPlayer(options: PlayerOptions): Player {
     stopAutoWalk,
     update: (dt) => {
       const frame = input.hub.consume();
-      look = applyLookDelta(look, { yaw: frame.lookYaw, pitch: frame.lookPitch });
+      const turn = stepKeyboardTurn(turnVelocity, frame.turn, dt, turnRate);
+      turnVelocity = turn.velocity;
+      look = applyLookDelta(look, {
+        yaw: frame.lookYaw + turn.yawDelta,
+        pitch: frame.lookPitch,
+      });
       if (frame.toggleCamera) rig.toggle();
       live.interactPressed = frame.interact;
       live.autowalkTogglePressed = frame.toggleAutoWalk;
-      const manual = frame.moveX !== 0 || frame.moveY !== 0 || frame.lookYaw !== 0;
+      const manual =
+        frame.moveX !== 0 || frame.moveY !== 0 || frame.lookYaw !== 0 || frame.turn !== 0;
       if (manual) stopAutoWalk();
       let move = { moveX: frame.moveX, moveY: frame.moveY, run: frame.run };
       if (walker !== null) {

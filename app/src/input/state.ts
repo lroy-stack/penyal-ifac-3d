@@ -6,6 +6,8 @@ export type InputState = {
   readonly moveY: number;
   readonly lookYaw: number;
   readonly lookPitch: number;
+  /** Held keyboard turn: +1 left, -1 right, 0 none. The player integrates it over time. */
+  readonly turn: number;
   readonly run: boolean;
   /** True for exactly one frame per press. */
   readonly toggleCamera: boolean;
@@ -20,6 +22,7 @@ export const IDLE_INPUT: InputState = {
   moveY: 0,
   lookYaw: 0,
   lookPitch: 0,
+  turn: 0,
   run: false,
   toggleCamera: false,
   interact: false,
@@ -30,6 +33,7 @@ export const IDLE_INPUT: InputState = {
 export class InputHub {
   keyboardMove: MoveVector = { x: 0, y: 0 };
   touchMove: MoveVector = { x: 0, y: 0 };
+  keyboardTurn = 0;
   run = false;
   private lookYaw = 0;
   private lookPitch = 0;
@@ -62,6 +66,7 @@ export class InputHub {
       moveY: move.y,
       lookYaw: this.lookYaw,
       lookPitch: this.lookPitch,
+      turn: this.keyboardTurn,
       run: this.run,
       toggleCamera: this.toggleCameraRequested,
       interact: this.interactRequested,
@@ -79,6 +84,7 @@ export class InputHub {
   reset(): void {
     this.keyboardMove = { x: 0, y: 0 };
     this.touchMove = { x: 0, y: 0 };
+    this.keyboardTurn = 0;
     this.run = false;
   }
 }

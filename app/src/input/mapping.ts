@@ -8,11 +8,13 @@ export type Look = { readonly yaw: number; readonly pitch: number };
 export const KEY_CODES = {
   forward: ["KeyW", "ArrowUp"],
   backward: ["KeyS", "ArrowDown"],
-  left: ["KeyA", "ArrowLeft"],
-  right: ["KeyD", "ArrowRight"],
+  left: ["KeyA", "KeyQ"],
+  right: ["KeyD", "KeyE"],
+  turnLeft: ["ArrowLeft"],
+  turnRight: ["ArrowRight"],
   run: ["ShiftLeft", "ShiftRight"],
   toggleCamera: ["KeyC"],
-  interact: ["KeyE"],
+  interact: ["KeyF"],
   toggleAutoWalk: ["KeyP"],
 } as const;
 
@@ -38,6 +40,50 @@ export function keysToMove(pressed: ReadonlySet<string>): MoveVector {
     (anyPressed(pressed, KEY_CODES.backward) ? 1 : 0);
   const length = Math.hypot(x, y);
   return length === 0 ? { x: 0, y: 0 } : { x: x / length, y: y / length };
+}
+
+/** Keyboard turn: +1 turns left (positive yaw), -1 right; opposite keys cancel. */
+export function keysToTurn(pressed: ReadonlySet<string>): number {
+  return (
+    (anyPressed(pressed, KEY_CODES.turnLeft) ? 1 : 0) -
+    (anyPressed(pressed, KEY_CODES.turnRight) ? 1 : 0)
+  );
+}
+
+/** Full-speed keyboard turn (rad/s); the player takes it as an option so it can be changed. */
+export const TURN_RATE = (90 * Math.PI) / 180;
+/** Time constant (s) with which the turn speed follows the keys, so a tap is not a jolt. */
+export const TURN_SMOOTH_TIME = 0.1;
+
+/**
+ * Exponential approach of the turn speed (fraction of full rate, -1..1) to the key target. The
+ * factor depends on `dt` only through exp(-dt / smoothTime), so the result does not depend on
+ * how the time is split into frames.
+ */
+export function smoothTurn(
+  current: number,
+  target: number,
+  dt: number,
+  smoothTime: number = TURN_SMOOTH_TIME,
+): number {
+  if (dt <= 0) return current;
+  if (smoothTime <= 0) return target;
+  return target + (current - target) * Math.exp(-dt / smoothTime);
+}
+
+/**
+ * One frame of keyboard turning: the new turn speed (fraction of `rate`) and the yaw change in
+ * radians over `dt`, integrating the speed with the trapezoid rule so frame splitting hardly
+ * matters.
+ */
+export function stepKeyboardTurn(
+  velocity: number,
+  target: number,
+  dt: number,
+  rate: number = TURN_RATE,
+): { velocity: number; yawDelta: number } {
+  const next = smoothTurn(velocity, target, dt);
+  return { velocity: next, yawDelta: ((velocity + next) / 2) * rate * Math.max(dt, 0) };
 }
 
 export const JOYSTICK_MAX_RADIUS_PX = 60;
