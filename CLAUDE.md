@@ -18,6 +18,8 @@ A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Ca
 | Test (all / one file) | `pnpm test` · `pnpm --filter @penyal/app exec vitest run src/content/registry.test.ts` · `uv run --project pipeline pytest -q tests/test_fetch.py` |
 | Build | `pnpm --filter @penyal/app build` |
 | E2E (headless Chromium) | `pnpm --filter @penyal/app e2e` |
+| Load timing under network profiles (by hand, not CI) | `cd app && node scripts/measure-load.mjs --build --profile slow4g --compress br --runs 3` |
+| Frame-time overlay (p50/p95/p99, frames > 50 ms) | open the app with `?perf` |
 | Pipeline health | `uv run --project pipeline penyal doctor` |
 | Rebuild generated data | `uv run --project pipeline penyal dem && … penyal trail && … penyal terrain` (`penyal tunnel` re-cuts only the tiles touching the portals) |
 | Generated assets up to date with their inputs | `uv run --project pipeline penyal verify-generated` (exit 1 if a manifest's recorded `inputs` no longer match) |
@@ -53,6 +55,7 @@ A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Ca
 - `ktx` lives in `tools/` (install with `tools/install-ktx.sh`, see `tools/README.md`); `scripts/optimize.mjs` puts `tools/bin` on PATH.
 - The built-in browser pane pauses `requestAnimationFrame` while hidden; for automated visual checks use `pnpm --filter @penyal/app e2e` (Playwright, headless shell + SwiftShader). The Playwright MCP needs a system Chrome and is not used.
 - Vite answers `504 Outdated Optimize Dep` after new imports; reload the page.
+- Test hooks (`window.__appState`, `?timescale`) exist only in the dev server and in builds made with `VITE_E2E=true` (`app/src/core/testHooks.ts`); a plain `pnpm --filter @penyal/app build` has none. E2E runs on the dev server (`app/playwright.config.ts`); `measure-load.mjs --build` builds with the flag.
 - GVA park pages were read from Internet Archive copies; re-check live before release.
 
 ## Definition of Done
