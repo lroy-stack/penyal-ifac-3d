@@ -30,6 +30,7 @@ A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Ca
 | Generated assets up to date with their inputs | `uv run --project pipeline penyal verify-generated` (exit 1 if a manifest's recorded `inputs` no longer match) |
 | Data-dependent tests must run, not skip | `PENYAL_REQUIRE_DATA=1 uv run --project pipeline pytest -q` (default on a clean clone: they skip) |
 | Asset spike (bpy → glTF → meshopt, deterministic) | `pnpm spike`; view at `http://localhost:5173/dev/asset-viewer.html?src=<url>` (dev server only) |
+| Phase B lane worktree | `scripts/worktree-setup.sh <l1..l8>` (see "Phase B lanes" below) |
 | Data (show before downloading) | `uv run --project pipeline penyal fetch --phase 1 --dry-run`, then without `--dry-run` |
 
 ## Architecture
@@ -50,6 +51,13 @@ A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Ca
 - Do not reveal locations of real Silene hifacensis plants.
 - Licences: CC0 / CC BY assets only, with two exceptions: the Quaternius hiker under QAL (ADR 0008) and CC BY-SA audio kept as one separate share-alike file per recording (ADR 0011). No Mixamo, no Google 3D Tiles, no CC BY-SA photos as textures; OSM-derived data stays in separate ODbL files (ADR 0007).
 - Exact dependency versions (no `^`); verify APIs against installed packages, not memory.
+
+## Phase B lanes (ADR 0010)
+- One lane = one git worktree in `.worktrees/<lane>` (gitignored; Biome skips it through `vcs.useIgnoreFile`) on branch `feat/b-<lane>`. Create it from the clean main checkout: `scripts/worktree-setup.sh l1` (guards: not a worktree, clean tree, known lane). Remove it with `git worktree remove --force .worktrees/<lane> && git branch -D feat/b-<lane>`.
+- The script symlinks the inputs (`data/raw`, `data/manual`, `tools/bin`, `tools/ktx-*`: read-only, absolute links) and APFS-clones the outputs (`build/`, `app/public/assets/generated/`), so each lane regenerates its own; then it runs `pnpm install --frozen-lockfile` and `uv sync --project pipeline --locked`.
+- E2E in a lane: `app/playwright.config.ts` derives the defaults from `/.worktrees/l<n>/`: `E2E_PORT` = 5180 + n, `E2E_OUTPUT_DIR` = `test-results/l<n>`, one worker. Explicit variables win. Main keeps 5175; lane dev servers use 5190 + n. Run `pnpm --filter @penyal/app e2e viewpoints` (without `--`: with pnpm 12 `e2e -- viewpoints` runs every spec).
+- A lane adds files and one entry in `app/src/world/index.ts`; contracts live in `world/systems.ts`, `world/atmosphere.ts`, `core/quality.ts`, `core/budget.ts`, `content/poi.ts` and `content/notebook.ts`, and only the integrator changes them.
+- The fixed-viewpoint baselines (`build/e2e-baselines/`, not committed) come from `pnpm --filter @penyal/app e2e viewpoints --update-snapshots`; a lane that changes the look refreshes them on purpose and attaches the captures to the review. `pnpm --filter @penyal/app e2e budget` checks the per-system budget (`PENYAL_E2E_GPU=metal` adds the timing report).
 
 ## Gotchas
 - `GLTFLoader` (r186) has no `MSFT_lod`, and `THREE.LOD` measures distance to the tile centre (wrong for 256 m tiles): terrain LOD uses our own screen-space-error selection against each tile's AABB (`app/src/world/terrain/selection.ts`).

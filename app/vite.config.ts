@@ -23,5 +23,5 @@ export default defineConfig({
   // cached generated assets under /assets/.
   build: { target: "es2022", assetsDir: "bundle" },
   plugins: [excludeSpikeAssets(), creditsModule(), htmlStrings()],
-  test: { environment: "node", include: ["src/**/*.test.ts"] },
+  test: { environment: "node", include: ["src/**/*.test.ts", "e2e/support/**/*.test.ts"] },
 });
