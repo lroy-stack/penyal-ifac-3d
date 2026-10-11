@@ -30,6 +30,7 @@ import {
   type TerrainStreamer,
   viewFromCamera,
 } from "./world/terrain";
+import { terrainGateOutcome } from "./world/terrain/gate";
 import {
   headingAlongRoute,
   loadTrail,
@@ -214,7 +215,10 @@ async function bootstrap(): Promise<void> {
 
   let player: Player | null = null;
   let collisionLoaded = false;
+  let failed = false;
   let previewFrames = 0;
+  let terrainFailedShown = false;
+  const criticalPathStartMs = performance.now();
   let terrainSettled: () => void = () => undefined;
   const terrainGate = new Promise<void>((resolve) => {
     terrainSettled = resolve;
@@ -252,17 +256,20 @@ async function bootstrap(): Promise<void> {
     const stats = streamer.stats();
     state.terrain.stats = stats;
     poster.setProgress(progressNow(stats));
-    if (state.loading.terrainVisibleMs === null && (stats.visible || stats.gaveUp)) {
-      if (stats.visible) {
-        state.loading.terrainVisibleMs = Math.round(performance.now());
-        poster.hide();
-        hud.notify(t("terrainReady"));
-        setStatus(t("terrainReady"));
-      } else {
-        state.terrain.status = "error";
-        state.terrain.message = stats.lastError;
-        setStatus(`${t("terrainFailed")} ${stats.lastError ?? ""}`.trim());
-      }
+    if (state.loading.terrainVisibleMs !== null || terrainFailedShown) return;
+    const outcome = terrainGateOutcome(stats, performance.now() - criticalPathStartMs);
+    if (outcome === "visible") {
+      state.loading.terrainVisibleMs = Math.round(performance.now());
+      poster.hide();
+      // One polite live region announces it: #notice (the visible message), not #status as well.
+      hud.notify(t("terrainReady"));
+      terrainSettled();
+    } else if (outcome === "failed") {
+      terrainFailedShown = true;
+      state.terrain.status = "error";
+      state.terrain.message = stats.lastError ?? "The terrain did not load in time.";
+      setStatus(`${t("terrainFailed")} ${stats.lastError ?? ""}`.trim());
+      poster.setMessage(t("terrainFailed"));
       terrainSettled();
     }
   };
@@ -334,7 +341,9 @@ async function bootstrap(): Promise<void> {
 
   const lifecycle = createPageLifecycle({
     suspend: () => loop.stop(),
-    resume: () => loop.start(),
+    resume: () => {
+      if (!failed) loop.start();
+    },
     dispose: () => {
       player?.dispose();
       streamer?.dispose();
@@ -357,7 +366,9 @@ async function bootstrap(): Promise<void> {
   try {
     collision = await loadCollisionField(publicUrl(COLLISION_PATH, base));
   } catch (error) {
+    failed = true;
     loop.stop();
+    hud.notify(null);
     showFatal(`${t("routeDataFailed")} ${describeError(error)}`);
     return;
   }

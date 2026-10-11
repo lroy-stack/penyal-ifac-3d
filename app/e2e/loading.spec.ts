@@ -60,3 +60,32 @@ test("shows a poster at once and walks only after the terrain is visible, fetchi
   await expect(poster).toBeHidden();
   await expect(page.locator("#status")).toHaveText("Listo. Ya puedes caminar.");
 });
+
+test("stops waiting and says so when the far mesh never loads", async ({ page }) => {
+  await page.route("**/terrain/far.glb", (route) => route.fulfill({ status: 500, body: "" }));
+
+  await page.goto("/?start=turnstile");
+
+  await expect(page.locator("#poster-message")).toHaveText("El terreno no está disponible.", {
+    timeout: 60_000,
+  });
+  const state = await readState(page);
+  expect(state?.terrain.status).toBe("error");
+  expect(state?.loading.terrainVisibleMs).toBeNull();
+});
+
+test("a failed collision field leaves only the fatal message on top, with no notice behind it", async ({
+  page,
+}) => {
+  await page.route("**/terrain/collision.bin", (route) => route.fulfill({ status: 500, body: "" }));
+
+  await page.goto("/?start=turnstile");
+
+  const fatal = page.locator("#fatal");
+  await expect(fatal).toHaveAttribute("data-visible", "true", { timeout: 60_000 });
+  await expect(page.locator("#notice")).toHaveAttribute("data-visible", "false");
+  const topmost = await page.evaluate(
+    () => document.elementFromPoint(innerWidth / 2, innerHeight / 2)?.id,
+  );
+  expect(topmost).toBe("fatal");
+});
