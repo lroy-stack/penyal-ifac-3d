@@ -43,3 +43,27 @@ export function createGltfLoader(renderer: WebGLRenderer): GltfLoaderHandle {
   loader.setMeshoptDecoder(MeshoptDecoder);
   return { loader, dispose: () => ktx2Loader.dispose() };
 }
+
+export type AssetProvider = {
+  /** One lazy GLTF + KTX2 loader per page: created by the first system that asks. */
+  readonly gltf: () => GLTFLoader;
+  /** URL of a file under `public/`. */
+  readonly url: (path: string) => string;
+  /** Terminates the KTX2 workers when a loader was created; call once, with the renderer. */
+  readonly dispose: () => void;
+};
+
+export function createAssetProvider(
+  renderer: WebGLRenderer,
+  base: string = baseUrl(),
+): AssetProvider {
+  let handle: GltfLoaderHandle | null = null;
+  return {
+    gltf: () => {
+      handle ??= createGltfLoader(renderer);
+      return handle.loader;
+    },
+    url: (path) => publicUrl(path, base),
+    dispose: () => handle?.dispose(),
+  };
+}

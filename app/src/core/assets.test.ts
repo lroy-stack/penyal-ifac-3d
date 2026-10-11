@@ -2,7 +2,13 @@ import type { WebGLRenderer } from "three";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
 import { describe, expect, it, vi } from "vitest";
-import { BASIS_TRANSCODER_PATH, basisTranscoderPath, createGltfLoader, publicUrl } from "./assets";
+import {
+  BASIS_TRANSCODER_PATH,
+  basisTranscoderPath,
+  createAssetProvider,
+  createGltfLoader,
+  publicUrl,
+} from "./assets";
 
 const supportedExtensions = new Set(["WEBGL_compressed_texture_etc"]);
 
@@ -72,5 +78,24 @@ describe("base-aware URLs", () => {
       "/penyal/assets/generated/trail.json",
     );
     expect(publicUrl("/assets/x.json", "/")).toBe("/assets/x.json");
+  });
+});
+
+describe("createAssetProvider", () => {
+  it("creates the loader on first use and hands the same one to every system", () => {
+    const assets = createAssetProvider(fakeRenderer, "/");
+    const first = assets.gltf();
+    expect(assets.gltf()).toBe(first);
+    assets.dispose();
+  });
+
+  it("builds URLs under the base path", () => {
+    expect(createAssetProvider(fakeRenderer, "/ifac/").url("/assets/a.json")).toBe(
+      "/ifac/assets/a.json",
+    );
+  });
+
+  it("disposes nothing when no system asked for a loader", () => {
+    expect(() => createAssetProvider(fakeRenderer, "/").dispose()).not.toThrow();
   });
 });

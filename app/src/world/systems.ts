@@ -55,6 +55,9 @@ export interface PoiRegistry {
   onDiscover(listener: (poi: { readonly id: string }) => void): () => void;
 }
 
+/** No point of interest is published yet: the registry the bootstrap passes until commit 9 of B0. */
+export const EMPTY_POIS: PoiRegistry = { list: () => [], onDiscover: () => () => undefined };
+
 export interface GroundRegistry {
   /** Both add* throw once the walk has started. */
   addSurface(surface: GroundSurface): void;
