@@ -406,6 +406,15 @@ class TestWithData:
             lean <= vegetation.MAX_LEAN_PER_HEIGHT * found.crowns.height[found.kept] + 1e-6
         ).all()
 
+    def test_the_pine_is_never_stretched_more_than_the_ratio(
+        self, found: vegetation.Detection
+    ) -> None:
+        crowns = found.crowns.select(found.kept)
+        vertical, horizontal = vegetation.instance_scale(crowns.height, crowns.radius)
+        ratio = horizontal / vertical
+        assert ratio.min() >= vegetation.SCALE_RATIO[0] - 1e-9
+        assert ratio.max() <= vegetation.SCALE_RATIO[1] + 1e-9
+
     def test_the_document_is_complete_and_has_no_protected_species(
         self, found: vegetation.Detection
     ) -> None:
@@ -588,3 +597,29 @@ def test_a_crown_too_short_to_lean_out_of_the_corridor_is_blocked() -> None:
     )
     # 3.5 m from the centre to the clear ground: a 4 m tree cannot lean that far, an 8 m one can
     assert feet.ok.tolist() == [False, True]
+
+
+# --- instance scale -----------------------------------------------------------------------------
+
+
+def test_the_horizontal_scale_follows_the_radius_within_a_band_of_the_vertical_one() -> None:
+    height = np.array([10.0, 5.0, 4.0, 8.0])
+    radius = np.array([3.2, 0.75, 6.0, 3.2])
+    vertical, horizontal = vegetation.instance_scale(height, radius)
+    assert vertical == pytest.approx([1.0, 0.5, 0.4, 0.8])
+    assert horizontal[0] == pytest.approx(1.0)  # radius and height as modelled
+    assert horizontal[1] == pytest.approx(0.6 * 0.5)  # a thin crown is not squeezed past 0.6
+    assert horizontal[2] == pytest.approx(1.6 * 0.4)  # nor a wide one stretched past 1.6
+    assert horizontal[3] == pytest.approx(1.0)  # 3.2 / 3.2 lies inside [0.48, 1.28]
+
+
+def test_the_crown_columns_carry_the_clamped_scale() -> None:
+    crowns = Crowns(
+        np.array([1.0, 2.0]),
+        np.zeros(2),
+        np.array([1.0, 2.0]),
+        np.array([5.0, 10.0]),
+        np.array([0.75, 3.2]),
+    )
+    columns = vegetation.crown_columns(crowns, np.array([0.3, 0.3]), np.array([10.0, 10.0]))
+    assert columns["scaleXZ"] == [0.3, 1.0]

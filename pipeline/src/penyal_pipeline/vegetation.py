@@ -36,7 +36,7 @@ from rasterio.windows import Window
 from shapely.geometry.base import BaseGeometry
 
 from penyal_pipeline import artefacts, dem, ortho, trail, understory
-from penyal_pipeline.blender.pine import VARIANT_COUNT
+from penyal_pipeline.blender.pine import NOMINAL_HEIGHT, NOMINAL_RADIUS, VARIANT_COUNT
 from penyal_pipeline.cellhash import SEED, hash_cells, unit_float
 from penyal_pipeline.geo import ORIGIN_E, ORIGIN_N
 from penyal_pipeline.paths import GENERATED_DIR, TRAIL_GENERATED
@@ -107,6 +107,11 @@ MAX_CROWN_HEIGHT = 25.0
 FOOT_MARGIN = 0.5  # metres outside the corridor polygon
 TUNNEL_STRIP_CUT = 1.5  # metres around the tunnel axis that are not surface corridor
 MAX_LEAN_PER_HEIGHT = 0.6
+# The pine is modelled 10 m tall with a 3.2 m crown radius. Scaling it to a measured height and
+# radius independently stretched it up to 6.9 times (a 0.75 m radius under 5 m of height gives a
+# 6 cm trunk and needle cards four times too long), so the horizontal scale may differ from the
+# vertical one by this factor at most.
+SCALE_RATIO = (0.6, 1.6)
 CLIFF_SLOPE = 60.0  # degrees
 CLIFF_MIN_NDVI = 0.20
 
@@ -484,6 +489,15 @@ def present_mask(ndvi: Floats, threshold: float) -> npt.NDArray[np.bool_]:
 # --- document -----------------------------------------------------------------------------------
 
 
+def instance_scale(height: Floats, radius: Floats) -> tuple[Floats, Floats]:
+    """Vertical and horizontal scale of the pine for each crown: ``height / 10`` and
+    ``radius / 3.2`` held within ``SCALE_RATIO`` of the vertical one."""
+    vertical = np.asarray(height / NOMINAL_HEIGHT, dtype=np.float64)
+    wanted = radius / NOMINAL_RADIUS
+    horizontal = np.clip(wanted, SCALE_RATIO[0] * vertical, SCALE_RATIO[1] * vertical)
+    return vertical, np.asarray(horizontal, dtype=np.float64)
+
+
 def _column(values: Floats, decimals: int) -> list[float]:
     return [round(float(v), decimals) for v in values]
 
@@ -507,6 +521,7 @@ def crown_columns(
         "z": _column(crowns.z, 2),
         "height": _column(crowns.height, 2),
         "radius": _column(crowns.radius, 2),
+        "scaleXZ": _column(instance_scale(crowns.height, crowns.radius)[1], 3),
         "variant": [int(v) for v in variant],
         "yaw": [int(v) for v in yaw],
         "ndvi": [None if math.isnan(v) else round(float(v), 3) for v in ndvi],
@@ -682,6 +697,11 @@ def document(found: Detection, understory_doc: dict[str, Any], threshold: float)
             "around the route",
             "ndviBand": {"red": RED_BAND, "nir": NIR_BAND},
             "ndviAbsentThreshold": threshold,
+            "scale": f"scale y by height / {NOMINAL_HEIGHT:g} and x, z by scaleXZ, which is "
+            f"radius / {NOMINAL_RADIUS:g} held within {SCALE_RATIO[0]}-{SCALE_RATIO[1]} x the "
+            "vertical scale",
+            "ground": "y is the height of the uncarved DEM (the 1 m MDT); the app must resample "
+            "the ground on the rendered terrain tiles, which differ where ADR 0009 corrected it",
             "trunk": f"x, z, y are the trunk foot: the LiDAR apex moved out of the walkable "
             f"corridor + {FOOT_MARGIN} m when it lies inside it; leanX, leanZ = apex - foot "
             f"(at most {MAX_LEAN_PER_HEIGHT} x height, else the crown is dropped as overPath)",
