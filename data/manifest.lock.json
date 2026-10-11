@@ -508,6 +508,45 @@
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rocks_ground_05/rocks_ground_05_nor_gl_2k.jpg"
     },
+    "polyhaven-roof-tiles-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Stephan Seeliger (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 1079696,
+          "name": "roof_tiles_arm_1k.jpg",
+          "sha256": "74f56737737e477f49c3c281ecc505a4457debb240d605cf50eaa2bfc5953bff"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/roof_tiles/roof_tiles_arm_1k.jpg"
+    },
+    "polyhaven-roof-tiles-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Stephan Seeliger (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 1105673,
+          "name": "roof_tiles_diff_1k.jpg",
+          "sha256": "1b30c1f0a9d3f761afb1354d95b36990fc670fac5f811889af8cb2ab682c8e66"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/roof_tiles/roof_tiles_diff_1k.jpg"
+    },
+    "polyhaven-roof-tiles-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Stephan Seeliger (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 883229,
+          "name": "roof_tiles_nor_gl_1k.jpg",
+          "sha256": "1eb4e911e3d1b38c7c3b06bdecb6fde5f9646dca5498caf67ffa651cb6cb8d8c"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/roof_tiles/roof_tiles_nor_gl_1k.jpg"
+    },
     "polyhaven-shrub-02-arm-1k": {
       "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
       "files": [
@@ -638,6 +677,45 @@
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_nor_gl_1k.jpg"
     },
+    "polyhaven-stacked-stone-wall-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 807997,
+          "name": "stacked_stone_wall_arm_1k.jpg",
+          "sha256": "971eef302ddca36381a4a365582e07eab13929bc37b32b49790cbcc7d93f31c7"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stacked_stone_wall/stacked_stone_wall_arm_1k.jpg"
+    },
+    "polyhaven-stacked-stone-wall-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 746206,
+          "name": "stacked_stone_wall_diff_1k.jpg",
+          "sha256": "91217c3edf4f288eb8fa31ef208d8f6067d75320a8a66b32cd6f3965b763c45a"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stacked_stone_wall/stacked_stone_wall_diff_1k.jpg"
+    },
+    "polyhaven-stacked-stone-wall-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 1131732,
+          "name": "stacked_stone_wall_nor_gl_1k.jpg",
+          "sha256": "5115f1f61a790a582f7e5713e84f1752591bf2d26229557b418c3afcd99406c3"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stacked_stone_wall/stacked_stone_wall_nor_gl_1k.jpg"
+    },
     "polyhaven-white-stucco-arm-1k": {
       "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
       "files": [
@@ -677,6 +755,19 @@
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_stucco/white_stucco_nor_gl_1k.jpg"
     },
+    "polyhaven-yellow-plaster-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 113469,
+          "name": "yellow_plaster_arm_1k.jpg",
+          "sha256": "36f50193778527dc668989724250198870ce03de08b8c7d1abfc96f07bea9a3c"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/yellow_plaster/yellow_plaster_arm_1k.jpg"
+    },
     "polyhaven-yellow-plaster-diff-1k": {
       "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
       "files": [
@@ -689,6 +780,19 @@
       "licence": "CC0 1.0",
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/yellow_plaster/yellow_plaster_diff_1k.jpg"
+    },
+    "polyhaven-yellow-plaster-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 522586,
+          "name": "yellow_plaster_nor_gl_1k.jpg",
+          "sha256": "785d8a69535fbae8c38aa80f086c3963f22fbff014638b122368bd7b0aa491ee"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-11",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/yellow_plaster/yellow_plaster_nor_gl_1k.jpg"
     },
     "xenocanto-xc624044-larus-michahellis": {
       "attribution": "Giovanni Francesco Tartarelli, XC624044. Accessible at www.xeno-canto.org/624044 (CC BY 4.0)",

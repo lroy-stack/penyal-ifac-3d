@@ -14,11 +14,11 @@ dist/
 app/public/decoders/
 build/
 data/raw/
-tools/bin/
+tools/bin
 *.log
 .DS_Store
 playwright-report/
 test-results/
 app/public/assets/generated/
-tools/ktx-*/
+tools/ktx-*
 data/manual/
