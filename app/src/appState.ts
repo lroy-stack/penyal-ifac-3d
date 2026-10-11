@@ -32,7 +32,8 @@ export type AppState = {
     message: string | null;
     stats: TerrainStats | null;
   };
-  render: { calls: number; triangles: number };
+  /** Last frame's draw calls and triangles, and the number of compiled shader programs. */
+  render: { calls: number; triangles: number; programs: number };
   /** Camera position in the local frame (for checks that it stays inside the tunnel). */
   camera: { x: number; y: number; z: number };
   tunnel: { status: TunnelStatus; message: string | null; meshLoaded: boolean };
@@ -72,7 +73,7 @@ export function createAppState(): AppState {
     },
     anchorsReached: [],
     terrain: { status: "loading", message: null, stats: null },
-    render: { calls: 0, triangles: 0 },
+    render: { calls: 0, triangles: 0, programs: 0 },
     camera: { x: 0, y: 0, z: 0 },
     tunnel: { status: "loading", message: null, meshLoaded: false },
     autowalk: { active: false, target: null, progress: 0 },

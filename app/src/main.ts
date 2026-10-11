@@ -385,6 +385,7 @@ async function bootstrap(): Promise<void> {
     state.camera.z = camera.position.z;
     state.render.calls = renderer.info.render.calls;
     state.render.triangles = renderer.info.render.triangles;
+    state.render.programs = renderer.info.programs?.length ?? 0;
     hud.update(corridorHit, performance.now(), t("corridorNotice"));
 
     if (streamer !== null && state.frames % STATS_INTERVAL_FRAMES === 1) {

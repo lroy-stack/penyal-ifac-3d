@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 // E2E_PORT and E2E_OUTPUT_DIR let two e2e runs share the machine: each needs its own dev server
@@ -10,6 +11,11 @@ export default defineConfig({
   testDir: "e2e",
   outputDir: process.env.E2E_OUTPUT_DIR ?? "test-results",
   timeout: 60_000,
+  // Baselines of the fixed-viewpoint check stay out of git: see e2e/viewpoints.spec.ts.
+  snapshotPathTemplate: resolve(
+    import.meta.dirname,
+    "../build/e2e-baselines/{testFileName}/{arg}{ext}",
+  ),
   fullyParallel: false,
   reporter: [["list"]],
   use: {
