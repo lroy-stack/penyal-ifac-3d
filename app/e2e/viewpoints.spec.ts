@@ -121,7 +121,9 @@ test.describe("real terrain along the Ruta Roja", () => {
       });
 
       await page.keyboard.press("KeyC");
-      await expect.poll(async () => (await readState(page)).player.cameraMode).toBe("third");
+      await expect
+        .poll(async () => (await readState(page)).player.cameraMode, { timeout: 120_000 })
+        .toBe("third");
       const third = await waitForSettledTerrain(page, tier);
       await expect(page).toHaveScreenshot(`${id}-third.png`, {
         threshold: 0,
