@@ -372,10 +372,17 @@ class TestWithData:
         self, found: vegetation.Detection
     ) -> None:
         assert not np.isnan(found.ndvi).any()
-        excluded = int((~found.kept).sum())
-        assert 0 < excluded < len(found.crowns) / 5
-        assert found.ndvi[~found.kept].max() < vegetation.NDVI_ABSENT_THRESHOLD
-        assert found.ndvi[found.kept].min() >= vegetation.NDVI_ABSENT_THRESHOLD
+        assert 0 < int(found.absent.sum()) < len(found.crowns) / 5
+        assert found.ndvi[found.absent].max() < vegetation.NDVI_ABSENT_THRESHOLD
+        assert found.ndvi[~found.absent].min() >= vegetation.NDVI_ABSENT_THRESHOLD
+
+    def test_no_kept_crown_is_a_cliff_artefact(self, found: vegetation.Detection) -> None:
+        kept = found.kept
+        on_cliff = found.slope >= vegetation.CLIFF_SLOPE
+        assert int((on_cliff & found.cliff).sum()) > 50
+        assert not (kept & on_cliff & (found.crowns.radius <= vegetation.MIN_CROWN_RADIUS)).any()
+        assert not (kept & on_cliff & (found.ndvi < vegetation.CLIFF_MIN_NDVI)).any()
+        assert int(found.cliff.sum()) == int((found.cliff & on_cliff).sum())
 
     def test_the_document_is_complete_and_has_no_protected_species(
         self, found: vegetation.Detection
@@ -388,7 +395,7 @@ class TestWithData:
         assert len(crowns["variant"]) == len(crowns["yaw"]) == crowns["count"]
         assert set(crowns["variant"]) <= set(range(doc["variants"]))
         assert doc["counts"]["crownsDetected"] == (
-            crowns["count"] + doc["absentCrowns"]["count"] + doc["counts"]["crownsTooTall"]
+            crowns["count"] + doc["droppedCrowns"]["count"] + doc["counts"]["crownsTooTall"]
         )
         assert understory.protected_species_in(doc) == []
         assert json.loads(json.dumps(doc)) == doc
@@ -423,7 +430,37 @@ def test_crown_columns_are_json_friendly_and_missing_ndvi_is_null() -> None:
     sample: dict[str, Any] = vegetation.crown_columns(
         Crowns(np.array([1.0]), np.array([2.0]), np.array([3.0]), np.array([5.0]), np.array([1.0])),
         np.array([np.nan]),
+        np.array([12.0]),
     )
     assert sample["ndvi"] == [None]
     assert sample["count"] == 1
     assert json.dumps(sample)
+
+
+# --- cliff rule ---------------------------------------------------------------------------------
+
+
+def crowns_with(radius: list[float]) -> Crowns:
+    n = len(radius)
+    return Crowns(
+        x=np.arange(n, dtype=np.float64) * 10.0,
+        y=np.zeros(n),
+        z=np.zeros(n),
+        height=np.full(n, 6.0),
+        radius=np.array(radius),
+    )
+
+
+def test_on_a_cliff_a_crown_needs_more_than_the_minimum_radius_and_a_vegetation_ndvi() -> None:
+    crowns = crowns_with([0.75, 2.0, 2.0, 0.75, 2.0])
+    slope = np.array([70.0, 70.0, 70.0, 30.0, 59.9])
+    ndvi = np.array([0.5, 0.1, 0.3, 0.1, 0.1])
+    keep = vegetation.cliff_keep(crowns, slope, ndvi)
+    # min radius on a cliff, bare on a cliff, fine on a cliff, any crown off a cliff, just under 60
+    assert keep.tolist() == [False, False, True, True, True]
+
+
+def test_a_cliff_crown_without_a_measured_ndvi_is_dropped() -> None:
+    crowns = crowns_with([2.0])
+    keep = vegetation.cliff_keep(crowns, np.array([80.0]), np.array([np.nan]))
+    assert keep.tolist() == [False]

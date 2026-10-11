@@ -90,6 +90,13 @@ NDVI_ABSENT_THRESHOLD = 0.07
 # Crowns taller than this are LiDAR/DEM mismatches on vertical rock (4 crowns, 23-94 m, on slopes
 # of 64-88 degrees), not trees: the tallest plausible tree of the park is a pine of ~20 m.
 MAX_CROWN_HEIGHT = 25.0
+# On a cliff the LiDAR vegetation classes and the 1 m DEM disagree (the DEM smooths the wall), so
+# many "crowns" there are rock: of the 182 crowns on slopes >= 60 degrees, 102 had an NDVI under
+# 0.20 and most of the minimum-radius ones are single points. A cliff crown stays only if it is
+# wider than the minimum radius and green at least like the low vegetation of the park (median
+# NDVI 0.20, measured as for NIR_BAND above). Everything else is dropped, not demoted.
+CLIFF_SLOPE = 60.0  # degrees
+CLIFF_MIN_NDVI = 0.20
 
 type Floats = npt.NDArray[np.float64]
 type Rows = list[list[float]]
@@ -308,6 +315,20 @@ def detect_crowns(points: VegetationPoints, grid: dem.Grid) -> Crowns:
     return Crowns(x, grid.sample(x, z), z, height, radius)
 
 
+def sample_slope(slopes: Floats, grid: dem.Grid, x: Floats, z: Floats) -> Floats:
+    """DEM slope in degrees at the cell nearest to each position."""
+    rows = np.clip(np.rint((z - grid.z0) / grid.cell), 0, grid.height - 1).astype(np.intp)
+    cols = np.clip(np.rint((x - grid.x0) / grid.cell), 0, grid.width - 1).astype(np.intp)
+    return np.asarray(slopes[rows, cols], dtype=np.float64)
+
+
+def cliff_keep(crowns: Crowns, slope: Floats, ndvi: Floats) -> npt.NDArray[np.bool_]:
+    """False for crowns on a cliff that are not wider than the minimum radius or not green."""
+    on_cliff = slope >= CLIFF_SLOPE
+    green = (crowns.radius > MIN_CROWN_RADIUS) & (ndvi >= CLIFF_MIN_NDVI)  # NaN is False
+    return np.asarray(~on_cliff | green, dtype=np.bool_)
+
+
 def crowns_in(crowns: Crowns, area: BaseGeometry) -> npt.NDArray[np.bool_]:
     return np.asarray(shapely.contains_xy(area, crowns.x, crowns.z), dtype=np.bool_)
 
@@ -397,13 +418,15 @@ def _column(values: Floats, decimals: int) -> list[float]:
     return [round(float(v), decimals) for v in values]
 
 
-def crown_columns(crowns: Crowns, ndvi: Floats) -> dict[str, Any]:
+def crown_columns(
+    crowns: Crowns, ndvi: Floats, slope: Floats, reason: list[str] | None = None
+) -> dict[str, Any]:
     """Columnar crowns: ``variant`` and ``yaw`` come from the hash of the crown cell."""
     ix = np.rint(crowns.x).astype(np.int64)
     iz = np.rint(crowns.z).astype(np.int64)
     variant = (hash_cells(ix, iz, 1) % np.uint64(VARIANT_COUNT)).astype(np.int64)
     yaw = np.floor(unit_float(hash_cells(ix, iz, 2)) * 360.0)
-    return {
+    columns: dict[str, Any] = {
         "count": len(crowns),
         "x": _column(crowns.x, 2),
         "y": _column(crowns.y, 2),
@@ -413,7 +436,11 @@ def crown_columns(crowns: Crowns, ndvi: Floats) -> dict[str, Any]:
         "variant": [int(v) for v in variant],
         "yaw": [int(v) for v in yaw],
         "ndvi": [None if math.isnan(v) else round(float(v), 3) for v in ndvi],
+        "slope": _column(slope, 1),
     }
+    if reason is not None:
+        columns["reason"] = reason
+    return columns
 
 
 @dataclass(frozen=True)
@@ -423,6 +450,9 @@ class Detection:
     area: BaseGeometry
     crowns: Crowns  # in the area, before the NDVI check
     ndvi: Floats
+    slope: Floats
+    absent: npt.NDArray[np.bool_]
+    cliff: npt.NDArray[np.bool_]
     kept: npt.NDArray[np.bool_]
     pilot_reference: int
     pilot_park: int
@@ -452,13 +482,19 @@ def detect(threshold: float = NDVI_ABSENT_THRESHOLD) -> Detection:
     with ortho.open_ortho(ortho.locate_ortho().path) as src:
         raster = read_ndvi(src, (x_min, z_min, x_max, z_max))
     ndvi = crown_ndvi(raster, crowns)
-    kept = present_mask(ndvi, threshold)
+    slope = sample_slope(dem.slope_degrees(grid), grid, crowns.x, crowns.z)
+    absent = ~present_mask(ndvi, threshold)
+    cliff = ~absent & ~cliff_keep(crowns, slope, ndvi)
+    kept = ~absent & ~cliff
     band = pilot_band(route)
     in_band = crowns_in(crowns, band)
     return Detection(
         area=area,
         crowns=crowns,
         ndvi=ndvi,
+        slope=slope,
+        absent=absent,
+        cliff=cliff,
         kept=kept,
         pilot_reference=len(pilot_reference_crowns(points, grid, band)),
         pilot_park=int(in_band.sum()),
@@ -504,12 +540,22 @@ def analysis_report(found: Detection, threshold: float) -> str:
         f"threshold {threshold}: {absent} absent of {len(crowns)} "
         f"({absent_band} of {int(in_band.sum())} in the pilot band)"
     )
+    lines.append(
+        "slope of the analysed crowns (degrees): n / dropped by NDVI / dropped by cliff rule"
+    )
+    for low, high in ((0.0, 30.0), (30.0, 50.0), (50.0, 60.0), (60.0, 70.0), (70.0, 91.0)):
+        band_mask = (found.slope >= low) & (found.slope < high)
+        lines.append(
+            f"  {low:3.0f}..{high:3.0f} {int(band_mask.sum()):5d} "
+            f"{int((band_mask & found.absent).sum()):5d} {int((band_mask & found.cliff).sum()):5d}"
+        )
     return "\n".join(lines)
 
 
 def document(found: Detection, understory_doc: dict[str, Any], threshold: float) -> dict[str, Any]:
     kept = found.crowns.select(found.kept)
-    absent = found.crowns.select(~found.kept)
+    gone = ~found.kept
+    reason = ["ndvi" if a else "cliff" for a in found.absent[gone]]
     return {
         "licence": trail.LICENCE,
         "attribution": [
@@ -535,6 +581,8 @@ def document(found: Detection, understory_doc: dict[str, Any], threshold: float)
             "around the route",
             "ndviBand": {"red": RED_BAND, "nir": NIR_BAND},
             "ndviAbsentThreshold": threshold,
+            "cliff": f"on slopes >= {CLIFF_SLOPE:.0f} degrees a crown needs a radius over "
+            f"{MIN_CROWN_RADIUS} m and NDVI >= {CLIFF_MIN_NDVI}, else it is dropped",
             "seed": SEED,
             "treeShape": "generated (blender/pine.py), not measured: only position, height and "
             "radius come from the LiDAR",
@@ -543,14 +591,17 @@ def document(found: Detection, understory_doc: dict[str, Any], threshold: float)
             "crownsDetected": len(found.crowns) + found.implausible,
             "crownsTooTall": found.implausible,
             "crownsKept": len(kept),
-            "crownsAbsent": len(absent),
+            "crownsAbsent": int(found.absent.sum()),
+            "crownsCliff": int(found.cliff.sum()),
             "pilotBandReference": found.pilot_reference,
             "pilotBandPark": found.pilot_park,
             "pilotBandKept": found.pilot_kept,
         },
         "variants": VARIANT_COUNT,
-        "crowns": crown_columns(kept, found.ndvi[found.kept]),
-        "absentCrowns": crown_columns(absent, found.ndvi[~found.kept]),
+        "crowns": crown_columns(kept, found.ndvi[found.kept], found.slope[found.kept]),
+        "droppedCrowns": crown_columns(
+            found.crowns.select(gone), found.ndvi[gone], found.slope[gone], reason
+        ),
         "understory": understory_doc,
     }
 
