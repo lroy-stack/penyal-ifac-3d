@@ -71,7 +71,7 @@ async function waitForSettledTerrain(page: Page, tier: Case["tier"]): Promise<Ap
     }
     return state.frames - reference.frames >= SETTLE_FRAMES;
   };
-  await expect.poll(settled, { timeout: 240_000, intervals: [500] }).toBe(true);
+  await expect.poll(settled, { timeout: 480_000, intervals: [500] }).toBe(true);
   return readState(page);
 }
 
@@ -96,8 +96,9 @@ test.describe("real terrain along the Ruta Roja", () => {
 
   for (const { id, anchor, tier } of CASES) {
     test(`renders settled terrain at ${id}`, async ({ page }) => {
-      // The high tier shades every pixel with the terrain patch, which is slow in SwiftShader.
-      test.setTimeout(600_000);
+      // The high tier shades every pixel with the terrain patch, which is slow in SwiftShader
+      // (a frame every 3 s on a busy machine).
+      test.setTimeout(900_000);
       const errors: string[] = [];
       page.on("console", (msg) => {
         if (msg.type() === "error") errors.push(msg.text());
