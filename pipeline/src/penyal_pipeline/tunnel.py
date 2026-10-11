@@ -47,7 +47,7 @@ STATUS_APPROXIMATE = "approximate"
 LIDAR_GROUND_RADIUS = 2.0  # metres from the approach path
 NEAR_RADII = (3.0, 5.0)  # metres from a portal, on its outer side
 LIDAR_WINDOW = 70.0  # metres around the tunnel read from the point clouds
-SHELL_SKIN = 0.25  # metres: the finest terrain LOD error, so the shell stays under every LOD0 mesh
+SHELL_SKIN = 0.0  # metres under the DEM; a positive skin opens a see-through crack at the rim
 DRIFT_TOLERANCE = 0.011  # curated evidence is rounded to centimetres
 
 type Floats = npt.NDArray[np.float64]
