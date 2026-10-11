@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
-import { buildCredits } from "../src/ui/creditsData";
-import { DEFAULT_LOCALE, STRINGS } from "../src/ui/strings";
+import { buildCredits } from "../src/ui/creditsData.ts";
+import { DEFAULT_LOCALE, STRINGS } from "../src/ui/strings.ts";
 
 const CREDITS_MODULE = "virtual:credits";
 const RESOLVED_CREDITS_MODULE = `\0${CREDITS_MODULE}`;

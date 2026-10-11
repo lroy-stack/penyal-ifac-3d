@@ -80,7 +80,16 @@ export function dataUrlToBuffer(dataUrl: string): Buffer {
   return Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
 }
 
-/** Waits until the app has published `window.__appState` and rendered a few frames. */
+/**
+ * Waits until the walk is enabled (`ready`: terrain visible, player created) and a few frames
+ * have been rendered. The finer tiles stream in right after the first step and hitch the frames
+ * while they parse, so checks that need a steady frame rate should wait for simulated time
+ * (`player.elapsed`), not wall-clock time.
+ */
 export async function waitForApp(page: Page, timeout = 90_000): Promise<void> {
-  await page.waitForFunction(() => (window.__appState?.frames ?? 0) > 3, undefined, { timeout });
+  await page.waitForFunction(
+    () => window.__appState?.ready === true && window.__appState.frames > 3,
+    undefined,
+    { timeout },
+  );
 }

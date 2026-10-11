@@ -7,7 +7,11 @@ export type TunnelStatus = TerrainStatus;
 
 /** Snapshot published on `window.__appState` for automated checks (Playwright, manual console). */
 export type AppState = {
-  /** True once the first frame has been rendered. */
+  /**
+   * True once the terrain is visible and the visitor can walk: the player exists, which happens
+   * only after the far mesh and the coarse tiles around the start are showing (or the terrain
+   * is missing or failed for good). Not merely "a frame was rendered".
+   */
   ready: boolean;
   frames: number;
   player: {
@@ -33,6 +37,8 @@ export type AppState = {
   camera: { x: number; y: number; z: number };
   tunnel: { status: TunnelStatus; message: string | null; meshLoaded: boolean };
   autowalk: { active: boolean; target: string | null; progress: number };
+  /** Milliseconds since navigation start (performance.now) at which each loading milestone was reached. */
+  loading: { terrainVisibleMs: number | null; readyMs: number | null };
   /** Test-only simulation speed (`?timescale=N`); 1 in normal use. */
   timescale: number;
   /** p95 of the raw requestAnimationFrame interval (ms), null before the first measured frame. */
@@ -70,6 +76,7 @@ export function createAppState(): AppState {
     camera: { x: 0, y: 0, z: 0 },
     tunnel: { status: "loading", message: null, meshLoaded: false },
     autowalk: { active: false, target: null, progress: 0 },
+    loading: { terrainVisibleMs: null, readyMs: null },
     timescale: 1,
     frameTimeP95Ms: null,
     frameStats: null,

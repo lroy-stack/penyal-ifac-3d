@@ -4,6 +4,7 @@ import { expect, type Page, test } from "@playwright/test";
 import type { AppState } from "../src/appState";
 import { PolygonCorridor, QuantizedHeightField } from "../src/world/ground";
 import { parseTrail } from "../src/world/trail";
+import { waitForApp } from "./support/frames";
 
 const GENERATED = resolve(import.meta.dirname, "../public/assets/generated");
 
@@ -44,11 +45,7 @@ function collectErrors(page: Page): string[] {
 test("starts grounded at the turnstile and walks inside the corridor", async ({ page }, info) => {
   const errors = collectErrors(page);
   await page.goto("/?debug=trail");
-  await expect
-    .poll(async () => (await readState(page)).ready && (await readState(page)).frames, {
-      timeout: 45_000,
-    })
-    .toBeGreaterThan(3);
+  await waitForApp(page);
 
   const start = await readState(page);
   const terrainTiles = start.terrain.status === "ready";
@@ -75,6 +72,15 @@ test("starts grounded at the turnstile and walks inside the corridor", async ({ 
     await page.waitForTimeout(500);
     samples.push(await readState(page));
   }
+  // The finer tiles stream in while the walk starts and slow the frames, so wait for a second of
+  // simulated time rather than trusting the wall clock.
+  await expect
+    .poll(async () => (await readState(page)).player.elapsed - start.player.elapsed, {
+      timeout: 60_000,
+    })
+    .toBeGreaterThanOrEqual(1);
+  const last = await readState(page);
+  samples.push(last);
   await page.keyboard.up("KeyW");
 
   for (const sample of samples) {

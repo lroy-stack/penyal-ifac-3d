@@ -1,7 +1,7 @@
 import { rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vitest/config";
-import { creditsModule, htmlStrings } from "./vite/plugins";
+import { creditsModule, htmlStrings } from "./vite/plugins.ts";
 
 /** The asset spike is a dev-only fixture; it must not ship in `dist`. */
 function excludeSpikeAssets(): Plugin {

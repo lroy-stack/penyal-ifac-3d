@@ -34,10 +34,13 @@ test.describe("auto-walk controls", () => {
     await expect.poll(async () => (await readState(page)).autowalk.active).toBe(true);
     expect((await readState(page)).autowalk.target).toBe("summit");
     await expect
-      .poll(async () => {
-        const { x, z } = (await readState(page)).player;
-        return Math.hypot(x - start.player.x, z - start.player.z);
-      })
+      .poll(
+        async () => {
+          const { x, z } = (await readState(page)).player;
+          return Math.hypot(x - start.player.x, z - start.player.z);
+        },
+        { timeout: 60_000 },
+      )
       .toBeGreaterThan(2);
 
     await page.keyboard.press("KeyP");
