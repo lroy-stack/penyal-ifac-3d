@@ -10,6 +10,7 @@ of OSM, and the three plants are generic stand-ins: no protected species is repr
 """
 
 import json
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -19,7 +20,7 @@ import numpy.typing as npt
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from penyal_pipeline import dem, trail
+from penyal_pipeline import dem, surfaces, tiles, trail
 from penyal_pipeline.cellhash import hash_cells, unit_float
 
 if TYPE_CHECKING:
@@ -77,6 +78,7 @@ MODELS = (
 TALL, LOW, GRASS = 0, 1, 2
 
 type Floats = npt.NDArray[np.float64]
+type Reject = Callable[[Floats, Floats], npt.NDArray[np.bool_]]  # positions -> True to drop
 
 
 def model_description(model: Model) -> dict[str, Any]:
@@ -92,8 +94,55 @@ def model_description(model: Model) -> dict[str, Any]:
     }
 
 
+HARDSTANDING_LANDUSE = frozenset(
+    {"brownfield", "construction", "commercial", "retail", "industrial", "garages", "railway"}
+)
+AREA_HIGHWAYS = frozenset({"pedestrian", "footway", "service", "living_street", "residential"})
+
+
+def is_hardstanding(tags: dict[str, str]) -> bool:
+    """A closed way that is paved or built-over ground: parking, a pitch, a pedestrian area
+    (``highway`` with ``area=yes``) or hardstanding landuse. Gardens, scrub and sand are not."""
+    if tags.get("amenity") == "parking" or tags.get("leisure") == "pitch":
+        return True
+    if tags.get("landuse") in HARDSTANDING_LANDUSE:
+        return True
+    return tags.get("area") == "yes" and tags.get("highway") in AREA_HIGHWAYS
+
+
+class SurfaceCover:
+    """The E1 surface masks (``surfaces``: asphalt, paving, cobblestone, compacted earth) held in
+    memory per near tile, to ask whether a position is on any painted surface."""
+
+    def __init__(self, ways: list[surfaces.SurfaceWay]) -> None:
+        self.masks: dict[tuple[int, int], npt.NDArray[np.uint8]] = {}
+        for i, j in tiles.near_tiles():
+            near = [w for w in ways if surfaces._touches(w, surfaces.tile_rect(i, j))]
+            if not near:
+                continue
+            mask = surfaces.rasterise_tile(near, i, j)
+            if mask.any():
+                self.masks[(i, j)] = mask
+
+    def covered(self, x: npt.ArrayLike, z: npt.ArrayLike) -> npt.NDArray[np.bool_]:
+        x_a, z_a = np.asarray(x, dtype=np.float64), np.asarray(z, dtype=np.float64)
+        out = np.zeros(x_a.shape, dtype=np.bool_)
+        for (i, j), mask in self.masks.items():
+            rect = surfaces.tile_rect(i, j)
+            col = np.floor((x_a - rect.x_min) / surfaces.CELL_SIZE).astype(np.int64)
+            row = np.floor((z_a - rect.z_min) / surfaces.CELL_SIZE).astype(np.int64)
+            inside = (col >= 0) & (col < mask.shape[1]) & (row >= 0) & (row < mask.shape[0])
+            out[inside] |= mask[row[inside], col[inside]].any(axis=1)
+        return out
+
+
+def surface_cover(osm: trail.OsmData) -> SurfaceCover:
+    ways, _ = surfaces.select_ways(osm)
+    return SurfaceCover(ways)
+
+
 def exclusion_zone(osm: trail.OsmData, trail_path: Path) -> BaseGeometry:
-    """Where no understory goes: the corridor, OSM paths and roads, and OSM buildings."""
+    """Where no understory goes: the corridor, OSM paths, roads, buildings, hardstanding."""
     corridor = shapely.Polygon(
         json.loads(trail_path.read_text(encoding="utf-8"))["corridor"]["polygon"]
     )
@@ -103,7 +152,10 @@ def exclusion_zone(osm: trail.OsmData, trail_path: Path) -> BaseGeometry:
         if len(nodes) < 2:
             continue
         highway = way.tags.get("highway")
-        if highway is not None:
+        closed = len(nodes) >= 4 and way.nodes[0] == way.nodes[-1]
+        if closed and is_hardstanding(way.tags):
+            zones.append(shapely.Polygon(nodes))
+        elif highway is not None:
             clearance = FOOTPATH_CLEARANCE if highway in FOOTPATH_HIGHWAYS else ROAD_CLEARANCE
             zones.append(shapely.LineString(nodes).buffer(clearance, quad_segs=4))
         elif "building" in way.tags and len(nodes) >= 4 and way.nodes[0] == way.nodes[-1]:
@@ -177,7 +229,11 @@ def candidates(cells: list[Cell]) -> dict[str, Floats]:
 
 
 def instances(
-    points: "VegetationPoints", grid: dem.Grid, area: BaseGeometry, exclusion: BaseGeometry
+    points: "VegetationPoints",
+    grid: dem.Grid,
+    area: BaseGeometry,
+    exclusion: BaseGeometry,
+    rejects: Sequence[Reject] = (),
 ) -> dict[str, Any]:
     """The understory instances (columnar), inside ``area`` and outside ``exclusion``."""
     found = candidates(summarise_cells(points))
@@ -188,6 +244,8 @@ def instances(
     ground = grid.sample(x, z)
     ok = np.asarray(shapely.contains_xy(area, x, z), dtype=np.bool_)
     ok &= ~np.asarray(shapely.contains_xy(exclusion, x, z), dtype=np.bool_)
+    for reject in rejects:
+        ok &= ~reject(x, z)
     ok &= ground >= dem.SEA_LEVEL_TOLERANCE
     slope = dem.slope_at(dem.slope_degrees(grid), grid, x, z)
     habitat = (ground >= SILENE_BAND[0]) & (ground <= SILENE_BAND[1])
@@ -211,14 +269,20 @@ def instances(
 
 
 def place(
-    points: "VegetationPoints", grid: dem.Grid, area: BaseGeometry, exclusion: BaseGeometry
+    points: "VegetationPoints",
+    grid: dem.Grid,
+    area: BaseGeometry,
+    exclusion: BaseGeometry,
+    rejects: Sequence[Reject] = (),
 ) -> dict[str, Any]:
     """The understory block of ``vegetation.json``: the models and their instances."""
     return {
         "models": [model_description(m) for m in MODELS],
-        **instances(points, grid, area, exclusion),
+        **instances(points, grid, area, exclusion, rejects),
         "keepNote": "an instance is drawn when keep < 100 * density of the quality tier",
-        "excluded": "corridor (ADR 0006) + clearance, OSM highways, OSM buildings",
+        "excluded": "corridor (ADR 0006) + clearance, OSM highways, OSM buildings, OSM parking / "
+        "pedestrian areas / pitches / hardstanding landuse, every pixel of the E1 surface masks, "
+        "cliffs of the Silene band",
     }
 
 

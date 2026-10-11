@@ -31,6 +31,7 @@ RAW_FILES = {
     "polyhaven-pine-tree-01-bark-diff-1k": "bark_diff.jpg",
 }
 TRAIL_JSON = Path("app") / "public" / "assets" / "generated" / "trail.json"
+SURFACES_MANIFEST = Path("app") / "public" / "assets" / "generated" / "surfaces" / "manifest.json"
 ALL_JSON = {
     "terrain/manifest.json",
     "terrain/collision.json",
@@ -80,6 +81,8 @@ def repo(tmp_path: Path) -> Path:
     curated.write_text(TOML_TEXT, encoding="utf-8")
     (root / TRAIL_JSON).parent.mkdir(parents=True)
     (root / TRAIL_JSON).write_text('{"route":{"segments":[]}}', encoding="utf-8")
+    (root / SURFACES_MANIFEST).parent.mkdir(parents=True)
+    (root / SURFACES_MANIFEST).write_text('{"classes":[]}', encoding="utf-8")
     write_script(root / "tools" / "bin" / "ktx", "ktx version: v9.8.7")
     write_script(root / "node_modules" / ".bin" / "gltf-transform", "1.2.3")
     return root
@@ -274,6 +277,16 @@ class TestVerify:
         shas["polyhaven-pine-tree-01-twig-alpha-1k"] = sha("other alpha")
         write_lock(repo, shas)
         assert flagged(provenance.verify_generated(assets, repo)) == {"vegetation/pine.json"}
+
+    def test_the_vegetation_records_the_surface_masks_it_avoided(
+        self, repo: Path, assets: Path
+    ) -> None:
+        listed = artefacts.provenance("vegetation", repo)["inputs"]
+        assert any(i["file"] == SURFACES_MANIFEST.as_posix() for i in listed)
+        (repo / SURFACES_MANIFEST).write_text('{"classes":["asphalt"]}', encoding="utf-8")
+        problems = provenance.verify_generated(assets, repo)
+        assert flagged(problems) == {"vegetation.json"}
+        assert "surfaces/manifest.json" in problems[0].message
 
     def test_a_lidar_tile_change_flags_only_the_vegetation(self, repo: Path, assets: Path) -> None:
         shas = {source_id: sha(source_id) for source_id in RAW_FILES}

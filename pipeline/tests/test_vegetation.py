@@ -12,7 +12,7 @@ from conftest import build_marks, raw_marks
 from rasterio.transform import from_origin
 from shapely.geometry.base import BaseGeometry
 
-from penyal_pipeline import budget, dem, ortho, provenance, trail, understory, vegetation
+from penyal_pipeline import budget, dem, ortho, provenance, surfaces, trail, understory, vegetation
 from penyal_pipeline.cellhash import hash_cells, unit_float
 from penyal_pipeline.dem import Grid
 from penyal_pipeline.geo import ORIGIN_E, ORIGIN_N
@@ -416,8 +416,7 @@ class TestWithData:
     ) -> None:
         """The gate: worst view all around, a viewpoint every 5 m along the route and over the
         corridor (its plazas included). It fails the build when the budget is exceeded."""
-        exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
-        shrubs = understory.place(found.points, found.grid, found.area, exclusion)
+        shrubs = vegetation.place_understory(found)
         costs = vegetation.tier_budget(found, shrubs)
         for name, tier in budget.TIERS.items():
             cost = costs[name]
@@ -429,8 +428,7 @@ class TestWithData:
     def test_the_document_records_the_budget_assumptions_and_their_result(
         self, found: vegetation.Detection
     ) -> None:
-        exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
-        shrubs = understory.place(found.points, found.grid, found.area, exclusion)
+        shrubs = vegetation.place_understory(found)
         block = vegetation.budget_block(vegetation.tier_budget(found, shrubs))
         assert block["tiers"]["medium"]["treeLodM"] == [30.0, 70.0, 120.0]
         assert block["tiers"]["high"]["treeLodM"] == [30.0, 70.0, 200.0]
@@ -448,8 +446,7 @@ class TestWithData:
     def test_the_document_is_complete_and_has_no_protected_species(
         self, found: vegetation.Detection
     ) -> None:
-        exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
-        shrubs = understory.place(found.points, found.grid, found.area, exclusion)
+        shrubs = vegetation.place_understory(found)
         doc = vegetation.document(found, shrubs, vegetation.NDVI_ABSENT_THRESHOLD)
         crowns = doc["crowns"]
         assert doc["counts"]["crownsKept"] == crowns["count"] == len(crowns["x"])
@@ -464,8 +461,7 @@ class TestWithData:
     def test_no_understory_on_the_corridor_nor_on_buildings(
         self, found: vegetation.Detection
     ) -> None:
-        exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
-        shrubs = understory.place(found.points, found.grid, found.area, exclusion)
+        shrubs = vegetation.place_understory(found)
         assert shrubs["count"] > 1000
         x, z = np.array(shrubs["x"]), np.array(shrubs["z"])
         corridor = shapely.Polygon(
@@ -475,11 +471,29 @@ class TestWithData:
         assert set(shrubs["model"]) <= set(range(len(understory.MODELS)))
         assert [m["id"] for m in shrubs["models"]] == ["lentisc", "rosemary", "grass"]
 
+    def test_no_understory_stands_on_a_surface_mask_or_a_parking_area(
+        self, found: vegetation.Detection
+    ) -> None:
+        shrubs = vegetation.place_understory(found)
+        x, z = np.array(shrubs["x"]), np.array(shrubs["z"])
+        assert len(x) > 1000
+        assert len(found.cover.masks) > 3  # E1 painted several near tiles
+        assert not found.cover.covered(x, z).any()
+        hardstanding = [
+            shapely.Polygon([found.osm.xz[n] for n in way.nodes if n in found.osm.xz])
+            for way in found.osm.ways.values()
+            if way.nodes[0] == way.nodes[-1]
+            and len(way.nodes) >= 4
+            and understory.is_hardstanding(way.tags)
+        ]
+        assert len(hardstanding) >= 10  # the parking areas, pitches and brownfield of the extract
+        for polygon in hardstanding:
+            assert not shapely.contains_xy(polygon, x, z).any()
+
     def test_no_understory_stands_on_a_cliff_in_the_silene_band(
         self, found: vegetation.Detection
     ) -> None:
-        exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
-        shrubs = understory.place(found.points, found.grid, found.area, exclusion)
+        shrubs = vegetation.place_understory(found)
         x, z, y = (np.array(shrubs[k]) for k in ("x", "z", "y"))
         slope = dem.slope_at(dem.slope_degrees(found.grid), found.grid, x, z)
         low, high = understory.SILENE_BAND
@@ -488,9 +502,8 @@ class TestWithData:
         assert int(in_band.sum()) > 1000  # the rule removes the cliffs, not the band
 
     def test_the_understory_is_reproducible(self, found: vegetation.Detection) -> None:
-        exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
-        first = understory.place(found.points, found.grid, found.area, exclusion)
-        second = understory.place(found.points, found.grid, found.area, exclusion)
+        first = vegetation.place_understory(found)
+        second = vegetation.place_understory(found)
         assert first == second
 
     def test_the_ortho_has_the_bands_the_ndvi_reads(self) -> None:
@@ -1087,3 +1100,96 @@ def test_the_budget_assumptions_are_written_for_the_app() -> None:
     assert medium["understoryLodM"] == [12.0, 30.0, 60.0]
     assert medium["density"] == 0.7
     assert (medium["drawCalls"], medium["triangles"]) == (40, 250_000)
+
+
+# --- paved ground: E1's surface masks and the OSM hardstanding areas ----------------------------
+
+
+def paved_way() -> surfaces.SurfaceWay:
+    return surfaces.SurfaceWay(
+        1,
+        "footway",
+        "paving_stones",
+        "paving_stones",
+        2.0,
+        "table",
+        np.array([[540.0, -1050.0], [560.0, -1050.0]]),
+    )
+
+
+def test_a_point_on_a_surface_mask_is_covered_and_one_off_it_is_not() -> None:
+    cover = understory.SurfaceCover([paved_way()])
+    on = cover.covered(np.array([550.0, 550.0]), np.array([-1050.0, -1049.5]))
+    off = cover.covered(np.array([550.0, 570.0, 550.0]), np.array([-1046.0, -1050.0, -1048.0]))
+    assert on.tolist() == [True, True]
+    assert off.tolist() == [
+        False,
+        False,
+        False,
+    ]  # 4 m beside, 10 m past the end, 2 m beside
+
+
+def test_a_covered_point_outside_every_mask_tile_is_not_covered() -> None:
+    cover = understory.SurfaceCover([paved_way()])
+    assert cover.covered(np.array([5000.0]), np.array([5000.0])).tolist() == [False]
+
+
+def hardstanding_zone(tmp_path: Path) -> BaseGeometry:
+    square = lambda x, z: [(x, z), (x + 10, z), (x + 10, z + 10), (x, z + 10), (x, z)]  # noqa: E731
+    nodes: dict[int, tuple[float, float]] = {}
+    ways: dict[int, trail.Way] = {}
+    for k, (tags, origin) in enumerate(
+        (
+            ({"amenity": "parking"}, (0.0, 0.0)),
+            ({"highway": "pedestrian", "area": "yes"}, (30.0, 0.0)),
+            ({"leisure": "pitch"}, (60.0, 0.0)),
+            ({"landuse": "brownfield"}, (90.0, 0.0)),
+            ({"leisure": "garden"}, (120.0, 0.0)),  # grass: not hardstanding
+            (
+                {"highway": "pedestrian"},
+                (150.0, 0.0),
+            ),  # a line tag on a closed way, no area=yes
+        )
+    ):
+        ids = []
+        for n, point in enumerate(square(*origin)):
+            node_id = 100 * (k + 1) + n
+            nodes[node_id] = point
+            ids.append(node_id)
+        ids[-1] = ids[0]
+        ways[k + 1] = trail.Way(tuple(ids), tags)
+    return understory.exclusion_zone(osm_with(ways, nodes), corridor_file(tmp_path))
+
+
+def test_parking_pedestrian_areas_pitches_and_brownfield_are_excluded(
+    tmp_path: Path,
+) -> None:
+    zone = hardstanding_zone(tmp_path)
+    for x in (5.0, 35.0, 65.0, 95.0):
+        assert inside(zone, x, 5.0)
+
+
+def test_a_garden_is_not_hardstanding(tmp_path: Path) -> None:
+    zone = hardstanding_zone(tmp_path)
+    assert not inside(zone, 125.0, 5.0)
+    assert not inside(
+        zone, 155.0, 5.0
+    )  # a closed highway=pedestrian line is a loop path, not an area
+
+
+# --- rejecting positions --------------------------------------------------------------
+
+
+def test_instances_can_be_rejected_by_any_position_test() -> None:
+    area = shapely.box(-100, -100, 100, 100)
+    points = understory_on_both_sides()
+    everything = understory.instances(points, flat_grid(), area, shapely.Point(500, 500))
+    east_only = understory.instances(
+        points,
+        flat_grid(),
+        area,
+        shapely.Point(500, 500),
+        rejects=(lambda x, z: x < 0.0,),
+    )
+    assert 0 < east_only["count"] < everything["count"]
+    assert (np.array(east_only["x"]) >= 0.0).all()

@@ -605,6 +605,7 @@ class Detection:
     route: shapely.LineString
     grid: dem.Grid
     osm: trail.OsmData
+    cover: understory.SurfaceCover
 
 
 def detect(threshold: float = NDVI_ABSENT_THRESHOLD) -> Detection:
@@ -653,6 +654,7 @@ def detect(threshold: float = NDVI_ABSENT_THRESHOLD) -> Detection:
         route=route,
         grid=grid,
         osm=osm,
+        cover=understory.surface_cover(osm),
     )
 
 
@@ -865,8 +867,7 @@ def analysis_report(found: Detection, threshold: float) -> str:
             f"  {low:3.0f}..{high:3.0f} {int(band_mask.sum()):5d} "
             f"{int((band_mask & found.absent).sum()):5d} {int((band_mask & found.cliff).sum()):5d}"
         )
-    exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
-    shrubs = understory.place(found.points, found.grid, found.area, exclusion)
+    shrubs = place_understory(found)
     lines.extend(budget_lines(tier_budget(found, shrubs)))
     lines.append("crown radius (m): n / dropped by NDVI")
     for low, high in ((0.0, 1.0), (1.0, 2.0), (2.0, 3.0), (3.0, 7.0)):
@@ -876,6 +877,13 @@ def analysis_report(found: Detection, threshold: float) -> str:
             f"{int((band_mask & found.absent).sum()):5d}"
         )
     return "\n".join(lines)
+
+
+def place_understory(found: Detection) -> dict[str, Any]:
+    """The understory block for a detection: exclusion zone and the E1 surface masks applied."""
+    exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
+    rejects = (found.cover.covered,)
+    return understory.place(found.points, found.grid, found.area, exclusion, rejects)
 
 
 def kept_at_feet(found: Detection) -> tuple[Crowns, tuple[Floats, Floats], Floats]:
@@ -961,8 +969,7 @@ def run_vegetation(
 ) -> dict[str, Any]:
     """Compute and write ``vegetation.json`` with its provenance block."""
     found = detect(threshold)
-    exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
-    shrubs = understory.place(found.points, found.grid, found.area, exclusion)
+    shrubs = place_understory(found)
     doc = document(found, shrubs, threshold)
     doc["budget"] = budget_block(tier_budget(found, shrubs))
     doc.update(artefacts.provenance("vegetation"))

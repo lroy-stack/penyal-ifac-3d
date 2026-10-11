@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from penyal_pipeline import dem, ortho, trail
-from penyal_pipeline.paths import REPO_ROOT, TRAIL_GENERATED, TUNNEL_CURATED
+from penyal_pipeline.paths import REPO_ROOT, SURFACES_MANIFEST, TRAIL_GENERATED, TUNNEL_CURATED
 from penyal_pipeline.provenance import ProvenanceError, relative, sha256_file, tool_versions
 from penyal_pipeline.rawdata import locate
 
@@ -46,12 +46,15 @@ def _osm_input(root: Path) -> Input:
 
 def _vegetation_inputs(root: Path) -> list[Input]:
     trail_json = root / TRAIL_GENERATED.relative_to(REPO_ROOT)
+    surfaces_manifest = root / SURFACES_MANIFEST.relative_to(REPO_ROOT)
     return [
         *_dem_inputs(root),
         _osm_input(root),
         raw_input(ortho.ORTHO_SOURCE_ID, ortho.ORTHO_SUFFIX, root),
         *(raw_input(source_id, ".laz", root) for source_id in dem.LIDAR_SOURCE_IDS),
         {"file": relative(trail_json, root), "sha256": sha256_file(trail_json)},
+        # the surface masks the understory avoids (E1): their manifest fingerprints them
+        {"file": relative(surfaces_manifest, root), "sha256": sha256_file(surfaces_manifest)},
     ]
 
 
