@@ -35,11 +35,12 @@ from rasterio.io import DatasetReader
 from rasterio.windows import Window
 from shapely.geometry.base import BaseGeometry
 
-from penyal_pipeline import artefacts, dem, ortho, trail, understory
+from penyal_pipeline import artefacts, budget, dem, ortho, trail, understory
+from penyal_pipeline.blender import pine
 from penyal_pipeline.blender.pine import NOMINAL_HEIGHT, NOMINAL_RADIUS, VARIANT_COUNT
 from penyal_pipeline.cellhash import SEED, hash_cells, unit_float
 from penyal_pipeline.geo import ORIGIN_E, ORIGIN_N
-from penyal_pipeline.paths import GENERATED_DIR, PINE_GENERATED, TRAIL_GENERATED
+from penyal_pipeline.paths import GENERATED_DIR, TRAIL_GENERATED
 from penyal_pipeline.rawdata import locate
 
 log = logging.getLogger(__name__)
@@ -76,24 +77,36 @@ PILOT_BAND = 40.0
 RED_BAND = 1
 NIR_BAND = 4
 
-# The crown NDVI (median over the disk) has no valley to cut at: 1441 crowns, one broad mode at
-# 0.25-0.35 and a tail down to 0 (Otsu would cut at 0.225 and drop a third of them). The threshold
-# is therefore tied to the measured reference classes above: 0.07 is the 10th percentile of the
-# high vegetation of 2016 as seen in 2024, and sits above the medians of ground (0.06) and
-# buildings (0.03). A crown median below it looks more like ground or roof than canopy. It
-# excludes 54 of the 1441 crowns analysed (1 of the 185 in the pilot band);
-# ``penyal vegetation --analyse`` prints the histogram and the counts for any other threshold.
-NDVI_ABSENT_THRESHOLD = 0.07
+# The crown NDVI has no valley to cut at (one broad mode at 0.25-0.35 and a tail down to 0; Otsu
+# would cut at 0.225 and drop a third of the crowns), so the thresholds are tied to reference
+# classes measured with THE SAME ESTIMATOR as the crowns (``crown_ndvi``: best median over disks of
+# at least 1.5 m, applied to 3000 random 2016 LiDAR points per class of tile 766-4282 inside the
+# park). The estimator biases NDVI upwards by 0.04-0.06 against the apex disk alone, so the
+# values first measured with the apex disk (0.07 / 0.20) were re-derived:
+#
+#   class            p10     median  p90     (apex disk only: p10 / median)
+#   high vegetation  0.184   0.325   0.404   (0.122 / 0.296)
+#   low vegetation   0.059   0.245   0.391   (0.035 / 0.207)
+#   ground           0.027   0.122   0.288   (0.022 / 0.078)
+#   building         0.014   0.067   0.205   (0.005 / 0.042)
+#
+# A crown is absent when its NDVI is under the ground median, 0.12: no greener than bare ground
+# (between the building median and the high-vegetation p10). It excludes 124 of 1441 crowns, about
+# what the apex-disk calibration (0.07) did (128), 1 of the 185 in the pilot band. 0.18, the
+# high-vegetation p10, would exclude 261. ``penyal vegetation --analyse`` prints the histogram and
+# the counts for any other threshold.
+NDVI_ABSENT_THRESHOLD = 0.12
 NDVI_MIN_DISK = 1.5  # metres, smallest disk a crown is judged on
 NDVI_SHIFT = 1.0  # metres, apex-to-canopy offset the ortho rectification can cause
 # Crowns taller than this are LiDAR/DEM mismatches on vertical rock (4 crowns, 23-94 m, on slopes
 # of 64-88 degrees), not trees: the tallest plausible tree of the park is a pine of ~20 m.
 MAX_CROWN_HEIGHT = 25.0
 # On a cliff the LiDAR vegetation classes and the 1 m DEM disagree (the DEM smooths the wall), so
-# many "crowns" there are rock: of the 182 crowns on slopes >= 60 degrees, 102 had an NDVI under
-# 0.20 and most of the minimum-radius ones are single points. A cliff crown stays only if it is
-# wider than the minimum radius and green at least like the low vegetation of the park (median
-# NDVI 0.20, measured as for NIR_BAND above). Everything else is dropped, not demoted.
+# many "crowns" there are rock: many have an NDVI like bare ground and most of the minimum-radius
+# ones are single points (``penyal vegetation --analyse`` prints the slope breakdown). A cliff
+# crown stays only if it is wider than the minimum radius and green at least like the low
+# vegetation of the park: the median NDVI of that class with the crown estimator, 0.245 in the
+# table above. Everything else is dropped, not demoted.
 # The LiDAR gives the apex of a crown, not its trunk: a pine that grows beside the path leans
 # its crown over it (ten apexes of the pilot stretch were within 0.75 m of the path axis, 24
 # within 1.5 m). The trunk foot is therefore moved to the nearest ground outside the ADR 0006
@@ -117,7 +130,7 @@ MAX_LEAN_PER_HEIGHT = 0.6
 # vertical one by this factor at most.
 SCALE_RATIO = (0.6, 1.6)
 CLIFF_SLOPE = 60.0  # degrees
-CLIFF_MIN_NDVI = 0.20
+CLIFF_MIN_NDVI = 0.24
 
 type Floats = npt.NDArray[np.float64]
 type Rows = list[list[float]]
@@ -660,93 +673,155 @@ class ViewCost:
     calls: int  # one instanced draw per (group, level) that has an instance in view
 
 
-def estimate_view(viewer: tuple[float, float], groups: list[Group]) -> ViewCost:
-    """Triangles and draw calls of one colour pass seen from ``viewer`` in every direction."""
-    triangles = 0
-    calls = 0
+def view_costs(viewers: Floats, groups: list[Group]) -> tuple[Floats, Floats]:
+    """Triangles and draw calls of one colour pass seen from each of ``viewers`` (n, 2), looking
+    in every direction (an upper bound: a camera sees a fraction)."""
+    triangles = np.zeros(len(viewers))
+    calls = np.zeros(len(viewers))
     for group in groups:
-        distance = np.hypot(group.xz[:, 0] - viewer[0], group.xz[:, 1] - viewer[1])
-        near, mid, far = group.distances
-        levels = (
-            distance < near,
-            (distance >= near) & (distance < mid),
-            (distance >= mid) & (distance < far),
+        if len(group.xz) == 0:
+            continue
+        distance = np.hypot(
+            group.xz[None, :, 0] - viewers[:, None, 0], group.xz[None, :, 1] - viewers[:, None, 1]
         )
-        for count, cost in zip((int(m.sum()) for m in levels), group.triangles, strict=True):
+        near, mid, far = group.distances
+        counts = (
+            (distance < near).sum(axis=1),
+            ((distance >= near) & (distance < mid)).sum(axis=1),
+            ((distance >= mid) & (distance < far)).sum(axis=1),
+        )
+        for count, cost in zip(counts, group.triangles, strict=True):
             triangles += count * cost
-            calls += 1 if count else 0
-    return ViewCost(triangles, calls)
+            calls += count > 0
+    return triangles, calls
 
 
-def worst_view(route: shapely.LineString, groups: list[Group], spacing: float = 25.0) -> ViewCost:
-    """The most triangles and the most calls seen from points every ``spacing`` metres of the
-    route (an upper bound: it looks all around, the camera sees a fraction)."""
-    steps = np.arange(0.0, route.length, spacing)
-    costs = [
-        estimate_view((p.x, p.y), groups) for p in (route.interpolate(float(s)) for s in steps)
-    ]
-    return ViewCost(max(c.triangles for c in costs), max(c.calls for c in costs))
+def estimate_view(viewer: tuple[float, float], groups: list[Group]) -> ViewCost:
+    triangles, calls = view_costs(np.array([viewer], dtype=np.float64), groups)
+    return ViewCost(int(triangles[0]), int(calls[0]))
 
 
-TREE_DISTANCES = (30.0, 70.0, 120.0)  # lod0, lod1 and card end (ADR 0010 medium: 120 m)
-UNDERSTORY_DISTANCES = (12.0, 30.0, 60.0)
-MEDIUM_DENSITY = 0.7  # ADR 0010 medium tier
+def viewpoints(trail_document: dict[str, Any], spacing: float = budget.VIEWPOINT_SPACING) -> Floats:
+    """Where the camera can be: every ``spacing`` metres along each route segment and on a lattice
+    of the same spacing over the whole surface corridor (its discs hold the open plazas)."""
+    points: list[tuple[float, float]] = []
+    for segment in trail_document["route"]["segments"]:
+        line = shapely.LineString([(float(p[0]), float(p[2])) for p in segment["points"]])
+        steps = np.append(np.arange(0.0, line.length, spacing), line.length)
+        points.extend((line.interpolate(float(s)).x, line.interpolate(float(s)).y) for s in steps)
+    corridor = surface_corridor(trail_document)
+    x_min, z_min, x_max, z_max = corridor.bounds
+    grid_x, grid_z = np.meshgrid(np.arange(x_min, x_max, spacing), np.arange(z_min, z_max, spacing))
+    inside = np.asarray(shapely.contains_xy(corridor, grid_x.ravel(), grid_z.ravel()), dtype=bool)
+    lattice = np.stack([grid_x.ravel()[inside], grid_z.ravel()[inside]], axis=1)
+    return np.concatenate([np.array(points, dtype=np.float64).reshape(-1, 2), lattice])
 
 
-def _triangles(manifest: dict[str, Any], prefix: str) -> tuple[int, int, int]:
-    by_name = {m["name"]: int(m["triangles"]) for m in manifest["meshes"]}
-    return by_name[f"{prefix}_lod0"], by_name[f"{prefix}_lod1"], by_name[f"{prefix}_card"]
+def within_tier(cost: ViewCost, tier: budget.Tier) -> bool:
+    return cost.triangles <= tier.triangles and cost.calls <= tier.calls
 
 
-def budget_lines(found: "Detection", shrubs: dict[str, Any]) -> list[str]:
-    """Worst triangles and draw calls of the vegetation along the route at the medium tier."""
-    pine_json = PINE_GENERATED / "pine.json"
-    plants_json = PINE_GENERATED / "plants.json"
-    if not (pine_json.is_file() and plants_json.is_file()):
-        return ["budget: run `penyal pine` and `penyal plants` first to estimate it"]
-    pine_manifest = json.loads(pine_json.read_text(encoding="utf-8"))
-    plants_manifest = json.loads(plants_json.read_text(encoding="utf-8"))
-    feet, _, _ = kept_at_feet(found)
-    foot_x, foot_z = feet.x, feet.z
-    columns = crown_columns(feet, found.ndvi[found.kept], found.slope[found.kept])
+def mesh_triangles() -> tuple[dict[str, int], dict[str, int]]:
+    """Triangles of every pine and plant mesh, from the meshes the generators build now."""
+    from penyal_pipeline.blender import plants
+
+    pine_meshes = pine.build_meshes(pine.build_atlas())
+    plant_meshes = plants.build_meshes(plants.build_atlas())
+    return (
+        {m.name: m.triangle_count for m in pine_meshes},
+        {m.name: m.triangle_count for m in plant_meshes},
+    )
+
+
+def tier_groups(
+    found: "Detection",
+    shrubs: dict[str, Any],
+    triangles: tuple[dict[str, int], dict[str, int]],
+    tier: budget.Tier,
+) -> list[Group]:
+    """The instanced groups drawn at ``tier``: pines by variant, understory by plant."""
+    pine_tris, plant_tris = triangles
+    at_foot, _, _ = kept_at_feet(found)
+    columns = crown_columns(at_foot, found.ndvi[found.kept], found.slope[found.kept])
     keep, variant = np.array(columns["keep"]), np.array(columns["variant"])
-    limit = MEDIUM_DENSITY * 100.0
-    pine_tris = {m["name"]: int(m["triangles"]) for m in pine_manifest["meshes"]}
+    limit = tier.density * 100.0
     groups = []
     for v in range(VARIANT_COUNT):
         chosen = (variant == v) & (keep < limit)
         groups.append(
             Group(
                 f"pine_v{v}",
-                np.stack([foot_x[chosen], foot_z[chosen]], axis=1),
+                np.stack([at_foot.x[chosen], at_foot.z[chosen]], axis=1),
                 (
                     pine_tris[f"pine_v{v}_lod0"],
                     pine_tris[f"pine_v{v}_lod1"],
-                    pine_tris["pine_far_card"],
+                    pine_tris[pine.CARD_NAME],
                 ),
-                TREE_DISTANCES,
+                budget.tree_distances(tier),
             )
         )
     model = np.array(shrubs["model"])
-    shrub_keep = np.array(shrubs["keep"])
     sx, sz = np.array(shrubs["x"]), np.array(shrubs["z"])
     for index, plant in enumerate(understory.MODELS):
-        chosen = (model == index) & (shrub_keep < limit)
+        chosen = (model == index) & (np.array(shrubs["keep"]) < limit)
         groups.append(
             Group(
                 plant.id,
                 np.stack([sx[chosen], sz[chosen]], axis=1),
-                _triangles(plants_manifest, plant.id),
-                UNDERSTORY_DISTANCES,
+                tuple(plant_tris[f"{plant.id}_{level}"] for level in ("lod0", "lod1", "card")),  # type: ignore[arg-type]
+                budget.understory_distances(tier),
             )
         )
-    worst = worst_view(found.route, groups)
-    return [
-        f"budget at the medium tier (density {MEDIUM_DENSITY}, trees to {TREE_DISTANCES[2]:.0f} m, "
-        f"understory to {UNDERSTORY_DISTANCES[2]:.0f} m), worst view along the route, all around:",
-        f"  {worst.triangles:,} triangles (ADR 0010 row: 250,000) and {worst.calls} draw calls "
-        f"per colour pass (row: 40) with {len(groups)} instanced groups x 3 levels",
+    return groups
+
+
+def tier_costs(
+    found: "Detection",
+    shrubs: dict[str, Any],
+    triangles: tuple[dict[str, int], dict[str, int]],
+    points: Floats,
+) -> dict[str, ViewCost]:
+    """The worst triangles and the worst draw calls over ``points`` at every quality tier."""
+    costs = {}
+    for name, tier in budget.TIERS.items():
+        tri, calls = view_costs(points, tier_groups(found, shrubs, triangles, tier))
+        costs[name] = ViewCost(int(tri.max()), int(calls.max()))
+    return costs
+
+
+def budget_block(costs: dict[str, ViewCost]) -> dict[str, Any]:
+    """The ``budget`` block of vegetation.json: the assumptions and what they cost."""
+    return {
+        **budget.describe(),
+        "worstViewAllAround": {
+            name: {
+                "triangles": cost.triangles,
+                "drawCalls": cost.calls,
+                "within": within_tier(cost, budget.TIERS[name]),
+            }
+            for name, cost in costs.items()
+        },
+    }
+
+
+def budget_lines(costs: dict[str, ViewCost]) -> list[str]:
+    lines = [
+        f"budget (ADR 0010 vegetation row), worst view all around from viewpoints every "
+        f"{budget.VIEWPOINT_SPACING:.0f} m along the route and over the corridor:"
     ]
+    for name, cost in costs.items():
+        tier = budget.TIERS[name]
+        verdict = "within" if within_tier(cost, tier) else "OVER"
+        lines.append(
+            f"  {name:6s} {cost.triangles:>8,} triangles / {tier.triangles:,}, "
+            f"{cost.calls} calls / {tier.calls}: {verdict}"
+        )
+    return lines
+
+
+def tier_budget(found: "Detection", shrubs: dict[str, Any]) -> dict[str, ViewCost]:
+    trail_document = json.loads(TRAIL_GENERATED.read_text(encoding="utf-8"))
+    return tier_costs(found, shrubs, mesh_triangles(), viewpoints(trail_document))
 
 
 def ndvi_histogram(ndvi: Floats, edges: Floats) -> list[tuple[float, float, int]]:
@@ -791,9 +866,8 @@ def analysis_report(found: Detection, threshold: float) -> str:
             f"{int((band_mask & found.absent).sum()):5d} {int((band_mask & found.cliff).sum()):5d}"
         )
     exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
-    lines.extend(
-        budget_lines(found, understory.place(found.points, found.grid, found.area, exclusion))
-    )
+    shrubs = understory.place(found.points, found.grid, found.area, exclusion)
+    lines.extend(budget_lines(tier_budget(found, shrubs)))
     lines.append("crown radius (m): n / dropped by NDVI")
     for low, high in ((0.0, 1.0), (1.0, 2.0), (2.0, 3.0), (3.0, 7.0)):
         band_mask = (found.crowns.radius >= low) & (found.crowns.radius < high)
@@ -890,6 +964,7 @@ def run_vegetation(
     exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
     shrubs = understory.place(found.points, found.grid, found.area, exclusion)
     doc = document(found, shrubs, threshold)
+    doc["budget"] = budget_block(tier_budget(found, shrubs))
     doc.update(artefacts.provenance("vegetation"))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(doc, separators=(",", ":")) + "\n", encoding="utf-8")

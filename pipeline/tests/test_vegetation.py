@@ -12,7 +12,7 @@ from conftest import build_marks, raw_marks
 from rasterio.transform import from_origin
 from shapely.geometry.base import BaseGeometry
 
-from penyal_pipeline import dem, ortho, provenance, trail, understory, vegetation
+from penyal_pipeline import budget, dem, ortho, provenance, trail, understory, vegetation
 from penyal_pipeline.cellhash import hash_cells, unit_float
 from penyal_pipeline.dem import Grid
 from penyal_pipeline.geo import ORIGIN_E, ORIGIN_N
@@ -410,6 +410,31 @@ class TestWithData:
             dem.slope_degrees(found.grid), found.grid, found.feet.x[kept], found.feet.z[kept]
         )
         assert not (moved & (slope >= vegetation.CLIFF_SLOPE)).any()
+
+    def test_the_vegetation_stays_inside_the_adr_0010_row_of_every_tier(
+        self, found: vegetation.Detection
+    ) -> None:
+        """The gate: worst view all around, a viewpoint every 5 m along the route and over the
+        corridor (its plazas included). It fails the build when the budget is exceeded."""
+        exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
+        shrubs = understory.place(found.points, found.grid, found.area, exclusion)
+        costs = vegetation.tier_budget(found, shrubs)
+        for name, tier in budget.TIERS.items():
+            cost = costs[name]
+            assert vegetation.within_tier(cost, tier), (
+                f"{name}: {cost.triangles} triangles / {tier.triangles}, "
+                f"{cost.calls} calls / {tier.calls}"
+            )
+
+    def test_the_document_records_the_budget_assumptions_and_their_result(
+        self, found: vegetation.Detection
+    ) -> None:
+        exclusion = understory.exclusion_zone(found.osm, TRAIL_GENERATED)
+        shrubs = understory.place(found.points, found.grid, found.area, exclusion)
+        block = vegetation.budget_block(vegetation.tier_budget(found, shrubs))
+        assert block["tiers"]["medium"]["treeLodM"] == [30.0, 70.0, 120.0]
+        assert block["tiers"]["high"]["treeLodM"] == [30.0, 70.0, 200.0]
+        assert all(entry["within"] for entry in block["worstViewAllAround"].values())
 
     def test_the_pine_is_never_stretched_more_than_the_ratio(
         self, found: vegetation.Detection
@@ -1026,3 +1051,39 @@ def test_an_unmoved_crown_keeps_its_own_ground_and_always_passes() -> None:
     assert vertical.ok.tolist() == [True]
     assert vertical.foot_y[0] == pytest.approx(crowns.y[0])
     assert vertical.apex_y[0] == pytest.approx(crowns.y[0] + 8.0)
+
+
+# --- the budget gate ----------------------------------------------------------------------------
+
+
+def test_the_viewpoints_follow_the_route_and_fill_the_corridor() -> None:
+    document = {
+        "corridor": {"polygon": [[-10.0, -10.0], [110.0, -10.0], [110.0, 10.0], [-10.0, 10.0]]},
+        "route": {
+            "segments": [
+                {"id": "a", "points": [[0.0, 0.0, 0.0], [100.0, 0.0, 0.0]]},
+                {"id": "tunnel", "points": [[0.0, 0.0, 0.0], [0.0, 50.0, 0.0]]},
+            ]
+        },
+    }
+    points = vegetation.viewpoints(document, 5.0)
+    assert points.shape[1] == 2
+    on_route = points[np.isclose(points[:, 1], 0.0)]
+    assert np.diff(np.sort(on_route[:, 0])).max() <= 5.0 + 1e-9  # a viewpoint every 5 m or less
+    assert (np.abs(points[:, 1]) >= 5.0).any()  # and the wide part of the corridor is covered
+
+
+def test_a_cost_over_the_tier_row_fails_the_gate() -> None:
+    tier = budget.TIERS["medium"]
+    assert vegetation.within_tier(vegetation.ViewCost(tier.triangles, tier.calls), tier)
+    assert not vegetation.within_tier(vegetation.ViewCost(tier.triangles + 1, tier.calls), tier)
+    assert not vegetation.within_tier(vegetation.ViewCost(1, tier.calls + 1), tier)
+
+
+def test_the_budget_assumptions_are_written_for_the_app() -> None:
+    described = budget.describe()
+    medium = described["tiers"]["medium"]  # type: ignore[index]
+    assert medium["treeLodM"] == [30.0, 70.0, 120.0]
+    assert medium["understoryLodM"] == [12.0, 30.0, 60.0]
+    assert medium["density"] == 0.7
+    assert (medium["drawCalls"], medium["triangles"]) == (40, 250_000)

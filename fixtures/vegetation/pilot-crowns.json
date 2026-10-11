@@ -1,5 +1,5 @@
 {
- "what": "apex positions (local frame, ADR 0004) of the 186 crowns of the research prototype in the pilot band: 40 m around the first 421 m of the route, LiDAR 2016 points clipped to the band's bounding box (docs/research/003-inventario-datos-propios.md section 4)",
+ "what": "Regression pin, NOT research data: the apex positions (local frame, ADR 0004) of the 186 crowns that vegetation.detect_crowns found at commit 3473de6 in the pilot band (40 m round-capped around the first 421 m of the route) when the LiDAR 2016 points were first clipped to the band's bounding box, the way the research prototype counted. The research (docs/research/003-inventario-datos-propios.md section 4) states only the count, 186. The test that reads this file fails if a change to the detector moves more than 5 % of these crowns by more than a metre; regenerate it only on purpose, saying why.",
  "crowns": [
   [
    555.0,

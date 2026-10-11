@@ -29,7 +29,7 @@ import numpy.typing as npt
 import rasterio
 from rasterio.errors import NotGeoreferencedWarning
 
-from penyal_pipeline import artefacts, tiles
+from penyal_pipeline import artefacts, budget, tiles
 from penyal_pipeline.blender.spike import export_glb
 from penyal_pipeline.blender.terrain import blender_uvs, to_blender
 from penyal_pipeline.paths import PINE_BUILD, PINE_GENERATED
@@ -728,7 +728,11 @@ def manifest(meshes: list[PineMesh], atlas: Atlas, glb_bytes: int) -> dict[str, 
             }
             for mesh in meshes
         ],
-        "budget": {"lod0MaxTriangles": LOD0_MAX_TRIANGLES, "lod1MaxTriangles": LOD1_MAX_TRIANGLES},
+        "budget": {
+            "lod0MaxTriangles": LOD0_MAX_TRIANGLES,
+            "lod1MaxTriangles": LOD1_MAX_TRIANGLES,
+            **budget.describe(),
+        },
     }
 
 

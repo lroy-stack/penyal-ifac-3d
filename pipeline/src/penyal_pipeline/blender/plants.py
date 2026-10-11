@@ -25,7 +25,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from penyal_pipeline import artefacts, tiles, understory
+from penyal_pipeline import artefacts, budget, tiles, understory
 from penyal_pipeline.blender import pine
 from penyal_pipeline.blender.pine import PineMesh, Tube, Tuft, unit
 from penyal_pipeline.paths import PINE_GENERATED, PLANTS_BUILD
@@ -448,7 +448,11 @@ def manifest(meshes: list[PlantMesh], atlas: Atlas, glb_bytes: int) -> dict[str,
             {"name": m.name, "triangles": m.triangle_count, "vertices": len(m.positions)}
             for m in meshes
         ],
-        "budget": {"lod0MaxTriangles": LOD0_MAX_TRIANGLES, "lod1MaxTriangles": LOD1_MAX_TRIANGLES},
+        "budget": {
+            "lod0MaxTriangles": LOD0_MAX_TRIANGLES,
+            "lod1MaxTriangles": LOD1_MAX_TRIANGLES,
+            **budget.describe(),
+        },
         "instancing": "scale uniformly by the instance's scale (height / nominal height); y of "
         "an instance is the uncarved 1 m DEM, resample the ground on the rendered terrain",
         "notes": [

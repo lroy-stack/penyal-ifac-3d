@@ -234,3 +234,5 @@ class TestOptimised:
         }
         assert "not measured" in document["shape"]
         assert document["notes"]
+        assert document["budget"]["tiers"]["medium"]["understoryLodM"] == [12.0, 30.0, 60.0]
+        assert document["budget"]["tiers"]["high"]["distanceM"] == 200.0

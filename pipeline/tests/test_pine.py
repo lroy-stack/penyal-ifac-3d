@@ -377,3 +377,5 @@ class TestOptimisedDeterminism:
         }
         assert {"bpy", "ktx", "gltf-transform"} <= set(document["tools"])
         assert "not measured" in document["shape"]
+        assert document["budget"]["tiers"]["medium"]["treeLodM"] == [30.0, 70.0, 120.0]
+        assert document["budget"]["tiers"]["low"]["density"] == 0.35
