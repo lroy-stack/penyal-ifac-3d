@@ -1,10 +1,12 @@
 """A threaded local HTTP server with Range support and scriptable failures."""
 
 import json
+import os
 import threading
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -20,18 +22,45 @@ def pytest_configure(config: pytest.Config) -> None:
         "markers", 'slow: exercises bpy; runs by default, deselect with -m "not slow"'
     )
     config.addinivalue_line(
+        "markers", "require_data(message): fail with message (PENYAL_REQUIRE_DATA=1, data missing)"
+    )
+    config.addinivalue_line(
         "markers", "data: needs files under data/raw (penyal fetch); skipped only when absent"
     )
 
 
-def raw_marks(*patterns: str) -> list[pytest.MarkDecorator]:
-    """Marks for ``pytestmark``: ``data``, plus a skip (with reason) when a glob has no match."""
-    raw = DATA_DIR / "raw"
+def require_data() -> bool:
+    """``PENYAL_REQUIRE_DATA=1``: missing data must fail the data-dependent tests, not skip them."""
+    return os.environ.get("PENYAL_REQUIRE_DATA") == "1"
+
+
+def data_gate(missing: list[str], hint: str) -> list[pytest.MarkDecorator]:
+    """No marks when nothing is missing; else a skip, or a failure under ``PENYAL_REQUIRE_DATA``."""
+    if not missing:
+        return []
+    reason = f"{hint} is missing {missing}"
+    if require_data():
+        return [pytest.mark.require_data(f"PENYAL_REQUIRE_DATA=1 but {reason}")]
+    return [pytest.mark.skip(reason=f"{reason}; run `penyal fetch --phase 1` / `penyal dem`")]
+
+
+def raw_marks(*patterns: str, raw_dir: Path | None = None) -> list[pytest.MarkDecorator]:
+    """Marks for ``pytestmark``: ``data``, plus the gate for globs with no match in data/raw."""
+    raw = raw_dir if raw_dir is not None else DATA_DIR / "raw"
     missing = [p for p in patterns if not any(raw.glob(p))]
-    skip = pytest.mark.skipif(
-        bool(missing), reason=f"data/raw is missing {missing}; run `penyal fetch --phase 1`"
-    )
-    return [pytest.mark.data, skip]
+    return [pytest.mark.data, *data_gate(missing, "data/raw")]
+
+
+def build_marks(*files: Path) -> list[pytest.MarkDecorator]:
+    """Marks for outputs of earlier pipeline steps (``build/``), derived from data/raw."""
+    missing = [str(f) for f in files if not f.is_file()]
+    return data_gate(missing, "the build output")
+
+
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    marker = item.get_closest_marker("require_data")
+    if marker is not None:
+        pytest.fail(marker.args[0], pytrace=False)
 
 
 @dataclass

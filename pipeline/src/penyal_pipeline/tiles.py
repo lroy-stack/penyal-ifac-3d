@@ -41,7 +41,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from penyal_pipeline import dem, ortho, rtin
+from penyal_pipeline import artefacts, dem, ortho, rtin
 from penyal_pipeline.blender import terrain as blender_terrain
 from penyal_pipeline.geo import ORIGIN_E, ORIGIN_N
 from penyal_pipeline.ortho import LocalRect
@@ -587,6 +587,12 @@ def merge_manifest(existing: dict[str, Any], update: dict[str, Any]) -> dict[str
             "the DEM or the orthophoto changed since the manifest was written: "
             "run a full `penyal terrain` instead of updating tiles"
         )
+    for field in ("inputs", "tools"):
+        if existing.get(field) != update.get(field):
+            raise TerrainError(
+                f"the recorded {field} changed since the manifest was written (or it predates "
+                "provenance): run a full `penyal terrain` instead of updating tiles"
+            )
     replacements = {tile["id"]: tile for tile in update["near"]["tiles"]}
     unknown = set(replacements) - {tile["id"] for tile in existing["near"]["tiles"]}
     if unknown:
@@ -731,6 +737,7 @@ def _manifest(
             "ortho": {"id": ortho.ORTHO_SOURCE_ID, "sha256": ortho_sha},
         },
         "near": {"tileSize": NEAR_TILE_SIZE, "tiles": tiles},
+        **artefacts.provenance("terrain"),
     }
     if far_result is not None:
         far_mesh, _ = far_result

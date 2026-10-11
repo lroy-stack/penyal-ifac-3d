@@ -11,7 +11,7 @@ from conftest import raw_marks
 from rasterio.transform import from_origin
 from shapely.geometry import box
 
-from penyal_pipeline import dem, trail
+from penyal_pipeline import artefacts, dem, trail
 from penyal_pipeline.dem import DemBuild, DemError, Grid
 from penyal_pipeline.geo import to_local
 from penyal_pipeline.rawdata import locate
@@ -217,8 +217,16 @@ def test_dem_files_round_trip(tmp_path: Path) -> None:
 
 def test_collision_files_round_trip(tmp_path: Path) -> None:
     grid = _plane_grid()
-    meta = dem.write_collision(tmp_path, grid, {"id": "x"}, {"height": -3.0})
+    meta = dem.write_collision(
+        tmp_path,
+        grid,
+        {"id": "x"},
+        {"height": -3.0},
+        {"inputs": [{"file": "a", "sha256": "b"}], "tools": {"numpy": "1"}},
+    )
     assert meta["heightScale"] == 0.01
+    assert meta["inputs"] == [{"file": "a", "sha256": "b"}]
+    assert meta["tools"] == {"numpy": "1"}
     assert (tmp_path / "collision.bin").stat().st_size == grid.heights.size * 2
     loaded, stored = dem.load_collision(tmp_path)
     assert stored == json.loads((tmp_path / "collision.json").read_text(encoding="utf-8"))
@@ -343,7 +351,9 @@ class TestRealDem:
         osm = trail.load_osm(locate("osm-penyal", "osm-penyal.json").path)
         bounds = trail.walkable_bounds(osm)
         sub = dem.crop(real.grid, bounds)
-        dem.write_collision(tmp_path, sub, real.source, real.sea_fill)
+        dem.write_collision(
+            tmp_path, sub, real.source, real.sea_fill, artefacts.provenance("collision")
+        )
         assert (tmp_path / "collision.bin").stat().st_size <= 2_000_000
         loaded, _ = dem.load_collision(tmp_path)
         assert float(np.abs(loaded.heights.astype(np.float64) - sub.heights).max()) <= 0.0051

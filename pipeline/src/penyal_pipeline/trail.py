@@ -420,7 +420,11 @@ def build_anchors(
 
 
 def build_trail(
-    osm: OsmData, dem: Grid, osm_sha256: str, dem_source: dict[str, Any], tunnel: TunnelSpec
+    osm: OsmData,
+    dem: Grid,
+    osm_sha256: str,
+    dem_source: dict[str, Any],
+    tunnel: TunnelSpec,
 ) -> dict[str, Any]:
     segments = build_segments(osm, dem, tunnel)
     corridor, viewpoints = build_corridor(osm, tunnel)
@@ -474,10 +478,17 @@ def report_rows(document: dict[str, Any]) -> list[list[str]]:
 
 
 def run_trail(
-    dem: Grid, dem_source: dict[str, Any], outputs: tuple[Path, ...], tunnel: TunnelSpec
+    dem: Grid,
+    dem_source: dict[str, Any],
+    outputs: tuple[Path, ...],
+    tunnel: TunnelSpec,
+    provenance: dict[str, Any],
 ) -> dict[str, Any]:
     raw = locate(OSM_SOURCE_ID, OSM_FILE)
-    document = build_trail(load_osm(raw.path), dem, raw.sha256, dem_source, tunnel)
+    document = {
+        **build_trail(load_osm(raw.path), dem, raw.sha256, dem_source, tunnel),
+        **provenance,
+    }
     text = json.dumps(document, separators=(",", ":"), ensure_ascii=False) + "\n"
     for out in outputs:
         out.parent.mkdir(parents=True, exist_ok=True)

@@ -10,7 +10,18 @@ from pathlib import Path
 import numpy as np
 import shapely
 
-from penyal_pipeline import dem, doctor, fetch, ortho, tiles, trail, tunnel, tunnel_geometry
+from penyal_pipeline import (
+    artefacts,
+    dem,
+    doctor,
+    fetch,
+    ortho,
+    provenance,
+    tiles,
+    trail,
+    tunnel,
+    tunnel_geometry,
+)
 from penyal_pipeline.catalog import CatalogError, load_catalog, select_sources
 from penyal_pipeline.nat64 import Nat64Resolver, parse_prefix
 from penyal_pipeline.paths import (
@@ -82,7 +93,11 @@ def _cmd_dem(args: argparse.Namespace) -> int:
     features = tunnel.terrain_features(osm, build.grid, curated)
     collision = dem.crop(features.carve.apply(build.grid), bounds)
     collision_meta = dem.write_collision(
-        TERRAIN_GENERATED_DIR, collision, build.source, build.sea_fill
+        TERRAIN_GENERATED_DIR,
+        collision,
+        build.source,
+        build.sea_fill,
+        artefacts.provenance("collision"),
     )
     summit = dem.summit_cells(build.grid)
     print(
@@ -121,7 +136,9 @@ def _cmd_dem(args: argparse.Namespace) -> int:
 def _cmd_trail(args: argparse.Namespace) -> int:
     grid, meta = dem.load_dem(args.dem_dir)
     spec = tunnel.load_curated().trail_spec()
-    document = trail.run_trail(grid, meta["source"], (TRAIL_GENERATED, TRAIL_BUILD), spec)
+    document = trail.run_trail(
+        grid, meta["source"], (TRAIL_GENERATED, TRAIL_BUILD), spec, artefacts.provenance("trail")
+    )
     print(format_table(["GROUP", "OSM 2D", "2D", "3D", "ASCENT"], trail.report_rows(document)))
     print(f"anchors: {', '.join(document['anchors'])}")
     return 0
@@ -222,6 +239,15 @@ def _cmd_tunnel(args: argparse.Namespace) -> int:
             f"openings in LOD {', '.join(map(str, tiles.OPENING_LODS))})"
         )
     return 0
+
+
+def _cmd_verify_generated(args: argparse.Namespace) -> int:
+    problems = provenance.verify_generated(args.assets_dir)
+    for problem in problems:
+        print(f"FAIL {problem.artefact}: {problem.message}")
+    if not problems:
+        print(f"all {len(provenance.ARTEFACTS)} generated artefacts match their recorded inputs")
+    return 1 if problems else 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -331,6 +357,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="ETC1S quality passed to scripts/optimize.mjs (default: %(default)s)",
     )
     terrain_cmd.set_defaults(handler=_cmd_terrain)
+
+    verify_cmd = commands.add_parser(
+        "verify-generated",
+        help="check that the inputs recorded in the generated artefacts still match the sources",
+    )
+    verify_cmd.add_argument(
+        "--assets-dir",
+        type=Path,
+        default=GENERATED_DIR,
+        help="generated assets directory (default: %(default)s)",
+    )
+    verify_cmd.set_defaults(handler=_cmd_verify_generated)
     return parser
 
 
@@ -352,6 +390,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         tiles.TerrainError,
         ortho.OrthoError,
         tunnel.TunnelError,
+        provenance.ProvenanceError,
         tunnel_geometry.GeometryError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)

@@ -14,7 +14,7 @@ from typing import Any, ClassVar
 import numpy as np
 import numpy.typing as npt
 import pytest
-from conftest import raw_marks
+from conftest import build_marks, raw_marks
 from test_terrain_export import accessor, read_glb
 
 from penyal_pipeline import dem, tiles, trail, tunnel, tunnel_geometry
@@ -33,10 +33,7 @@ LIDAR_FILES = (
     "icv-lidar-2016-768-4280/*.laz",
     "icv-lidar-2016-768-4282/*.laz",
 )
-DEM_READY = (TERRAIN_BUILD_DIR / "dem.f32").is_file() and (TERRAIN_BUILD_DIR / "dem.json").is_file()
-needs_dem = pytest.mark.skipif(
-    not DEM_READY, reason="build/terrain/dem.f32 missing; run `penyal dem`"
-)
+needs_dem = build_marks(TERRAIN_BUILD_DIR / "dem.f32", TERRAIN_BUILD_DIR / "dem.json")
 needs_optimizer = pytest.mark.skipif(
     shutil.which("node") is None
     or not (REPO_ROOT / "tools" / "bin" / "ktx").exists()
@@ -72,6 +69,31 @@ def test_curated_values_are_the_agreed_approximations(curated: Curated) -> None:
     assert curated.section.height > curated.section.width
     assert "not measured" in curated.section.basis.lower()
     assert set(curated.sources) >= {"axis", "steps", "terrain", "official_text"}
+
+
+def test_the_west_approach_correction_is_recorded_with_its_evidence(curated: Curated) -> None:
+    correction = curated.west_approach
+    assert correction.half_width == 3.0
+    assert correction.cells == 39
+    assert correction.max_lowering == 13.3
+    assert any("0009" in reference for reference in correction.evidence)
+    assert any("approach_lidar_ground_median" in ref for ref in correction.evidence)
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ("half_width_m = 3.0", "half_width_m = 0.0", "half_width_m"),
+        ("cells = 39", "cells = 39.5", "cells"),
+        ("max_lowering_m = 13.3", "max_lowering_m = -1.0", "max_lowering_m"),
+        ("[corrections.west_approach]", "[corrections.other]", "west_approach"),
+    ],
+)
+def test_curated_rejects_an_incomplete_correction(
+    tmp_path: Path, old: str, new: str, message: str
+) -> None:
+    with pytest.raises(TunnelError, match=message):
+        tunnel.load_curated(edited_toml(tmp_path, old, new))
 
 
 def test_curated_feeds_the_trail(curated: Curated) -> None:
@@ -211,6 +233,8 @@ class TestDocument:
             "sources",
             "mesh",
             "source",
+            "inputs",
+            "tools",
         }
         assert document["version"] == 1
         assert document["licence"] == "ODbL-1.0"
@@ -275,7 +299,7 @@ def found(curated: Curated) -> Analysis:
 
 
 class TestEvidenceOnRealData:
-    pytestmark: ClassVar = [*raw_marks(OSM_FILE, *LIDAR_FILES), needs_dem]
+    pytestmark: ClassVar = [*raw_marks(OSM_FILE, *LIDAR_FILES), *needs_dem]
 
     def test_the_toml_evidence_is_what_the_data_gives(
         self, curated: Curated, found: Analysis
@@ -338,6 +362,20 @@ def test_merge_manifest_replaces_only_the_rebuilt_tiles_in_place() -> None:
     assert [t["lods"][0]["bytes"] for t in merged["near"]["tiles"]] == [1, 20, 3]
     assert merged["far"] == {"bytes": 7}
     assert existing["near"]["tiles"][1]["lods"][0]["bytes"] == 2, "the input is not modified"
+
+
+@pytest.mark.parametrize("field", ["inputs", "tools"])
+def test_merge_manifest_refuses_changed_or_missing_provenance(field: str) -> None:
+    existing = manifest({"t_1_-3": 1})
+    update = manifest({"t_1_-3": 2})
+    update[field] = {"bpy": "1"}
+    with pytest.raises(tiles.TerrainError, match=field):
+        tiles.merge_manifest(existing, update)
+    existing[field] = {"bpy": "2"}
+    with pytest.raises(tiles.TerrainError, match=field):
+        tiles.merge_manifest(existing, update)
+    existing[field] = {"bpy": "1"}
+    assert tiles.merge_manifest(existing, update)[field] == {"bpy": "1"}
 
 
 def test_merge_manifest_refuses_other_data_or_unknown_tiles() -> None:
@@ -465,8 +503,32 @@ def world(osm: trail.OsmData, curated: Curated) -> dict[str, Any]:
     return {"cut": cut, "raw": raw, "axis": axis, "features": features}
 
 
+class TestWestApproachCorrection:
+    pytestmark: ClassVar = [*raw_marks(OSM_FILE), *needs_dem]
+
+    def test_the_carve_reads_its_half_width_from_the_toml(
+        self, osm: trail.OsmData, tmp_path: Path
+    ) -> None:
+        grid, _ = dem.load_dem()
+        narrow = tunnel.load_curated(
+            edited_toml(tmp_path, "half_width_m = 3.0", "half_width_m = 2.0")
+        )
+        features = tunnel.terrain_features(osm, grid, narrow)
+        assert features.carve.half_width == 2.0
+
+    def test_the_recorded_cell_count_and_maximum_lowering_match_the_real_dem(
+        self, osm: trail.OsmData, curated: Curated
+    ) -> None:
+        grid, _ = dem.load_dem()
+        carved = tunnel.terrain_features(osm, grid, curated).carve.apply(grid)
+        lowering = grid.heights.astype(np.float64) - carved.heights
+        assert lowering.min() >= 0.0, "the carve only lowers"
+        assert int((lowering > 0.0).sum()) == curated.west_approach.cells
+        assert float(lowering.max()) == pytest.approx(curated.west_approach.max_lowering, abs=0.05)
+
+
 class TestTunnelAgainstTheTerrain:
-    pytestmark: ClassVar = [*raw_marks(OSM_FILE), needs_dem]
+    pytestmark: ClassVar = [*raw_marks(OSM_FILE), *needs_dem]
 
     def portal_frame(self, axis: Floats, west: bool) -> tuple[Floats, Floats]:
         """Portal point and the horizontal unit vector pointing out of the tunnel."""
@@ -643,10 +705,9 @@ def run_cli(args: list[str], seed: str) -> subprocess.CompletedProcess[str]:
 
 
 @needs_optimizer
-@needs_dem
 @pytest.mark.slow
 class TestDeterminism:
-    pytestmark: ClassVar = [*raw_marks(OSM_FILE, "icv-orto-2024-0848-7-2/*.tif")]
+    pytestmark: ClassVar = [*raw_marks(OSM_FILE, "icv-orto-2024-0848-7-2/*.tif"), *needs_dem]
 
     def test_tunnel_files_are_byte_identical_across_runs_and_hash_seeds(
         self, tmp_path: Path

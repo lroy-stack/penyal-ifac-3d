@@ -18,7 +18,7 @@ import numpy as np
 import numpy.typing as npt
 import shapely
 
-from penyal_pipeline import dem, tiles, trail
+from penyal_pipeline import artefacts, dem, tiles, trail
 from penyal_pipeline.dem import Grid
 from penyal_pipeline.geo import ORIGIN_E, ORIGIN_N
 from penyal_pipeline.paths import (
@@ -73,6 +73,16 @@ class CrossSection:
 
 
 @dataclass(frozen=True)
+class ApproachCorrection:
+    """The ADR 0009 terrain correction at the west approach: its extent and its evidence."""
+
+    half_width: float
+    cells: int
+    max_lowering: float
+    evidence: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class Curated:
     status: str
     west: PortalFloor
@@ -83,6 +93,7 @@ class Curated:
     riser: float
     riser_range: tuple[float, float]
     sources: dict[str, str]
+    west_approach: ApproachCorrection
 
     def trail_spec(self) -> trail.TunnelSpec:
         return trail.TunnelSpec(
@@ -136,6 +147,36 @@ def _portal(table: dict[str, Any], name: str) -> PortalFloor:
     )
 
 
+def _positive(table: dict[str, Any], key: str, where: str) -> float:
+    value = _number(table, key, where)
+    if value <= 0.0:
+        raise TunnelError(f"{where}.{key} must be positive")
+    return value
+
+
+def _correction(raw: dict[str, Any]) -> ApproachCorrection:
+    where = "corrections.west_approach"
+    table = raw.get("corrections", {}).get("west_approach")
+    if not isinstance(table, dict):
+        raise TunnelError(f"{where} is missing: ADR 0009 requires the correction to be recorded")
+    cells = table.get("cells")
+    if isinstance(cells, bool) or not isinstance(cells, int) or cells <= 0:
+        raise TunnelError(f"{where}.cells must be a positive integer")
+    evidence = table.get("evidence")
+    if not (
+        isinstance(evidence, list)
+        and evidence
+        and all(isinstance(item, str) and item.strip() for item in evidence)
+    ):
+        raise TunnelError(f"{where}.evidence must list the evidence references")
+    return ApproachCorrection(
+        half_width=_positive(table, "half_width_m", where),
+        cells=cells,
+        max_lowering=_positive(table, "max_lowering_m", where),
+        evidence=tuple(evidence),
+    )
+
+
 def load_curated(path: Path = TUNNEL_CURATED) -> Curated:
     """Read and validate ``data/curated/tunnel.toml``."""
     try:
@@ -174,6 +215,7 @@ def load_curated(path: Path = TUNNEL_CURATED) -> Curated:
         riser=_number(approach, "riser_m", "approach"),
         riser_range=_range(approach, "riser_range_m", "approach"),
         sources={str(k): str(v) for k, v in sources.items()},
+        west_approach=_correction(raw),
     )
 
 
@@ -437,6 +479,7 @@ def build_document(osm: trail.OsmData, curated: Curated, osm_sha256: str) -> dic
         },
         "mesh": TUNNEL_GLB,
         "source": {"id": trail.OSM_SOURCE_ID, "sha256": osm_sha256},
+        **artefacts.provenance("tunnel"),
     }
 
 
@@ -459,7 +502,7 @@ def terrain_features(osm: trail.OsmData, grid: Grid, curated: Curated) -> Terrai
     path = np.column_stack([steps_xz[climb, 0], steps_y[climb], steps_xz[climb, 1]])
     carve = Carve(
         path=path,
-        half_width=trail.TRAIL_HALF_WIDTH,
+        half_width=curated.west_approach.half_width,
         portal=tunnel_xz[0],
         outward=_outward(tunnel_xz, at_start=True),
     )

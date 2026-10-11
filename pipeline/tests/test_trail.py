@@ -9,7 +9,7 @@ import shapely
 from conftest import raw_marks
 from shapely.geometry import Point
 
-from penyal_pipeline import dem, trail
+from penyal_pipeline import artefacts, dem, trail
 from penyal_pipeline.dem import DemBuild, Grid
 from penyal_pipeline.geo import to_local
 from penyal_pipeline.rawdata import locate
@@ -324,7 +324,9 @@ def real_build() -> DemBuild:
 @pytest.fixture(scope="module")
 def built(real_build: DemBuild, tmp_path_factory: pytest.TempPathFactory) -> Doc:
     out = tmp_path_factory.mktemp("trail") / "trail.json"
-    document = trail.run_trail(real_build.grid, real_build.source, (out,), TUNNEL)
+    document = trail.run_trail(
+        real_build.grid, real_build.source, (out,), TUNNEL, artefacts.provenance("trail")
+    )
     assert json.loads(out.read_text(encoding="utf-8")) == json.loads(json.dumps(document))
     return document
 
@@ -369,6 +371,12 @@ class TestRealRouteOnTheRealDem:
         line = tunnel[0, 1] + (tunnel[-1, 1] - tunnel[0, 1]) * along / along[-1]
         assert np.abs(tunnel[:, 1] - line).max() < 2e-3
 
+    def test_records_the_inputs_and_tools_it_was_built_from(self, built: Doc) -> None:
+        files = {entry["file"] for entry in built["inputs"]}
+        assert "data/curated/tunnel.toml" in files
+        assert any(f.startswith("data/raw/osm-penyal/") for f in files)
+        assert set(built["tools"]) == {"numpy", "shapely"}
+
     def test_summit_anchor_height_is_the_dem_height(self, built: Doc) -> None:
         assert built["anchors"]["summit"]["y"] == pytest.approx(325.4, abs=1.0)
         assert built["demSource"]["id"] == "icv-mdt-2016-0848"
@@ -376,5 +384,11 @@ class TestRealRouteOnTheRealDem:
     def test_output_is_deterministic(
         self, built: Doc, real_build: DemBuild, tmp_path: Path
     ) -> None:
-        again = trail.run_trail(real_build.grid, real_build.source, (tmp_path / "t.json",), TUNNEL)
+        again = trail.run_trail(
+            real_build.grid,
+            real_build.source,
+            (tmp_path / "t.json",),
+            TUNNEL,
+            artefacts.provenance("trail"),
+        )
         assert again == built

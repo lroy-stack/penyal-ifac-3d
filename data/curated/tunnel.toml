@@ -20,6 +20,27 @@ east_blend_m = 5.0
 riser_m = 0.18
 riser_range_m = [0.15, 0.20]
 
+[corrections.west_approach]
+# ADR 0009: the only terrain edit. A 2.5D grid at the foot of the vertical wall mixes the wall
+# into the ground cells, so the last metres of the west approach sit 4-11 m above the footpath.
+# Inside a flat-ended strip around the climb to the portal (on the outer side of the portal
+# plane) heights are capped at the footpath floor. Cells already below it are untouched.
+# `cells` and `max_lowering_m` are what the strip does to the real MDT; tests/test_tunnel.py
+# (TestWestApproachCorrection) recomputes them and fails if they drift. Approximate, reversible
+# by removing this block and rebuilding.
+half_width_m = 3.0
+cells = 39
+max_lowering_m = 13.3
+evidence = [
+    "docs/adr/0009-evidence-backed-local-terrain-corrections.md",
+    "portals.west.evidence.approach_lidar_ground_median",
+    "portals.west.evidence.approach_dem_median",
+    "portals.west.evidence.approach_plus_steps",
+    "portals.west.evidence.lowest_return_within_5m",
+    "sources.steps",
+    "sources.terrain",
+]
+
 [portals.west]
 floor_m = 171.0
 range_m = [170.0, 172.5]

@@ -14,17 +14,14 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 import pytest
-from conftest import raw_marks
+from conftest import build_marks, raw_marks
 
 from penyal_pipeline import dem, rtin, tiles, tunnel
 from penyal_pipeline.paths import REPO_ROOT, TERRAIN_BUILD_DIR
 
 POINTS_PER_LOD = 2000
 LOD_LIMITS = {0: 0.5, 1: 2.0, 2: 6.0}  # plan: max error vs the DEM per LOD
-DEM_READY = (TERRAIN_BUILD_DIR / "dem.f32").is_file() and (TERRAIN_BUILD_DIR / "dem.json").is_file()
-needs_dem = pytest.mark.skipif(
-    not DEM_READY, reason="build/terrain/dem.f32 missing; run `penyal dem`"
-)
+needs_dem = build_marks(TERRAIN_BUILD_DIR / "dem.f32", TERRAIN_BUILD_DIR / "dem.json")
 needs_optimizer = pytest.mark.skipif(
     shutil.which("node") is None
     or not (REPO_ROOT / "tools" / "bin" / "ktx").exists()
@@ -33,7 +30,7 @@ needs_optimizer = pytest.mark.skipif(
 )
 
 
-pytestmark = [*raw_marks("icv-orto-2024-0848-7-2/*.tif"), needs_dem]
+pytestmark = [*raw_marks("icv-orto-2024-0848-7-2/*.tif"), *needs_dem]
 
 
 @pytest.fixture(scope="module")
@@ -203,3 +200,7 @@ def test_rerun_with_another_hash_seed_is_byte_identical(tmp_path: Path) -> None:
         for lod in tile["lods"]:
             assert (first / "out" / lod["url"]).stat().st_size == lod["bytes"]
             assert lod["triangles"] > 0
+    files = {entry["file"] for entry in manifest["inputs"]}
+    assert "data/curated/tunnel.toml" in files
+    assert any(f.startswith("data/raw/icv-orto-2024-0848-7-2/") for f in files)
+    assert {"bpy", "gltf-transform", "ktx"} <= set(manifest["tools"])

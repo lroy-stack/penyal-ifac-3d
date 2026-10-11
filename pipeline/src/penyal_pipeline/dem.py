@@ -247,12 +247,20 @@ def dequantise(
 
 
 def write_collision(
-    directory: Path, grid: Grid, source: dict[str, Any], sea_fill: dict[str, Any]
+    directory: Path,
+    grid: Grid,
+    source: dict[str, Any],
+    sea_fill: dict[str, Any],
+    provenance: dict[str, Any],
 ) -> dict[str, Any]:
-    """Write ``collision.bin`` (uint16 little-endian) and ``collision.json``."""
+    """Write ``collision.bin`` (uint16 little-endian) and ``collision.json``.
+
+    ``provenance`` is the ``inputs`` / ``tools`` block recorded in the json.
+    """
     steps, offset = quantise(grid.heights)
     meta = metadata(grid, source, sea_fill)
     meta.update({"dtype": "uint16le", "heightOffset": offset, "heightScale": QUANT_SCALE})
+    meta.update(provenance)
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "collision.bin").write_bytes(steps.astype("<u2").tobytes())
     (directory / "collision.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")

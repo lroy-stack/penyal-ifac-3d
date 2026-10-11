@@ -20,6 +20,8 @@ A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Ca
 | E2E (headless Chromium) | `pnpm --filter @penyal/app e2e` |
 | Pipeline health | `uv run --project pipeline penyal doctor` |
 | Rebuild generated data | `uv run --project pipeline penyal dem && … penyal trail && … penyal terrain` (`penyal tunnel` re-cuts only the tiles touching the portals) |
+| Generated assets up to date with their inputs | `uv run --project pipeline penyal verify-generated` (exit 1 if a manifest's recorded `inputs` no longer match) |
+| Data-dependent tests must run, not skip | `PENYAL_REQUIRE_DATA=1 uv run --project pipeline pytest -q` (default on a clean clone: they skip) |
 | Asset spike (bpy → glTF → meshopt, deterministic) | `pnpm spike`; view at `http://localhost:5173/dev/asset-viewer.html?src=<url>` (dev server only) |
 | Data (show before downloading) | `uv run --project pipeline penyal fetch --phase 1 --dry-run`, then without `--dry-run` |
 
