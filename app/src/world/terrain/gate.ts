@@ -34,8 +34,8 @@ export const INITIAL_TERRAIN_GATE: TerrainGateState = {
 };
 
 /**
- * Advances the gate by `elapsedMs` of simulated time (the loop's dt: zero while the tab is
- * hidden, so hidden time never counts). Progress (more bytes or more required tiles) restarts the
+ * Advances the gate by `elapsedMs` of real frame time (capped per frame by the caller, and zero
+ * while the tab is hidden, so hidden time never counts). Progress (more bytes or more required tiles) restarts the
  * stall clock. The outcome is not latched: a failed gate returns to `waiting` when progress
  * resumes and to `visible` as soon as the terrain shows.
  */

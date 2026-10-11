@@ -478,7 +478,9 @@ async function bootstrap(): Promise<void> {
   poster.hide();
   if (terrainView.outcome === "failed") hud.notify(t("terrainFailed"));
   else hud.notify(null);
-  setStatus(t("walkReady"));
+  setStatus(
+    terrainView.outcome === "failed" ? `${t("walkReady")} ${t("terrainFailed")}` : t("walkReady"),
+  );
   hud.showHints(coarsePointer ? t("hintTouch") : t("hintKeyboard"));
   const requestedAutoWalk = params.get("autowalk");
   if (requestedAutoWalk !== null && requestedAutoWalk !== "") startAutoWalk(requestedAutoWalk);

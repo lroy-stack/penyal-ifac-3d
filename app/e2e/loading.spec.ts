@@ -83,6 +83,8 @@ test("stops waiting and says so when the far mesh never loads", async ({ page })
   // Once the walk starts, detail tiles keep arriving. They are not the far mesh coming back, so
   // the failure must stay reported and nothing may claim the terrain is loading again.
   await expect.poll(async () => (await readState(page))?.ready, { timeout: 60_000 }).toBe(true);
+  // The stats snapshot lags a few frames: let it catch up so later bytes come from the walk.
+  await page.waitForTimeout(2_000);
   const bytesAtWalk = (await readState(page))?.terrain.stats?.bytesLoaded ?? 0;
   await expect
     .poll(async () => (await readState(page))?.terrain.stats?.bytesLoaded ?? 0, { timeout: 60_000 })
@@ -91,8 +93,10 @@ test("stops waiting and says so when the far mesh never loads", async ({ page })
   const walking = await readState(page);
   expect(walking?.terrain.status).toBe("error");
   expect(walking?.loading.terrainVisibleMs).toBeNull();
-  await expect(page.locator("#notice")).not.toContainText("Cargando");
-  await expect(page.locator("#status")).not.toContainText("Cargando");
+  await expect(page.locator("#notice")).toHaveText("El terreno no está disponible.");
+  await expect(page.locator("#status")).toHaveText(
+    "Listo. Ya puedes caminar. El terreno no está disponible.",
+  );
 });
 
 test("a failed collision field leaves only the fatal message on top, with no notice behind it", async ({
