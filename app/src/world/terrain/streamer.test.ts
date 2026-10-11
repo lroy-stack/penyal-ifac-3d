@@ -489,6 +489,30 @@ describe("createTerrainStreamer critical path", () => {
     expect(urls(requests.slice(before))).toContain("t_2_0_lod2.glb");
   });
 
+  it("gives up on the critical path when the far mesh keeps failing, even though detail requests were never launched", async () => {
+    const { streamer, requests, advance } = setup(
+      { detailEnabled: false, retryDelayMs: 10, maxRetries: 1 },
+      6,
+    );
+    const view = viewAt(128, 128);
+    streamer.update(view);
+    expect(streamer.stats().gaveUp).toBe(false);
+
+    for (let attempt = 0; attempt < 6; attempt++) {
+      for (const request of requests) {
+        if (request.signal.aborted) continue;
+        if (request.url.endsWith("far.glb")) request.reject(new Error("HTTP 500"));
+        else request.resolve();
+      }
+      await flush();
+      advance(1000);
+      streamer.update(view);
+    }
+
+    expect(streamer.stats().visible).toBe(false);
+    expect(streamer.stats().gaveUp).toBe(true);
+  });
+
   it("holds detail from the first update, so nothing else is fetched ahead of the collision field", () => {
     const { streamer, requests } = setup({ detailEnabled: false }, 6);
 

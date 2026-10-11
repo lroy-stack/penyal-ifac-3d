@@ -243,6 +243,7 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
   const displayed = new Map<string, number>();
   let bytesLoaded = 0;
   let queued = 0;
+  let gateQueued = 0;
   let lastError: string | null = null;
   let disposed = false;
   let required: readonly string[] = [];
@@ -368,6 +369,9 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
     queued = outstanding.length;
     detailTextures.settled(farEntry !== undefined && inFlight.size === 0 && queued === 0);
     const requiredSet = new Set(required);
+    gateQueued = detailEnabled
+      ? queued
+      : outstanding.filter((r) => isCritical(r, requiredSet)).length;
     for (const request of outstanding) {
       if (inFlight.size >= maxConcurrent) break;
       if (!detailEnabled && !isCritical(request, requiredSet)) continue;
@@ -397,13 +401,19 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
     const loaded = required.filter((id) => (residentLevels.get(id)?.size ?? 0) > 0).length;
     const visible = farLoaded && loaded === required.length;
     const pending = Math.max(queued, inFlight.size);
+    // While detail is held only the critical path can still make the terrain visible.
+    const requiredSet = new Set(required);
+    const gateInFlight = [...inFlight.values()].filter(
+      (flight) => detailEnabled || isCritical(flight.request, requiredSet),
+    ).length;
+    const gateOpen = Math.max(gateQueued, gateInFlight) > 0;
     return {
       resident,
       displayed: shown,
       farLoaded,
       coverage: { required: required.length, loaded },
       visible,
-      gaveUp: !visible && pending === 0 && failures.size > 0,
+      gaveUp: !visible && !gateOpen && failures.size > 0,
       bytesLoaded,
       pending,
       inFlight: inFlight.size,
