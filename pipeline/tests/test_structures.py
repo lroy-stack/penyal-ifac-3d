@@ -159,6 +159,21 @@ class TestProfile:
             structures.build_staircase(spec(), xz, 8, grid.sample)
 
 
+class TestHump:
+    def test_a_flight_stops_where_the_ground_peaks_and_never_ends_in_a_phantom_down_step(
+        self,
+    ) -> None:
+        columns = np.arange(200, dtype=np.float64)
+        rise = np.where(columns < 24, 0.2 * columns, 4.8 - 0.1 * (columns - 24))
+        grid = Grid(np.tile((100.0 + rise).astype(np.float32), (200, 1)), x0=0.0, z0=Z0, cell=1.0)
+        xz = np.array([[10.0, 0.0], [34.0, 0.0]])
+        stairs = structures.build_staircase(spec(), xz, 14, grid.sample)
+        peak_s = 24.0 - 10.0
+        assert stairs.flight_length <= peak_s + stairs.tread_depths.mean() + 0.1
+        assert stairs.top[1] == pytest.approx(100.0 + 4.8, abs=1e-3)
+        assert stairs.tread_depths.max() <= 2.5 * float(np.median(stairs.tread_depths))
+
+
 class TestMesh:
     def test_every_face_points_away_from_the_solid(self) -> None:
         stairs = straight()
@@ -315,14 +330,39 @@ class TestRealStaircases:
             assert rises == pytest.approx(np.full(stairs.step_count, stairs.riser), abs=1e-9)
             assert 0.10 < stairs.riser <= structures.PLAYER_STEP_HEIGHT
 
-    def test_every_flight_starts_and_ends_on_the_carved_dem(
+    def test_every_flight_starts_and_ends_close_to_the_carved_dem_on_its_axis(
         self, real: dict[int, Staircase], carved: Grid
     ) -> None:
-        # The flight is as high as the highest ground across its width, so its ends can sit a
-        # cross-slope above the axis (at most 0.3 m on the real flights).
         for stairs in real.values():
-            for point in (stairs.base, stairs.top):
-                assert point[1] == pytest.approx(float(carved.sample(point[0], point[2])), abs=0.3)
+            start = stairs.base[1] - float(carved.sample(stairs.base[0], stairs.base[2]))
+            end = stairs.top[1] - float(carved.sample(stairs.top[0], stairs.top[2]))
+            assert -0.01 <= start <= structures.START_OVERHANG + 1e-3, stairs.spec.id
+            assert -0.01 <= end <= structures.END_OVERHANG + 1e-3, stairs.spec.id
+
+    def test_no_tread_is_a_landing_and_the_ground_does_not_fall_behind_the_last_one(
+        self, real: dict[int, Staircase], carved: Grid
+    ) -> None:
+        for stairs in real.values():
+            # A flat stretch is real (centre-steps has one, 2.5x the mean depth; steps-10 ends on
+            # one, 2.5x); the 4.6 m slab (4x) behind a phantom down-step was the error guarded.
+            assert stairs.tread_depths.max() <= 3.0 * stairs.tread_depth
+            last = stairs.treads[-1]
+            behind = last.quad[3] + (last.quad[3] - last.quad[0])
+            ground_behind = float(carved.sample(behind[0], behind[1]))
+            # The old model dropped 0.25-0.29 m behind the last tread; the end rule allows 0.15 m.
+            assert ground_behind >= last.top - structures.END_OVERHANG - 0.01, stairs.spec.id
+
+    def test_the_published_start_and_end_are_the_real_ones(
+        self, real: dict[int, Staircase]
+    ) -> None:
+        portal = real[862108208]
+        assert portal.start_along_way > portal.spec.flight_start
+        assert portal.end_along_way == pytest.approx(
+            portal.start_along_way + portal.flight_length, abs=1e-6
+        )
+        assert portal.end_along_way <= 16.69 - portal.spec.end_margin + 1e-6
+        steps_10 = real[862108205]
+        assert steps_10.end_along_way < 11.32 - 1.0
 
     def test_no_ground_rises_above_any_tread(
         self, real: dict[int, Staircase], carved: Grid

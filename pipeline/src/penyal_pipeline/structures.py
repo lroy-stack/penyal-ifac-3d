@@ -76,6 +76,9 @@ LATERAL_SIDES = (-1.0, -0.5, 0.0, 0.5, 1.0)
 # The flight starts where the ground beside it is no higher than the axis by more than this: a
 # step cannot start inside a bank (the portal flight begins at the foot of the rock wall).
 START_OVERHANG = 0.1
+# The flight ends where the ground peaks (plus one nominal tread) and may stand at most this much
+# above the axis there: the highest ground across the width is not the walking surface.
+END_OVERHANG = 0.15
 PROFILE_SPACING = 0.05  # metres along the flight between samples of the ground profile
 CLEARANCE_SPACING = 0.1  # metres between the samples that check the ground under each tread
 # The ground under a tread may exceed its top by this much: the check samples a bilinear DEM
@@ -136,6 +139,8 @@ class Staircase:
     tread_depths: npt.NDArray[np.float64]
     clearance: npt.NDArray[np.float64]  # per tread: top minus the highest ground under it
     flight_length: float
+    start_along_way: float  # metres along the OSM way, in its own direction
+    end_along_way: float
     base: tuple[float, float, float]
     top: tuple[float, float, float]
     treads: list[Tread]
@@ -371,7 +376,8 @@ def build_staircase(
     """
     if step_count < 1:
         raise StructuresError(f"{spec.id}: a flight needs at least one step")
-    length = float(_along(xz)[-1]) - spec.end_margin
+    total = float(_along(xz)[-1])
+    length = total - spec.end_margin
     if not 0.0 <= spec.flight_start < length:
         raise StructuresError(f"{spec.id}: the flight starts outside the {length:.1f} m way")
 
@@ -397,7 +403,19 @@ def build_staircase(
         raise StructuresError(f"{spec.id}: the ground beside the flight never clears its width")
     samples, profile = samples[clear[0] :], profile[clear[0] :]
     first = float(samples[0])
-    base_y, top_y = float(profile[0]), float(np.maximum.accumulate(profile)[-1])
+    peak = int(np.argmax(profile))
+    nominal = (float(samples[peak]) - first) / step_count
+    stop = min(float(samples[peak]) + nominal, float(samples[-1]))
+    keep = int(np.searchsorted(samples, stop, side="right"))
+    samples, profile = samples[:keep], profile[:keep]
+    base_y, top_y = float(profile[0]), float(profile[peak])
+    stop_axis = _points_at(line, along, samples[-1:])
+    end_overhang = top_y - float(dem_sample(stop_axis[:, 0], stop_axis[:, 1])[0])
+    if end_overhang > END_OVERHANG:
+        raise StructuresError(
+            f"{spec.id}: the flight would end {end_overhang:.2f} m above the axis ground "
+            f"(limit {END_OVERHANG} m)"
+        )
     rise = top_y - base_y
     if rise <= 0.0:
         raise StructuresError(f"{spec.id}: the flight has no rise ({rise:.3f} m)")
@@ -449,7 +467,9 @@ def build_staircase(
         riser=riser,
         tread_depths=tread_depths,
         clearance=clearance,
-        flight_length=length - first,
+        flight_length=float(arcs[-1] - arcs[0]),
+        start_along_way=float(total - arcs[-1] if reversed_way else arcs[0]),
+        end_along_way=float(total - arcs[0] if reversed_way else arcs[-1]),
         base=(float(centres[0, 0]), base_y, float(centres[0, 1])),
         top=(float(centres[-1, 0]), top_y, float(centres[-1, 1])),
         treads=treads,
@@ -541,7 +561,10 @@ def _staircase_entry(stairs: Staircase, osm: OsmData) -> dict[str, Any]:
         },
         "width": STAIR_WIDTH,
         "flightLength": _mm(stairs.flight_length),
-        "flightStartAlongWay": stairs.spec.flight_start,
+        "flightStartAlongWay": _mm(stairs.start_along_way),
+        "flightEndAlongWay": _mm(stairs.end_along_way),
+        "requestedFlightStart": stairs.spec.flight_start,
+        "endMargin": stairs.spec.end_margin,
         "base": [_mm(v) for v in stairs.base],
         "top": [_mm(v) for v in stairs.top],
         "orientation": {
