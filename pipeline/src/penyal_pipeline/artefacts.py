@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any
 
-from penyal_pipeline import dem, ortho, trail
+from penyal_pipeline import buildings, dem, ortho, trail
 from penyal_pipeline.paths import REPO_ROOT, SURFACES_MANIFEST, TRAIL_GENERATED, TUNNEL_CURATED
 from penyal_pipeline.provenance import ProvenanceError, relative, sha256_file, tool_versions
 from penyal_pipeline.rawdata import locate
@@ -77,6 +77,17 @@ def _inputs(kind: str, root: Path) -> list[Input]:
             return [raw_input(*source, root) for source in PINE_TEXTURES]
         case "plants":
             return [raw_input(*source, root) for source in PLANT_TEXTURES]
+        case "buildings":
+            # the footprints (OSM), the DEM they stand on and the roof points (the one LiDAR tile)
+            return [
+                *_dem_inputs(root),
+                _osm_input(root),
+                raw_input(buildings.LIDAR_SOURCE_ID, ".laz", root),
+                *(
+                    raw_input(source_id, buildings.TEXTURE_SUFFIX, root)
+                    for source_id, _ in buildings.TEXTURES.values()
+                ),
+            ]
         case "tunnel" | "structures":
             # the shell is clipped against the carved DEM (run_tunnel), so the DEM is an input
             return [*_dem_inputs(root), _osm_input(root), curated_input(root)]
@@ -91,6 +102,8 @@ def _tools(kind: str) -> tuple[str, ...]:
             return BLENDER_TOOLS
         case "tunnel" | "structures":
             return ("bpy", "gltf-transform", "node")
+        case "buildings":
+            return ("bpy", "gltf-transform", "ktx", "node", "numpy", "shapely", "laspy", "rasterio")
         case "collision":
             return ("numpy", "rasterio", "shapely")
         case "surfaces":

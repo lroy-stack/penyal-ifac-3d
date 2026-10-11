@@ -127,11 +127,14 @@ def build_scene(bpy: Any) -> None:
     bpy.context.scene.collection.objects.link(terrain)
 
 
-def export_glb(bpy: Any, out: Path) -> None:
+def export_glb(bpy: Any, out: Path, overrides: dict[str, Any] | None = None) -> None:
+    """Export the scene; ``overrides`` replace entries of :data:`EXPORT_OPTIONS`."""
     out.parent.mkdir(parents=True, exist_ok=True)
     # The exporter prints progress on stdout; keep stdout clean for callers.
     with contextlib.redirect_stdout(sys.stderr):
-        result = bpy.ops.export_scene.gltf(filepath=str(out), **EXPORT_OPTIONS)
+        result = bpy.ops.export_scene.gltf(
+            filepath=str(out), **{**EXPORT_OPTIONS, **(overrides or {})}
+        )
     if "FINISHED" not in result or not out.exists():
         raise RuntimeError(f"glTF export did not finish (returned {sorted(result)}).")
 

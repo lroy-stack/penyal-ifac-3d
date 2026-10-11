@@ -12,6 +12,7 @@ import shapely
 
 from penyal_pipeline import (
     artefacts,
+    buildings,
     dem,
     doctor,
     fetch,
@@ -182,6 +183,31 @@ def _cmd_structures(args: argparse.Namespace) -> int:
         f"structures.glb {report.glb_bytes} bytes, {report.triangles:,} triangles; "
         f"structures.json {report.json_bytes} bytes; constants are "
         f"{report.document['constants']['status']}"
+    )
+    return 0
+
+
+def _cmd_buildings(args: argparse.Namespace) -> int:
+    report = buildings.run_buildings(
+        args.out_dir, args.build_dir, artefacts.provenance("buildings")
+    )
+    rows = [
+        [
+            b["id"],
+            f"{b['eave']['y']:.2f}",
+            f"{b['roof']['ridgeY']:.2f}",
+            f"{b['roof']['fit']['rmse']:.2f}",
+            str(len(b["turrets"])),
+            f"{b['mesh']['triangles']:,}",
+        ]
+        for b in report.document["buildings"]
+    ]
+    print(
+        format_table(["BUILDING", "EAVE y", "RIDGE y", "FIT RMSE m", "TURRETS", "TRIANGLES"], rows)
+    )
+    print(
+        f"buildings.glb {report.glb_bytes} bytes, {report.triangles:,} triangles; "
+        f"buildings.json {report.json_bytes} bytes; status {report.document['status']}"
     )
     return 0
 
@@ -469,6 +495,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="where the unoptimised GLB is written (default: %(default)s)",
     )
     structures_cmd.set_defaults(handler=_cmd_structures)
+
+    buildings_cmd = commands.add_parser(
+        "buildings", help="build the visitor-centre buildings: buildings.glb + buildings.json"
+    )
+    buildings_cmd.add_argument(
+        "--out-dir",
+        type=Path,
+        default=GENERATED_DIR,
+        help="where buildings.glb and buildings.json go (default: %(default)s)",
+    )
+    buildings_cmd.add_argument(
+        "--build-dir",
+        type=Path,
+        default=buildings.BUILDINGS_BUILD_DIR,
+        help="where the unoptimised GLB is written (default: %(default)s)",
+    )
+    buildings_cmd.set_defaults(handler=_cmd_buildings)
     pine_cmd = commands.add_parser(
         "pine", help="build the procedural Aleppo-pine GLB (variants, LODs, far card)"
     )
@@ -549,6 +592,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         tunnel_geometry.GeometryError,
         surfaces.SurfacesError,
         structures.StructuresError,
+        buildings.BuildingsError,
         vegetation.VegetationError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
