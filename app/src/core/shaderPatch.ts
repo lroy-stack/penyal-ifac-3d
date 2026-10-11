@@ -37,3 +37,8 @@ export function addShaderPatch(material: Material, patch: ShaderPatch): void {
   material.customProgramCacheKey = () => patches.map((applied) => applied.key).join("|");
   material.needsUpdate = true;
 }
+
+/** The uniforms of every patch of a material, shared by reference (the budget E2E reads textures from them). */
+export function shaderPatchUniforms(material: Material): Record<string, IUniform> {
+  return Object.assign({}, ...(patchesOf.get(material) ?? []).map((patch) => patch.uniforms));
+}

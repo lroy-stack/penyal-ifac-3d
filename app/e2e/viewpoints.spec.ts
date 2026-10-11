@@ -1,7 +1,8 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import type { AppState } from "../src/appState";
+import { type DetailSource, readState, waitForSettledTerrain } from "./support/terrain";
 
 // Regression evidence of the real terrain along the Ruta Roja: start at known anchors, let the
 // streamer settle and compare the canvas and the render metrics with the baselines in
@@ -32,48 +33,12 @@ const CASES: readonly Case[] = [
 // Desktop budget from the spec (AC7): draw calls ≤ 300, triangles ≤ 1.5 M.
 const MAX_CALLS = 300;
 const MAX_TRIANGLES = 1_500_000;
-/**
- * The app refreshes the terrain statistics every 15 frames, so one snapshot can be one refresh
- * behind the frame that is captured. The terrain counts as settled when two snapshots at least
- * this many frames apart are both settled and show the same tiles.
- */
-const SETTLE_FRAMES = 16;
 /** Per-pixel colour threshold is 0; this many pixels may differ (SwiftShader run-to-run noise). */
 const MAX_DIFF_PIXELS = 16;
 
 test.use({ reducedMotion: "reduce", viewport: { width: 1280, height: 720 } });
 
-async function readState(page: Page): Promise<AppState> {
-  const state = await page.evaluate(() => window.__appState);
-  if (state === undefined) throw new Error("window.__appState is not published.");
-  return state;
-}
-
-async function waitForSettledTerrain(page: Page, tier: Case["tier"]): Promise<AppState> {
-  const detail = tier === "high" ? "2k" : "procedural";
-  let reference: { readonly frames: number; readonly displayed: string } | null = null;
-  const settled = async (): Promise<boolean> => {
-    const state = await readState(page);
-    const stats = state.terrain.stats;
-    if (
-      stats?.farLoaded !== true ||
-      stats.pending !== 0 ||
-      stats.inFlight !== 0 ||
-      stats.detail !== detail
-    ) {
-      reference = null;
-      return false;
-    }
-    const displayed = JSON.stringify(stats.displayed);
-    if (reference === null || reference.displayed !== displayed) {
-      reference = { frames: state.frames, displayed };
-      return false;
-    }
-    return state.frames - reference.frames >= SETTLE_FRAMES;
-  };
-  await expect.poll(settled, { timeout: 480_000, intervals: [500] }).toBe(true);
-  return readState(page);
-}
+const DETAIL: Readonly<Record<Case["tier"], DetailSource>> = { low: "procedural", high: "2k" };
 
 const round = (value: number): number => Math.round(value * 1000) / 1000;
 
@@ -108,7 +73,7 @@ test.describe("real terrain along the Ruta Roja", () => {
       await page.goto(`/?start=${anchor}${tier === "high" ? "&terrain=high" : ""}`);
       // Only the canvas is compared: hints and notices fade on timers.
       await page.addStyleTag({ content: "body > :not(#scene) { visibility: hidden !important; }" });
-      const first = await waitForSettledTerrain(page, tier);
+      const first = await waitForSettledTerrain(page, DETAIL[tier]);
 
       expect(first.terrain.stats?.failed ?? 0).toBe(0);
       expect(first.terrain.stats?.quality).toBe(tier);
@@ -124,7 +89,7 @@ test.describe("real terrain along the Ruta Roja", () => {
       await expect
         .poll(async () => (await readState(page)).player.cameraMode, { timeout: 120_000 })
         .toBe("third");
-      const third = await waitForSettledTerrain(page, tier);
+      const third = await waitForSettledTerrain(page, DETAIL[tier]);
       await expect(page).toHaveScreenshot(`${id}-third.png`, {
         threshold: 0,
         maxDiffPixels: MAX_DIFF_PIXELS,

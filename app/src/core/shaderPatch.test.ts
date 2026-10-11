@@ -1,6 +1,6 @@
 import { MeshBasicMaterial, MeshStandardMaterial, ShaderLib } from "three";
 import { describe, expect, it } from "vitest";
-import { addShaderPatch, type ShaderPatch } from "./shaderPatch";
+import { addShaderPatch, type ShaderPatch, shaderPatchUniforms } from "./shaderPatch";
 
 type Compile = (shader: unknown, renderer: unknown) => void;
 
@@ -106,5 +106,22 @@ describe("addShaderPatch", () => {
     };
     (material.onBeforeCompile as Compile)(shader, undefined);
     expect(shader.fragmentShader.endsWith("// fragment a")).toBe(true);
+  });
+});
+
+describe("shaderPatchUniforms", () => {
+  it("merges the uniforms of every patch of a material, by reference", () => {
+    const material = new MeshStandardMaterial();
+    const a = { value: 1 };
+    const b = { value: 2 };
+    addShaderPatch(material, patch("one-v1", "a", { uA: a }));
+    addShaderPatch(material, patch("two-v1", "b", { uB: b }));
+    const uniforms = shaderPatchUniforms(material);
+    expect(uniforms.uA).toBe(a);
+    expect(uniforms.uB).toBe(b);
+  });
+
+  it("is empty for a material with no patch", () => {
+    expect(shaderPatchUniforms(new MeshStandardMaterial())).toEqual({});
   });
 });

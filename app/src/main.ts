@@ -1,6 +1,7 @@
 import { PerspectiveCamera, Scene, Vector2 } from "three";
 import { type AppState, createAppState } from "./appState";
 import { baseUrl, createAssetProvider } from "./core/assets";
+import { assertBudgeted } from "./core/budget";
 import { createFrameClock } from "./core/frameClock";
 import { type FrameSnapshot, FrameStats } from "./core/frameStats";
 import { createPageLifecycle } from "./core/lifecycle";
@@ -39,6 +40,7 @@ import {
 import type { TerrainStats } from "./world/terrain";
 import type { TerrainGateOutcome } from "./world/terrain/gate";
 import { GATE_CHECK_FRAMES } from "./world/terrain/system";
+import { collectTextures } from "./world/textures";
 import {
   headingAlongRoute,
   loadTrail,
@@ -167,6 +169,8 @@ async function bootstrap(): Promise<void> {
       setStatus(t("tunnelMissing"));
     }
   };
+  // A system without a budget row stops the boot of dev and E2E builds, not production.
+  if (TEST_HOOKS_ENABLED) assertBudgeted(systems.map((system) => system.id));
   const world = createWorld(systems, {
     scene,
     camera,
@@ -340,6 +344,13 @@ async function bootstrap(): Promise<void> {
         world.setQuality(next);
         state.quality = next;
       },
+      textures: () =>
+        Object.fromEntries(
+          Object.keys(world.status()).map((id) => {
+            const root = scene.getObjectByName(`system:${id}`);
+            return [id, root === undefined ? [] : collectTextures(root)];
+          }),
+        ),
     };
   }
 

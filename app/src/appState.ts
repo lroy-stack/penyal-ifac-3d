@@ -3,6 +3,7 @@ import type { QualityProfile, QualityTier } from "./core/quality";
 import type { CameraMode } from "./player/cameras";
 import type { SystemStatus } from "./world/systems";
 import type { TerrainStats } from "./world/terrain";
+import type { TextureSample } from "./world/textures";
 
 export type TerrainStatus = "loading" | "ready" | "missing" | "error";
 export type TunnelStatus = TerrainStatus;
@@ -65,6 +66,8 @@ export type WorldHooks = {
   freezeTime(seconds: number | null): void;
   /** Applies a tier to the systems live; what only loads once keeps the tier it started with. */
   setQuality(tier: QualityTier): void;
+  /** The textures under each system's root, for the texture-memory estimate of the budget E2E. */
+  textures(): Record<string, TextureSample[]>;
 };
 
 declare global {
