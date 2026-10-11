@@ -205,6 +205,7 @@ class TestVerify:
             "terrain/collision.json",
             "tunnel.json",
             "trail.json",
+            "structures.json",
         }
         assert all("data/curated/tunnel.toml" in p.message for p in problems)
 
