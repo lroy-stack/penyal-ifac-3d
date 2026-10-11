@@ -1,0 +1,816 @@
+{
+  "facts": [
+    {
+      "id": "park-declaration",
+      "topic": "park",
+      "statement": "Norma de declaración del parque natural",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Decreto 1/1987, de 19 de enero (DOGV 514, 28-01-1987)",
+          "sources": ["dogv-decreto-1-1987", "gva-historia"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "park-area",
+      "topic": "park",
+      "statement": "Superficie del parque",
+      "status": "verified",
+      "values": [
+        {
+          "value": "53,3",
+          "unit": "ha",
+          "sources": ["dogv-decreto-40-2015", "gva-presentacion"],
+          "note": "Desde la ampliación del Decreto 40/2015, que añadió parcelas del tómbolo norte. Antes eran unas 45 ha."
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "park-first-in-province",
+      "topic": "park",
+      "statement": "Orden de declaración entre los parques naturales",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Primer parque natural de la provincia de Alicante",
+          "sources": ["gva-presentacion"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "No es el primero de la Comunitat Valenciana: l'Albufera es anterior (ver albufera-declared-earlier)."
+    },
+    {
+      "id": "albufera-declared-earlier",
+      "topic": "park",
+      "statement": "L'Albufera fue declarada parque natural antes que el Penyal d'Ifac",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Decreto 89/1986 (DOGV 408, 23-07-1986)",
+          "sources": ["dogv-albufera-1986"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "park-geology",
+      "topic": "park",
+      "statement": "Origen geológico del Penyal",
+      "status": "conflict",
+      "values": [
+        {
+          "value": "Calizas del Eoceno (56–34 Ma) con nummulites sobre margas y calcarenitas del Mioceno; antigua isla unida a tierra por un tómbolo",
+          "sources": ["gva-geologia"]
+        },
+        {
+          "value": "Desprendimiento de la Serra d'Oltà",
+          "sources": ["calp-penon"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "La versión del Ayuntamiento contradice la geología de la GVA; consultar al parque."
+    },
+    {
+      "id": "park-natura2000-land",
+      "topic": "park",
+      "statement": "Espacios Natura 2000 terrestres",
+      "status": "verified",
+      "values": [
+        {
+          "value": "LIC ES5211009 (83,20 ha) y ZEPA ES0000459 (49,84 ha)",
+          "sources": ["eea-lic-es5211009", "eea-zepa-es0000459"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "No se ha confirmado si el LIC ya figura como ZEC."
+    },
+    {
+      "id": "park-natura2000-sea",
+      "topic": "park",
+      "statement": "Espacio Natura 2000 marino",
+      "status": "verified",
+      "values": [
+        {
+          "value": "ZEC/ZEPA «Espacio marino de Ifac» ESZZ16006, 1.377,27 ha (Real Decreto 531/2025)",
+          "sources": ["boe-rd-531-2025"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "park-management",
+      "topic": "park",
+      "statement": "Gestión del parque",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Generalitat Valenciana, con Junta Rectora; Plan Rector de Uso y Gestión aprobado por el Decreto 260/1993",
+          "sources": ["gva-centro-visitantes", "dogv-prug-1993"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "park-visitors",
+      "topic": "park",
+      "statement": "Visitantes al año",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Unos 100.000",
+          "sources": ["gva-presentacion"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "park-species-counts",
+      "topic": "park",
+      "statement": "Número de especies de aves y de plantas",
+      "status": "conflict",
+      "values": [
+        {
+          "value": "Más de 60 aves y más de 400 plantas",
+          "sources": ["gva-presentacion"]
+        },
+        {
+          "value": "Unas 80 aves y unas 300 plantas",
+          "sources": ["calp-penon"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "park-official-name",
+      "topic": "toponymy",
+      "statement": "Nombre oficial del parque",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Parc Natural del Penyal d'Ifac (va) · Parque Natural del Penyal d'Ifac (es)",
+          "sources": ["gva-presentacion", "dogv-decreto-40-2015"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "No hay nombre oficial en inglés; la guía en inglés de la GVA mantiene el nombre valenciano."
+    },
+    {
+      "id": "municipality-name",
+      "topic": "toponymy",
+      "statement": "Nombre oficial del municipio",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Calp, forma oficial única desde el Decreto 125/2009 (BOE de 6-10-2009)",
+          "sources": ["boe-calp-2009"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "La web de turismo municipal sigue usando la marca «Calpe»."
+    },
+    {
+      "id": "centre-name",
+      "topic": "visitor-centre",
+      "statement": "Nombre oficial del centro de visitantes",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Centre d'Informació i de Visitants (va) · Centro de Información / Centro de Visitantes (es)",
+          "sources": ["gva-centro-visitantes"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "El mapa oficial lo rotula «Aula de la Natura». Ocupa dos casas réplica inauguradas en 1992."
+    },
+    {
+      "id": "centre-hours",
+      "topic": "visitor-centre",
+      "statement": "Horario del centro de visitantes",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Lunes a viernes 8:30–14:30; fines de semana y festivos 9:00–14:00; cerrado 1 y 6 de enero, 24, 25 y 31 de diciembre",
+          "sources": ["gva-accesibilidad"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "trail-name",
+      "topic": "trail",
+      "statement": "Nombre oficial del sendero a la cima",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Ruta Roja",
+          "sources": ["gva-ruta-roja"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "trail-stops",
+      "topic": "trail",
+      "statement": "Paradas oficiales de la Ruta Roja",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Mirador de Ponent, restos ibéricos, pins tombats, área de descanso, Mirador del Botànic Cavanilles, túnel, bifurcación, Mirador de Carabiners y cim",
+          "sources": ["gva-ruta-roja"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "trail-length",
+      "topic": "trail",
+      "statement": "Longitud de la Ruta Roja",
+      "status": "conflict",
+      "values": [
+        {
+          "value": "Unos 2 km ida y vuelta",
+          "sources": ["gva-ruta-roja"]
+        },
+        {
+          "value": "0,83 km y 173 m de desnivel",
+          "sources": ["macma-ruta"]
+        },
+        {
+          "value": "1,68 km de ida medidos en planta",
+          "sources": ["osm-route-ways"],
+          "note": "Medición propia; la distancia por la pendiente es mayor y se medirá sobre el MDT en la fase 1."
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "trail-time",
+      "topic": "trail",
+      "statement": "Tiempo estimado de la ruta",
+      "status": "conflict",
+      "values": [
+        {
+          "value": "1 h 30 de subida",
+          "sources": ["gva-ruta-roja"]
+        },
+        {
+          "value": "1 h",
+          "sources": ["macma-ruta"]
+        },
+        {
+          "value": "2 h 30",
+          "sources": ["calp-penon"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "trail-hours",
+      "topic": "access",
+      "statement": "Horario de acceso al sendero",
+      "status": "verified",
+      "values": [
+        {
+          "value": "De la salida a la puesta del sol; el acceso nocturno está prohibido",
+          "sources": ["gva-centro-visitantes"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "access-booking",
+      "topic": "access",
+      "statement": "Reserva para subir a la cima",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Obligatoria, personal e intransferible; una por persona y día, incluidos los niños; hasta 10 días de antelación",
+          "sources": ["gva-park-home", "gva-guia", "gva-reservas"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "Las páginas consultadas no indican precio."
+    },
+    {
+      "id": "access-capacity",
+      "topic": "access",
+      "statement": "Aforo diario del sendero a la cima",
+      "status": "verified",
+      "values": [
+        {
+          "value": "300",
+          "unit": "personas al día",
+          "sources": ["gva-park-home", "gva-guia", "dogv-prug-1993"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "access-booking-start",
+      "topic": "access",
+      "statement": "Fecha de implantación de la reserva obligatoria",
+      "status": "unverified",
+      "values": [
+        {
+          "value": "Hacia 2020, acordada en la Junta Rectora",
+          "sources": ["calp-node-2520"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "No se ha encontrado la fecha exacta en una fuente oficial."
+    },
+    {
+      "id": "access-minors-past-tunnel",
+      "topic": "access",
+      "statement": "Menores de edad pasado el túnel",
+      "status": "conflict",
+      "values": [
+        {
+          "value": "No se permite continuar a menores de 18 años",
+          "sources": ["gva-recomendaciones"]
+        },
+        {
+          "value": "No se recomienda",
+          "sources": ["gva-park-home", "gva-guia"]
+        },
+        {
+          "value": "De 16 a 18 años, acompañados de un adulto",
+          "sources": ["gva-ruta-roja"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "Norma de seguridad: la experiencia remitirá a la web oficial hasta que el parque lo aclare."
+    },
+    {
+      "id": "access-prohibitions",
+      "topic": "access",
+      "statement": "Prohibiciones principales",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Perros siempre atados; drones prohibidos; sin bicicletas en la subida; no hacer fuego, fumar ni acampar; no salir del sendero",
+          "sources": ["gva-recomendaciones", "gva-folleto"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "access-safety",
+      "topic": "access",
+      "statement": "Recomendaciones de seguridad",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Calzado de montaña (nada de sandalias ni tacones); llevar agua, solo hay fuentes al inicio; no seguir pasado el túnel con lluvia o niebla; emergencias 112",
+          "sources": ["gva-recomendaciones", "gva-guia"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "access-climbing-ban",
+      "topic": "access",
+      "statement": "Restricción de escalada por la cría del halcón peregrino",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Escalada prohibida en las caras norte y noroeste de abril a junio",
+          "sources": ["gva-recomendaciones"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "tunnel-built",
+      "topic": "tunnel",
+      "statement": "Construcción del túnel",
+      "status": "verified",
+      "values": [
+        {
+          "value": "1918, por iniciativa del entonces propietario, Vicente Paris Morlá, para salvar la pared norte",
+          "sources": ["gva-historia"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "tunnel-length",
+      "topic": "tunnel",
+      "statement": "Longitud del túnel",
+      "status": "conflict",
+      "values": [
+        {
+          "value": "Unos 50",
+          "unit": "m",
+          "sources": ["gva-folleto", "gva-ruta-roja"]
+        },
+        {
+          "value": "Unos 30",
+          "unit": "m",
+          "sources": ["calp-penon"]
+        },
+        {
+          "value": "49,2",
+          "unit": "m",
+          "sources": ["osm-way-26330275"],
+          "note": "Medición propia en planta sobre la geometría de OSM."
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "tunnel-condition",
+      "topic": "tunnel",
+      "statement": "Estado del túnel",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Roca pulida y resbaladiza, con dos cuerdas de apoyo y una plataforma a la salida",
+          "sources": ["gva-folleto", "gva-ruta-roja"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "carabiners-name",
+      "topic": "carabiners",
+      "statement": "Nombre oficial del mirador",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Mirador de Carabiners (va) · mirador de Carabineros (es)",
+          "sources": ["gva-ruta-roja", "gva-folleto"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "carabiners-what",
+      "topic": "carabiners",
+      "statement": "Qué es el Mirador de Carabiners",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Ruinas de una antigua plataforma de vigilancia de carabineros, en el ramal sur tras la bifurcación que sigue al túnel",
+          "sources": ["gva-ruta-roja", "gva-folleto", "macma-ruta"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "pobla-founding",
+      "topic": "pobla",
+      "statement": "Fundación de la Pobla d'Ifac",
+      "status": "verified",
+      "values": [
+        {
+          "value": "En 1298 Roger de Llúria obtiene permiso para fundar la villa fortificada; tras su muerte (1305) la continúa su hija Margarida de Llúria",
+          "sources": ["gva-villa-ifac", "ua-pobla"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "En 1282 Pere III ya había ordenado fundar una villa, sin éxito."
+    },
+    {
+      "id": "pobla-destruction",
+      "topic": "pobla",
+      "statement": "Destrucción de la Pobla",
+      "status": "verified",
+      "values": [
+        {
+          "value": "1359, por una flota castellana durante la Guerra de los Dos Pedros",
+          "sources": ["gva-villa-ifac"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "pobla-abandonment",
+      "topic": "pobla",
+      "statement": "Abandono de la Pobla",
+      "status": "conflict",
+      "values": [
+        {
+          "value": "Después de 1359",
+          "sources": ["gva-villa-ifac"]
+        },
+        {
+          "value": "Hacia 1400",
+          "sources": ["ua-pobla"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "pobla-church-date",
+      "topic": "pobla",
+      "statement": "Fecha de la iglesia de la Pobla",
+      "status": "conflict",
+      "values": [
+        {
+          "value": "Ordenada en 1344",
+          "sources": ["gva-villa-ifac"]
+        },
+        {
+          "value": "Construida entre 1320 y 1340",
+          "sources": ["marq-2008"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "pobla-bic",
+      "topic": "pobla",
+      "statement": "Protección como Bien de Interés Cultural",
+      "status": "conflict",
+      "values": [
+        {
+          "value": "Declaración incoada",
+          "sources": ["gva-proyecto-ifac"]
+        },
+        {
+          "value": "Declarada en 2011",
+          "sources": ["marq-2017"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "No se ha encontrado el decreto."
+    },
+    {
+      "id": "pobla-size",
+      "topic": "pobla",
+      "statement": "Dimensiones de la Pobla",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Más de 70.000 m², más de 800 m de muralla, 11 torres y 3 puertas",
+          "sources": ["ua-pobla"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "pobla-excavation",
+      "topic": "pobla",
+      "statement": "Quién excava la Pobla",
+      "status": "verified",
+      "values": [
+        {
+          "value": "El MARQ (Diputación de Alicante) desde 2005, dirigido por José Luis Menéndez Fueyo, con el parque y el Ajuntament",
+          "sources": ["gva-proyecto-ifac", "marq-2024"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "pobla-visits",
+      "topic": "pobla",
+      "statement": "Visitas a la Pobla",
+      "status": "unverified",
+      "values": [
+        {
+          "value": "Sin visitas regulares; hubo visitas guiadas en campañas de verano y hay una musealización prevista",
+          "sources": ["marq-2017", "calp-pobla"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "No se ha confirmado el estado actual de las visitas ni de la musealización."
+    },
+    {
+      "id": "pobla-viewpoint",
+      "topic": "pobla",
+      "statement": "Dónde se ve la Pobla desde el sendero",
+      "status": "verified",
+      "values": [
+        {
+          "value": "La muralla se ve desde el Mirador de Ponent",
+          "sources": ["gva-ruta-roja"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "summit-altitude",
+      "topic": "summit",
+      "statement": "Altitud de la cima",
+      "status": "conflict",
+      "values": [
+        {
+          "value": "332",
+          "unit": "m",
+          "sources": ["gva-presentacion", "gva-geologia", "calp-penon"]
+        },
+        {
+          "value": "325,8",
+          "unit": "m",
+          "sources": ["icv-cv05"],
+          "note": "Cota de la cartografía 1:5000 en el punto de la cima."
+        },
+        {
+          "value": "328,07",
+          "unit": "m",
+          "sources": ["icv-lidar-2016"],
+          "note": "Punto más alto del LiDAR de 2016 en la tesela."
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "El terreno usa el MDT sin ajustes; la ficha explicará la diferencia con la cifra oficial."
+    },
+    {
+      "id": "summit-vertex",
+      "topic": "summit",
+      "statement": "Señal en la cima",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Vértice geodésico de tercer orden",
+          "sources": ["gva-ruta-roja"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "ibiza-view",
+      "topic": "summit",
+      "statement": "Vista de Ibiza",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Visible en días excepcionalmente claros desde la plataforma de salida del túnel",
+          "sources": ["gva-folleto", "gva-ruta-roja"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "No se ha confirmado que se vea desde la cima."
+    },
+    {
+      "id": "silene-names",
+      "topic": "silene",
+      "statement": "Nombres de Silene hifacensis",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Silene de Ifach (es) · Silene d'Ifac (va)",
+          "sources": ["boe-silene-2025", "gva-silene"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "silene-category",
+      "topic": "silene",
+      "statement": "Categoría de protección de Silene hifacensis",
+      "status": "conflict",
+      "values": [
+        {
+          "value": "Vulnerable en el catálogo estatal (Orden TED/452/2025)",
+          "sources": ["boe-silene-2025"]
+        },
+        {
+          "value": "En peligro de extinción en el catálogo valenciano",
+          "sources": ["gva-silene", "gva-silene-informe-2023"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "La GVA indica que el cambio de categoría autonómica está pendiente."
+    },
+    {
+      "id": "silene-biology",
+      "topic": "silene",
+      "statement": "Hábitat y ciclo de Silene hifacensis",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Fisuras de acantilados entre 60 y 385 m; florece de marzo a junio y fructifica de mayo a julio",
+          "sources": ["miteco-libro-rojo-silene", "dogv-decreto-40-2008"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "silene-population-2023",
+      "topic": "silene",
+      "statement": "Situación de Silene hifacensis a finales de 2023",
+      "status": "verified",
+      "values": [
+        {
+          "value": "57 poblaciones (3 naturales y 54 traslocadas), 1.292 plantas, 632 de ellas adultas",
+          "sources": ["gva-silene-informe-2023"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "silene-history",
+      "topic": "silene",
+      "statement": "Historia de Silene hifacensis en el Penyal",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Descrita en 1885 y redescubierta en la península en 1987; la población del Penyal desapareció entre 1990 y 2001 y se ha restituido con reforzamientos y traslocaciones",
+          "sources": ["miteco-dictamen-silene", "miteco-libro-rojo-silene"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "Por conservación no se mostrará la ubicación de plantas reales."
+    },
+    {
+      "id": "gull-breeding",
+      "topic": "birds",
+      "statement": "Gaviota patiamarilla en el parque",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Larus michahellis cría en el parque y en primavera puede mostrarse agresiva cerca de la bifurcación",
+          "sources": ["gva-fauna", "gva-folleto"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "falcon-breeding",
+      "topic": "birds",
+      "statement": "Halcón peregrino en el parque",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Falco peregrinus cría en el parque; por eso se prohíbe escalar en las caras norte y noroeste de abril a junio",
+          "sources": ["gva-fauna", "gva-recomendaciones"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "bird-pair-counts",
+      "topic": "birds",
+      "statement": "Número de parejas reproductoras",
+      "status": "unverified",
+      "values": [
+        {
+          "value": "No publicado en las fuentes oficiales consultadas",
+          "sources": ["gva-fauna", "gva-folleto"],
+          "note": "Las páginas citan las especies que crían en el parque, sin número de parejas."
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "No hay cifras oficiales accesibles; pendiente del Banc de Dades de Biodiversitat, que no respondía."
+    },
+    {
+      "id": "eleonora-falcon",
+      "topic": "birds",
+      "statement": "Halcón de Eleonora",
+      "status": "unverified",
+      "values": [
+        {
+          "value": "Mencionado por el Ayuntamiento",
+          "sources": ["calp-penon"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "La GVA no lo incluye entre las especies del parque."
+    },
+    {
+      "id": "flora-rupicola",
+      "topic": "flora",
+      "statement": "Flora destacada por la GVA",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Teucrium hifacense, Centaurea rouyi, Pseudoscabiosa saxatilis, Hippocrepis valentina, Asperula paui, palmito (Chamaerops humilis), sabina (Juniperus phoenicea) y Ephedra fragilis",
+          "sources": ["gva-vegetacion-rupicola", "gva-presentacion"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "fauna-other",
+      "topic": "fauna",
+      "statement": "Otra fauna destacada por la GVA",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Cormorán moñudo, vencejo pálido, cernícalo, collalba negra, curruca rabilarga, el caracol endémico Chondrina marina, lagarto ocelado, culebra bastarda, murciélago enano y ardilla roja (desde 2008)",
+          "sources": ["gva-fauna"]
+        }
+      ],
+      "checked": "2026-10-10"
+    },
+    {
+      "id": "salinas",
+      "topic": "park",
+      "statement": "Relación de las Salinas de Calp con el parque",
+      "status": "verified",
+      "values": [
+        {
+          "value": "Antigua laguna de 18,76 ha del Catálogo de Zonas Húmedas, fuera de los límites del parque",
+          "sources": ["gva-presentacion"]
+        }
+      ],
+      "checked": "2026-10-10",
+      "note": "La Junta Rectora anunció pasos para incorporarlas (calp-node-2520); resultado sin confirmar."
+    }
+  ]
+}

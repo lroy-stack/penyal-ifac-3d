@@ -1,0 +1,355 @@
+{
+  "sources": [
+    {
+      "id": "gva-park-home",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Parque Natural del Penyal d'Ifac — portada",
+      "url": "https://parquesnaturales.gva.es/es/web/pn-penyal-d-ifac",
+      "accessed": "2026-10-10",
+      "note": "El portal no respondía; leída en copia del Internet Archive de 2026-08-23."
+    },
+    {
+      "id": "gva-presentacion",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Penyal d'Ifac — Presentación",
+      "url": "https://parquesnaturales.gva.es/es/web/pn-penyal-d-ifac/presentacion",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia del Internet Archive de 2026-07-12."
+    },
+    {
+      "id": "gva-centro-visitantes",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Penyal d'Ifac — Centro de visitantes",
+      "url": "https://parquesnaturales.gva.es/es/web/pn-penyal-d-ifac/centro-de-visitantes",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia del Internet Archive de 2026-08-28."
+    },
+    {
+      "id": "gva-accesibilidad",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Penyal d'Ifac — Accessibilitat al parc",
+      "url": "https://parquesnaturales.gva.es/es/web/pn-penyal-d-ifac/accessibilitat-al-parc",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia del Internet Archive de 2026-08-28."
+    },
+    {
+      "id": "gva-recomendaciones",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Penyal d'Ifac — Recomendaciones para la visita",
+      "url": "https://parquesnaturales.gva.es/es/web/pn-penyal-d-ifac/recomendaciones-para-la-visita",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia del Internet Archive de 2026-04-16."
+    },
+    {
+      "id": "gva-historia",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Penyal d'Ifac — Historia",
+      "url": "https://parquesnaturales.gva.es/es/web/pn-penyal-d-ifac/historia",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia del Internet Archive de 2025-11-11."
+    },
+    {
+      "id": "gva-villa-ifac",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Penyal d'Ifac — La villa de Ifac",
+      "url": "https://parquesnaturales.gva.es/es/web/pn-penyal-d-ifac/la-villa-de-ifac",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia del Internet Archive de 2025-09-12."
+    },
+    {
+      "id": "gva-proyecto-ifac",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Penyal d'Ifac — Proyecto Ifac",
+      "url": "https://parquesnaturales.gva.es/es/web/pn-penyal-d-ifac/proyecto-ifac",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia del Internet Archive de 2026-02-16."
+    },
+    {
+      "id": "gva-geologia",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Penyal d'Ifac — Geología",
+      "url": "https://parquesnaturales.gva.es/es/web/pn-penyal-d-ifac/geologia",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia del Internet Archive de 2026-03-09."
+    },
+    {
+      "id": "gva-fauna",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Penyal d'Ifac — Fauna",
+      "url": "https://parquesnaturales.gva.es/es/web/pn-penyal-d-ifac/fauna",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia del Internet Archive de 2026-04-11."
+    },
+    {
+      "id": "gva-vegetacion-rupicola",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Penyal d'Ifac — Vegetación rupícola",
+      "url": "https://parquesnaturales.gva.es/es/web/pn-penyal-d-ifac/vegetacion-rupicola",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia del Internet Archive de 2025-09-09."
+    },
+    {
+      "id": "gva-ruta-roja",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Ruta Roja — descripció",
+      "url": "https://parquesnaturales.gva.es/va/web/pn-penyal-d-ifac/ruta-roja-descripcion",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia del Internet Archive de 2022-08-08; volver a comprobar en directo."
+    },
+    {
+      "id": "gva-folleto",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Folleto del Parque Natural del Penyal d'Ifac",
+      "url": "https://parquesnaturales.gva.es/documents/80305041/83047539/38604-70929-Folleto/2a4650a0-c1e4-480c-84bb-1981248b3709?version=1.0",
+      "accessed": "2026-10-10",
+      "note": "Sin fecha; anterior a 2015 (da 45 ha)."
+    },
+    {
+      "id": "gva-guia",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Guía del Parque Natural del Penyal d'Ifac (castellano)",
+      "url": "https://parquesnaturales.gva.es/documents/80305041/172756741/Gu%C3%ADa+Castellano+web.pdf/d8e80e04-b00d-b204-f615-d0ecf740d7d6?t=1653466156922",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "gva-reservas",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Cita previa en parques naturales (reserva de acceso)",
+      "url": "https://www.tramita.gva.es/ctt-att-atr/asistente/iniciarTramite.html?tramite=CITA_PREVIA_PARQUES&version=2&idioma=es&idProcGuc=20328&idCatGuc=PR",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "gva-silene",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Biodiversidad — Silene hifacensis",
+      "url": "https://mediambient.gva.es/es/web/biodiversidad/silene-hifacensis",
+      "accessed": "2026-10-10",
+      "note": "Página modificada el 29/05/2025."
+    },
+    {
+      "id": "gva-silene-informe-2023",
+      "publisher": "Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Informe técnico 2023. Evaluación del plan de recuperación de Silene hifacensis",
+      "url": "https://mediambient.gva.es/documents/91061501/393068664/Informe+t%C3%A9cnico+2023.+Evaluaci%C3%B3n+PR+Silene+2023.pdf/2ff0991a-5afc-f2ae-44c1-acf09ff467d3",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "dogv-decreto-1-1987",
+      "publisher": "Diari Oficial de la Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Decreto 1/1987, de 19 de enero, de declaración del Parque Natural del Penyal d'Ifac (texto consolidado)",
+      "url": "https://dogv.gva.es/auto/dogv/docvpub/rlgv/1987/D_1987_001_ca_D_2015_040.pdf",
+      "accessed": "2026-10-10",
+      "note": "Última revisión consolidada: 09/04/2015."
+    },
+    {
+      "id": "dogv-prug-1993",
+      "publisher": "Diari Oficial de la Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Decreto 260/1993, Plan Rector de Uso y Gestión (PRUG) del Penyal d'Ifac",
+      "url": "https://dogv.gva.es/datos/1994/01/21/pdf/1994_830310.pdf",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "dogv-decreto-40-2008",
+      "publisher": "Diari Oficial de la Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Decreto 40/2008, plan de recuperación de Silene hifacensis",
+      "url": "https://dogv.gva.es/datos/2008/04/10/pdf/2008_4166.pdf",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "dogv-decreto-40-2015",
+      "publisher": "Diari Oficial de la Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Decreto 40/2015, de ampliación del Parque Natural del Penyal d'Ifac",
+      "url": "https://dogv.gva.es/datos/2015/04/08/pdf/2015_3070.pdf",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "dogv-albufera-1986",
+      "publisher": "Diari Oficial de la Generalitat Valenciana",
+      "kind": "official-gva",
+      "title": "Decreto 89/1986, de declaración del Parque Natural de l'Albufera",
+      "url": "https://dogv.gva.es/datos/1986/07/23/pdf/1986_901159.pdf",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "icv-cv05",
+      "publisher": "Institut Cartogràfic Valencià",
+      "kind": "official-gva",
+      "title": "Cartografia CV05 1:5000 — Puntos de cota (WFS)",
+      "url": "https://terramapas.icv.gva.es/0101_BCV05?service=WFS&request=GetCapabilities",
+      "accessed": "2026-10-10",
+      "note": "Cota 325,8 m en (767615.67, 4280757.87) EPSG:25830."
+    },
+    {
+      "id": "icv-lidar-2016",
+      "publisher": "Institut Cartogràfic Valencià",
+      "kind": "official-gva",
+      "title": "LiDAR 2016 de la provincia de Alicante (0,5 pt/m²), tesela 766-4282",
+      "url": "https://dadesobertes.gva.es/va/dataset/lidar-2016-de-05-puntos-por-metro-cuadrado-de-la-provincia-de-alicante",
+      "accessed": "2026-10-10",
+      "note": "Z máxima de la cabecera de la tesela 766-4282: 328,07 m."
+    },
+    {
+      "id": "boe-silene-2025",
+      "publisher": "Boletín Oficial del Estado",
+      "kind": "official-state",
+      "title": "Orden TED/452/2025 (cambio de categoría de Silene hifacensis)",
+      "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2025-9192",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "boe-rd-531-2025",
+      "publisher": "Boletín Oficial del Estado",
+      "kind": "official-state",
+      "title": "Real Decreto 531/2025 (ZEC/ZEPA marinas)",
+      "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2025-15425",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "boe-calp-2009",
+      "publisher": "Boletín Oficial del Estado",
+      "kind": "official-state",
+      "title": "Decreto 125/2009, denominación oficial del municipio de Calp",
+      "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2009-15957",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "miteco-dictamen-silene",
+      "publisher": "Ministerio para la Transición Ecológica",
+      "kind": "official-state",
+      "title": "Dictamen del Comité Científico sobre Silene hifacensis",
+      "url": "https://www.miteco.gob.es/content/dam/miteco/es/biodiversidad/temas/conservacion-de-especies/ce-comite/Dictamen-Silene-hifasensis.pdf",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "miteco-libro-rojo-silene",
+      "publisher": "Ministerio para la Transición Ecológica",
+      "kind": "official-state",
+      "title": "Atlas y Libro Rojo de la Flora Vascular Amenazada — Silene hifacensis",
+      "url": "https://www.miteco.gob.es/content/dam/miteco/es/biodiversidad/temas/inventarios-nacionales/silene_hifacensis_tcm30-99628.pdf",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "eea-lic-es5211009",
+      "publisher": "European Environment Agency",
+      "kind": "official-other",
+      "title": "Natura 2000 — LIC ES5211009 Penyal d'Ifac",
+      "url": "https://eunis.eea.europa.eu/sites/ES5211009",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia archivada de 2024-04-04."
+    },
+    {
+      "id": "eea-zepa-es0000459",
+      "publisher": "European Environment Agency",
+      "kind": "official-other",
+      "title": "Natura 2000 — ZEPA ES0000459",
+      "url": "https://eunis.eea.europa.eu/sites/ES0000459",
+      "accessed": "2026-10-10",
+      "note": "Leída en copia archivada de 2024-05-15."
+    },
+    {
+      "id": "calp-penon",
+      "publisher": "Ajuntament de Calp",
+      "kind": "official-calp",
+      "title": "Peñón de Ifach (web de turismo municipal)",
+      "url": "https://www.calpe.es/es/descubre-calpe/espacios-naturales/pe%C3%B1on-de-ifach",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "calp-node-2520",
+      "publisher": "Ajuntament de Calp",
+      "kind": "official-calp",
+      "title": "Junta Rectora del Parque Natural (nota municipal)",
+      "url": "https://www.calpe.es/es/node/2520",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "calp-pobla",
+      "publisher": "Ajuntament de Calp",
+      "kind": "official-calp",
+      "title": "La Pobla d'Ifac (monumentos)",
+      "url": "https://www.calpe.es/es/descubre-calpe/turismo-cultural/museos-y-monumentos/monumentos/la-pobla-d-ifac",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "macma-ruta",
+      "publisher": "Mancomunitat de Municipis de la Marina Alta",
+      "kind": "official-other",
+      "title": "Ruta Penyal d'Ifac",
+      "url": "https://macma.org/turisme/ruta/ruta-penyal-difac",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "ua-pobla",
+      "publisher": "Universitat d'Alacant",
+      "kind": "official-other",
+      "title": "Pobla medieval d'Ifach",
+      "url": "https://web.ua.es/va/sicos/pobla-medieval-d-ifach.html",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "marq-2008",
+      "publisher": "MARQ — Museo Arqueológico de Alicante (Diputación de Alicante)",
+      "kind": "official-other",
+      "title": "Penyal d'Ifac. Proyecto IFAC. Muralla de Poniente, Muralla Norte e Iglesia",
+      "url": "https://www.marqalicante.com/contenido/int_arqueologicas/74%20Penyal%20d%27Ifac.%20Proyecto%20IFAC.%20Sectores%20Muralla%20de%20Poniente%2C%20Muralla%20Norte%20e%20Iglesia%20%28Calp%29.pdf",
+      "accessed": "2026-10-10"
+    },
+    {
+      "id": "marq-2017",
+      "publisher": "MARQ — Museo Arqueológico de Alicante (Diputación de Alicante)",
+      "kind": "official-other",
+      "title": "Nota de prensa sobre la campaña de excavación de 2017",
+      "url": "https://www.marqalicante.com/en/?p=33970",
+      "accessed": "2026-10-10",
+      "note": "Publicada el 2017-07-05."
+    },
+    {
+      "id": "marq-2024",
+      "publisher": "MARQ — Museo Arqueológico de Alicante (Diputación de Alicante)",
+      "kind": "official-other",
+      "title": "Las excavaciones del MARQ en la Pobla d'Ifac identifican un cobertizo del siglo XIV",
+      "url": "https://www.marqalicante.com/en/las-excavaciones-del-marq-en-el-yacimiento-medieval-de-la-pobla-difac-identifican-un-cobertizo-del-siglo-xiv/",
+      "accessed": "2026-10-10",
+      "note": "Publicada el 2024-08-28."
+    },
+    {
+      "id": "osm-way-26330275",
+      "publisher": "OpenStreetMap",
+      "kind": "community",
+      "title": "Vía 26330275 (túnel del sendero, tunnel=yes)",
+      "url": "https://www.openstreetmap.org/way/26330275",
+      "accessed": "2026-10-10",
+      "note": "Longitud medida por nosotros sobre la geometría: 49,2 m en planta. © colaboradores de OpenStreetMap (ODbL)."
+    },
+    {
+      "id": "osm-route-ways",
+      "publisher": "OpenStreetMap",
+      "kind": "community",
+      "title": "Vías 26330273, 862108208, 26330275, 26330276 y 34887788 (Ruta Roja)",
+      "url": "https://www.openstreetmap.org/way/26330273",
+      "accessed": "2026-10-10",
+      "note": "Longitud medida por nosotros: 1,68 km en planta del Centre d'Informació a la cima. © colaboradores de OpenStreetMap (ODbL)."
+    }
+  ]
+}
