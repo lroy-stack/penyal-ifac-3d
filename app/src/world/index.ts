@@ -1,6 +1,7 @@
 import { loadPois } from "../content/loadPois";
 import type { AtmosphereWriter } from "./atmosphere";
 import { createAtmosphereSystem } from "./atmosphere/system";
+import { createBuildingsSystem } from "./buildings/system";
 import { createTrailDebugSystem } from "./debugTrailSystem";
 import { createPoiSystem, type PoiRegistryControl } from "./poi";
 import { createSeaSystem } from "./sea/system";
@@ -43,6 +44,7 @@ export function createWorldSystems(deps: WorldSystemsDeps): {
     createSeaSystem(),
     terrain.system,
     tunnel.system,
+    createBuildingsSystem(),
   ];
   systems.push(
     createPoiSystem({ control: deps.pois, load: loadPois, showDrafts: deps.showDrafts }),
