@@ -36,4 +36,17 @@
 
 ## Progreso
 
-- [ ] D.1 · [ ] X0.1 · [ ] X1.1 · [ ] X0.2 · [ ] X0.3 · [ ] X0.4 · [ ] X0.5 · [ ] X1.2 · [ ] X1.3 · [ ] X1.4
+- [~] **D.1** (85acab9, e244450): 21 de 25 descargados (31,8 MB) y bloqueados por sha256.
+  - Faltan 4 documentos, porque Python no confía en sus raíces TLS (HARICA en el IGN, FNMT en el Catastro): la reseña y la ficha del vértice IGN 84878, y los dos PDF de licencia del Catastro.
+  - No se ha desactivado la verificación. No bloquean ninguna tarea.
+- [x] **X0.1** `diseno-interfaz.md` (12/10/2026).
+  - La sombra suave del boceto daba 1,8:1 sobre el cielo más claro. Un reborde oscuro fino y un halo lo llevan a entre 5,0 y 10,7:1.
+  - Decisiones del responsable técnico sobre sus preguntas abiertas:
+    - hasta X2 se ve "Luz de ejemplo" bajo la hora;
+    - la ruta va en ámbar con funda oscura;
+    - en vertical, "Créditos" va bajo la hora y el aviso de llegada sube;
+    - las teclas de una letra no actúan con el foco en un control;
+    - correr se queda como está, sin anunciarse;
+    - los términos en valenciano marcados quedan pendientes de revisión.
+- [x] **X1.1** `penyal minimap` (001f9a2): 1658 × 1711 px a 0,5 m/px y 591 KB. Cubre el corredor con 60 m de margen; `verify-generated` da 12 artefactos al día.
+- [ ] X0.2 · [ ] X0.3 · [ ] X0.4 · [ ] X0.5 · [ ] X1.2 · [ ] X1.3 · [ ] X1.4
