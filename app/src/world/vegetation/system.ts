@@ -67,10 +67,34 @@ type InstanceSet = {
   readonly cls: Uint8Array;
   readonly matrices: Float32Array;
   readonly levels: Int8Array;
-  /** `targets[level][cls]`; the far-card level of the trees shares one mesh. */
-  readonly targets: readonly [InstancedMesh[], InstancedMesh[], InstancedMesh[]];
+  /** The distinct meshes the set draws into; the far-card level of the trees shares one. */
+  readonly meshes: readonly InstancedMesh[];
+  /** `slots[level][cls]`: index into `meshes`. */
+  readonly slots: readonly [Uint8Array, Uint8Array, Uint8Array];
+  /** Instances written into each of `meshes` by the current rebucket (preallocated). */
+  readonly filled: Int32Array;
   readonly bands: (tier: QualityProfile["tier"]) => LodBands;
 };
+
+type Targets = [InstancedMesh[], InstancedMesh[], InstancedMesh[]];
+
+/** The distinct meshes of `targets[level][cls]` and the slot of each (level, cls) among them. */
+function slotsOf(targets: Targets): Pick<InstanceSet, "meshes" | "slots" | "filled"> {
+  const meshes: InstancedMesh[] = [];
+  const slot = (mesh: InstancedMesh): number => {
+    const found = meshes.indexOf(mesh);
+    return found >= 0 ? found : meshes.push(mesh) - 1;
+  };
+  const slots = targets.map((level) => Uint8Array.from(level, slot)) as [
+    Uint8Array,
+    Uint8Array,
+    Uint8Array,
+  ];
+  if (meshes.length > 256) {
+    throw new Error(`${meshes.length} vegetation meshes in one set: the slots hold 256 at most.`);
+  }
+  return { meshes, slots, filled: new Int32Array(meshes.length) };
+}
 
 function meshNamed(root: Object3D, name: string): Mesh {
   const found = root.getObjectByName(name);
@@ -200,7 +224,7 @@ export function createVegetationSystem(
       const v = c.variant[i] as number;
       variantCount[v] = (variantCount[v] ?? 0) + 1;
     }
-    const treeTargets: [InstancedMesh[], InstancedMesh[], InstancedMesh[]] = [[], [], []];
+    const treeTargets: Targets = [[], [], []];
     for (let v = 0; v < parsed.variants; v++) {
       treeTargets[0].push(
         makeMesh(pine.scene, ctx.root, pineMeshName(v, 0), variantCount[v] ?? 0, msaa, ctx),
@@ -215,7 +239,7 @@ export function createVegetationSystem(
       ...columnsFrom(c.count, c.x, c.z, c.keep),
       cls: Uint8Array.from(c.variant),
       matrices: new Float32Array(c.count * 16),
-      targets: treeTargets,
+      ...slotsOf(treeTargets),
       bands: (tier) => tierParams(parsed, tier).treeLodM,
     };
 
@@ -225,7 +249,7 @@ export function createVegetationSystem(
       const m = u.model[i] as number;
       modelCount[m] = (modelCount[m] ?? 0) + 1;
     }
-    const plantTargets: [InstancedMesh[], InstancedMesh[], InstancedMesh[]] = [[], [], []];
+    const plantTargets: Targets = [[], [], []];
     u.models.forEach((model, m) => {
       const n = modelCount[m] ?? 0;
       plantTargets[0].push(makeMesh(plants.scene, ctx.root, model.meshes.lod0, n, msaa, ctx));
@@ -236,7 +260,7 @@ export function createVegetationSystem(
       ...columnsFrom(u.count, u.x, u.z, u.keep),
       cls: Uint8Array.from(u.model),
       matrices: new Float32Array(u.count * 16),
-      targets: plantTargets,
+      ...slotsOf(plantTargets),
       bands: (tier) => tierParams(parsed, tier).understoryLodM,
     };
   }
@@ -288,7 +312,10 @@ export function createVegetationSystem(
     forced = true;
   }
 
-  /** Chooses the level of every instance and copies the matrices of the drawn ones. */
+  /**
+   * Chooses the level of every instance and copies the matrices of the drawn ones. Runs while
+   * walking (every few frames once the camera moved), so it allocates nothing per instance.
+   */
   function rebucket(
     set: InstanceSet,
     tier: QualityProfile["tier"],
@@ -296,27 +323,39 @@ export function createVegetationSystem(
   ): [number, number, number] {
     const camPos = camera?.position ?? { x: 0, y: 0, z: 0 };
     selectLevels(set, camPos, density, set.bands(tier), set.levels);
-    const filled = new Map<InstancedMesh, number>();
-    for (const level of set.targets) for (const mesh of level) filled.set(mesh, 0);
+    const { meshes: targets, slots, filled, matrices, levels, cls } = set;
+    filled.fill(0);
     const counts: [number, number, number] = [0, 0, 0];
     for (let i = 0; i < set.count; i++) {
-      const level = set.levels[i] as number;
+      const level = levels[i] as number;
       if (level < 0) continue;
-      const mesh = set.targets[level as 0 | 1 | 2][set.cls[i] as number];
-      if (mesh === undefined) continue;
-      const n = filled.get(mesh) as number;
+      const slot = slots[level as 0 | 1 | 2][cls[i] as number];
+      if (slot === undefined) continue;
+      const mesh = targets[slot] as InstancedMesh;
+      const n = filled[slot] as number;
       if (n >= mesh.instanceMatrix.count) continue;
-      mesh.instanceMatrix.array.set(set.matrices.subarray(i * 16, i * 16 + 16), n * 16);
-      filled.set(mesh, n + 1);
+      const out = mesh.instanceMatrix.array;
+      const from = i * 16;
+      const to = n * 16;
+      for (let k = 0; k < 16; k++) out[to + k] = matrices[from + k] as number;
+      filled[slot] = n + 1;
       counts[level as 0 | 1 | 2]++;
     }
-    for (const [mesh, n] of filled) {
+    for (let slot = 0; slot < targets.length; slot++) {
+      const mesh = targets[slot] as InstancedMesh;
+      const n = filled[slot] as number;
       mesh.count = n;
       mesh.instanceMatrix.clearUpdateRanges();
       mesh.instanceMatrix.addUpdateRange(0, n * 16);
       mesh.instanceMatrix.needsUpdate = true;
     }
     return counts;
+  }
+
+  function drawnMeshes(): number {
+    let drawn = 0;
+    for (const mesh of meshes) if (mesh.count > 0) drawn++;
+    return drawn;
   }
 
   function refresh(): void {
@@ -327,7 +366,7 @@ export function createVegetationSystem(
     current = {
       trees,
       understory,
-      drawn: meshes.filter((mesh) => mesh.count > 0).length,
+      drawn: drawnMeshes(),
     };
     forced = false;
   }
