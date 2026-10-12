@@ -6,12 +6,12 @@ import {
   Mesh,
   type Object3D,
   type PerspectiveCamera,
-  Texture,
   Vector3,
 } from "three";
 import type { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
 import { fetchBuffer } from "../../core/http";
+import { disposeObject } from "../disposal";
 import { createDetailTextures, type DetailSet, type DetailSource } from "./detailTextures";
 import { resolveAssetUrl, type TerrainManifest, type TerrainTile } from "./manifest";
 import { applyTerrainDetail, createTerrainDetailUniforms } from "./material";
@@ -165,23 +165,6 @@ type InFlight = { readonly request: LoadRequest; readonly controller: AbortContr
 type Failure = { count: number; retryAt: number };
 
 const keyOf = (id: string, level: number): string => `${id}:${level}`;
-
-function disposeMaterial(material: Material): void {
-  for (const value of Object.values(material)) {
-    if (value instanceof Texture) value.dispose();
-  }
-  material.dispose();
-}
-
-/** Frees the GPU resources behind an object loaded from glTF. */
-export function disposeObject(object: Object3D): void {
-  object.traverse((child) => {
-    if (!(child instanceof Mesh)) return;
-    (child.geometry as BufferGeometry).dispose();
-    const materials = Array.isArray(child.material) ? child.material : [child.material];
-    for (const material of materials as Material[]) disposeMaterial(material);
-  });
-}
 
 /** Terrain is opaque and single-sided; culling needs bounding volumes on every geometry. */
 function prepareTerrainObject(object: Object3D, detail: ((m: Material) => void) | null): void {
