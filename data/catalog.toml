@@ -1122,3 +1122,340 @@ expected_bytes = 139132
 size_tolerance = 0.0
 licence = "Official document of the Dirección General del Catastro; copyright, reference only"
 attribution = "Dirección General del Catastro"
+
+[[source]]
+id = "polyhaven-boulder-01-gltf-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven boulder_01 glTF 1k: the .gltf JSON (references boulder_01.bin and textures/)."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/boulder_01/boulder_01_1k.gltf"
+expected_bytes = 2773
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-boulder-01-bin"
+phase = 6
+kind = "file"
+description = "Poly Haven boulder_01 geometry buffer (boulder_01.bin), shared by every resolution."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/boulder_01/boulder_01.bin"
+expected_bytes = 2938808
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-boulder-01-diff-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven boulder_01 albedo map, 1k JPEG."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/boulder_01/boulder_01_diff_1k.jpg"
+expected_bytes = 987467
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-boulder-01-nor-gl-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven boulder_01 normal map (OpenGL), 1k JPEG."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/boulder_01/boulder_01_nor_gl_1k.jpg"
+expected_bytes = 1183552
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-boulder-01-arm-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven boulder_01 AO/roughness/metalness packed map, 1k JPEG."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/boulder_01/boulder_01_arm_1k.jpg"
+expected_bytes = 659386
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-moss-set-01-gltf-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_moss_set_01 glTF 1k: the .gltf JSON (references rock_moss_set_01.bin and textures/)."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/rock_moss_set_01/rock_moss_set_01_1k.gltf"
+expected_bytes = 9987
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-moss-set-01-bin"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_moss_set_01 geometry buffer (rock_moss_set_01.bin), shared by every resolution."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/rock_moss_set_01/rock_moss_set_01.bin"
+expected_bytes = 1466380
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-moss-set-01-diff-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_moss_set_01 albedo map, 1k JPEG."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_01/rock_moss_set_01_diff_1k.jpg"
+expected_bytes = 168099
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-moss-set-01-nor-gl-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_moss_set_01 normal map (OpenGL), 1k JPEG."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_01/rock_moss_set_01_nor_gl_1k.jpg"
+expected_bytes = 209975
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-moss-set-01-rough-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_moss_set_01 roughness map, 1k JPEG."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_01/rock_moss_set_01_rough_1k.jpg"
+expected_bytes = 82624
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-moss-set-02-gltf-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_moss_set_02 glTF 1k: the .gltf JSON (references rock_moss_set_02.bin and textures/)."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/rock_moss_set_02/rock_moss_set_02_1k.gltf"
+expected_bytes = 11608
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-moss-set-02-bin"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_moss_set_02 geometry buffer (rock_moss_set_02.bin), shared by every resolution."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/rock_moss_set_02/rock_moss_set_02.bin"
+expected_bytes = 1316572
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-moss-set-02-diff-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_moss_set_02 albedo map, 1k JPEG."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_02/rock_moss_set_02_diff_1k.jpg"
+expected_bytes = 194307
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-moss-set-02-nor-gl-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_moss_set_02 normal map (OpenGL), 1k JPEG."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_02/rock_moss_set_02_nor_gl_1k.jpg"
+expected_bytes = 273527
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-moss-set-02-rough-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_moss_set_02 roughness map, 1k JPEG."
+used_for = "H1-B4: rocks."
+url = "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_02/rock_moss_set_02_rough_1k.jpg"
+expected_bytes = 146226
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-beam-wall-01-diff-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven beam_wall_01 albedo map, 1k JPEG."
+used_for = "H1-B7: furniture."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/beam_wall_01/beam_wall_01_diff_1k.jpg"
+expected_bytes = 224751
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-beam-wall-01-nor-gl-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven beam_wall_01 normal map (OpenGL), 1k JPEG."
+used_for = "H1-B7: furniture."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/beam_wall_01/beam_wall_01_nor_gl_1k.jpg"
+expected_bytes = 120019
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-beam-wall-01-arm-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven beam_wall_01 AO/roughness/metalness packed map, 1k JPEG."
+used_for = "H1-B7: furniture."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/beam_wall_01/beam_wall_01_arm_1k.jpg"
+expected_bytes = 95017
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-wall-11-diff-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_wall_11 albedo map, 1k JPEG."
+used_for = "H1-B3: walls."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_wall_11/rock_wall_11_diff_1k.jpg"
+expected_bytes = 762222
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-wall-11-nor-gl-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_wall_11 normal map (OpenGL), 1k JPEG."
+used_for = "H1-B3: walls."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_wall_11/rock_wall_11_nor_gl_1k.jpg"
+expected_bytes = 1134539
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-rock-wall-11-arm-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven rock_wall_11 AO/roughness/metalness packed map, 1k JPEG."
+used_for = "H1-B3: walls."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_wall_11/rock_wall_11_arm_1k.jpg"
+expected_bytes = 679322
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-brown-planks-03-diff-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven brown_planks_03 albedo map, 1k JPEG."
+used_for = "H1-B5: piers."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_planks_03/brown_planks_03_diff_1k.jpg"
+expected_bytes = 570668
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-brown-planks-03-nor-gl-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven brown_planks_03 normal map (OpenGL), 1k JPEG."
+used_for = "H1-B5: piers."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_planks_03/brown_planks_03_nor_gl_1k.jpg"
+expected_bytes = 516860
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-brown-planks-03-arm-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven brown_planks_03 AO/roughness/metalness packed map, 1k JPEG."
+used_for = "H1-B5: piers."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_planks_03/brown_planks_03_arm_1k.jpg"
+expected_bytes = 126038
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-concrete-floor-worn-001-diff-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven concrete_floor_worn_001 albedo map, 1k JPEG."
+used_for = "H1-B5: piers."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_diff_1k.jpg"
+expected_bytes = 118806
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva, Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-concrete-floor-worn-001-nor-gl-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven concrete_floor_worn_001 normal map (OpenGL), 1k JPEG."
+used_for = "H1-B5: piers."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_nor_gl_1k.jpg"
+expected_bytes = 110906
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva, Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-concrete-floor-worn-001-arm-1k"
+phase = 6
+kind = "file"
+description = "Poly Haven concrete_floor_worn_001 AO/roughness/metalness packed map, 1k JPEG."
+used_for = "H1-B5: piers."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_arm_1k.jpg"
+expected_bytes = 152919
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva, Rico Cilliers (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "ambientcg-metal032-1k-jpg"
+phase = 6
+kind = "file"
+filename = "Metal032_1K-JPG.zip"
+description = "ambientCG Metal032 1k JPG material pack (zip: colour, displacement, normal, roughness, metalness); kept as a zip, not extracted into the repo."
+used_for = "H1-B7: metal of the turnstile and fence posts (stand-in for galvanised steel; furniture)."
+url = "https://ambientcg.com/get?file=Metal032_1K-JPG.zip"
+expected_bytes = 3650556
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "ambientCG (ambientcg.com), CC0 — Metal032 (no attribution required; credited as courtesy)"

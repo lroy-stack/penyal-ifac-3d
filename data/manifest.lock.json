@@ -1,5 +1,18 @@
 {
   "sources": {
+    "ambientcg-metal032-1k-jpg": {
+      "attribution": "ambientCG (ambientcg.com), CC0 — Metal032 (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 3650556,
+          "name": "Metal032_1K-JPG.zip",
+          "sha256": "9e4f363905a647958c273154fa125d2a6440892d0e583f9b3af24bb08b5afc3c"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://ambientcg.com/get?file=Metal032_1K-JPG.zip"
+    },
     "cds-bsc5-catalog": {
       "attribution": "Yale Bright Star Catalogue, 5th revised ed. (Hoffleit and Warren 1991), distributed by CDS (V/50)",
       "files": [
@@ -434,6 +447,188 @@
       "retrieved": "2026-10-11",
       "url": "https://api.openstreetmap.org/api/0.6/map.json?bbox=0.0680,38.6290,0.0840,38.6420"
     },
+    "polyhaven-beam-wall-01-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 95017,
+          "name": "beam_wall_01_arm_1k.jpg",
+          "sha256": "33f4cac062182186f45097b4d4ca602d371cd2a1d690b09953fba73adf45c9ca"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/beam_wall_01/beam_wall_01_arm_1k.jpg"
+    },
+    "polyhaven-beam-wall-01-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 224751,
+          "name": "beam_wall_01_diff_1k.jpg",
+          "sha256": "fab43f5027460a750ba82d1abc8e714f1c6eb9b55259bd6385fc233fdb12fd30"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/beam_wall_01/beam_wall_01_diff_1k.jpg"
+    },
+    "polyhaven-beam-wall-01-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 120019,
+          "name": "beam_wall_01_nor_gl_1k.jpg",
+          "sha256": "d11c601da2c4b1ceb79fbe4fbf10b0187d3def5c79d5018d92396407d630d5d3"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/beam_wall_01/beam_wall_01_nor_gl_1k.jpg"
+    },
+    "polyhaven-boulder-01-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 659386,
+          "name": "boulder_01_arm_1k.jpg",
+          "sha256": "c57187c5746b6be913fa53846cb44ff78743e7ca5000f131c9627b99563c2b87"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/boulder_01/boulder_01_arm_1k.jpg"
+    },
+    "polyhaven-boulder-01-bin": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 2938808,
+          "name": "boulder_01.bin",
+          "sha256": "7f5b06503d62bd95bfe9c6b8a354a5cc8ff04a4d271a8cf87a3e3125db4232d7"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/boulder_01/boulder_01.bin"
+    },
+    "polyhaven-boulder-01-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 987467,
+          "name": "boulder_01_diff_1k.jpg",
+          "sha256": "c38f0e918f6dc16b8d386ba3cdd89805c78320c119a1ceec85856f82b09a65b8"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/boulder_01/boulder_01_diff_1k.jpg"
+    },
+    "polyhaven-boulder-01-gltf-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 2773,
+          "name": "boulder_01_1k.gltf",
+          "sha256": "51487934db898b4c24072780a451e34eca5c02e3ada24a62bbc600bbc4019e92"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/boulder_01/boulder_01_1k.gltf"
+    },
+    "polyhaven-boulder-01-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 1183552,
+          "name": "boulder_01_nor_gl_1k.jpg",
+          "sha256": "0810cf6e89d89bb6eb065b4d2e2855288f5dcbd2c15c6e40ab90d462021b50aa"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/boulder_01/boulder_01_nor_gl_1k.jpg"
+    },
+    "polyhaven-brown-planks-03-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 126038,
+          "name": "brown_planks_03_arm_1k.jpg",
+          "sha256": "2be4c94cc58a0f4ea2120a1004aab5ff1baf720809c321f4fa398cdb31fd3756"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_planks_03/brown_planks_03_arm_1k.jpg"
+    },
+    "polyhaven-brown-planks-03-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 570668,
+          "name": "brown_planks_03_diff_1k.jpg",
+          "sha256": "8dfae22286fa9bb0ed62ce7326e8bc14c284e567d38fd64b5a453838080ecf19"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_planks_03/brown_planks_03_diff_1k.jpg"
+    },
+    "polyhaven-brown-planks-03-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 516860,
+          "name": "brown_planks_03_nor_gl_1k.jpg",
+          "sha256": "868c153165ecaa7dd7259cb58214f06f6f86c80ac71fc92a827dff07708be077"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_planks_03/brown_planks_03_nor_gl_1k.jpg"
+    },
+    "polyhaven-concrete-floor-worn-001-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva, Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 152919,
+          "name": "concrete_floor_worn_001_arm_1k.jpg",
+          "sha256": "b21e63637d04b969894bd40a45df185d77671ed74b8955cd6e403c34ed465043"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_arm_1k.jpg"
+    },
+    "polyhaven-concrete-floor-worn-001-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva, Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 118806,
+          "name": "concrete_floor_worn_001_diff_1k.jpg",
+          "sha256": "6e40c0fc908f4d66431836f5abe203f3a4eb064e88824378a91a46a26e2f464c"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_diff_1k.jpg"
+    },
+    "polyhaven-concrete-floor-worn-001-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva, Rico Cilliers (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 110906,
+          "name": "concrete_floor_worn_001_nor_gl_1k.jpg",
+          "sha256": "523bd94a1be5dd2f11c2ae2b7d7c77445cf5bd9e41604db515a7c8364dcba067"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_nor_gl_1k.jpg"
+    },
     "polyhaven-grass-medium-02-arm-1k": {
       "attribution": "Poly Haven (polyhaven.com), CC0 — Rico Cilliers (no attribution required; credited as courtesy)",
       "files": [
@@ -719,6 +914,175 @@
       "licence": "CC0 1.0",
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_twig_nor_gl_1k.jpg"
+    },
+    "polyhaven-rock-moss-set-01-bin": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 1466380,
+          "name": "rock_moss_set_01.bin",
+          "sha256": "de8360e6175879aaf02c171911069cf5f1852547f9ca7f10e440085dbcc3315e"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/rock_moss_set_01/rock_moss_set_01.bin"
+    },
+    "polyhaven-rock-moss-set-01-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 168099,
+          "name": "rock_moss_set_01_diff_1k.jpg",
+          "sha256": "40cea65d8aa4ee73a93b04af19963834d061eee9779c3fc2c1cba76eef812ccc"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_01/rock_moss_set_01_diff_1k.jpg"
+    },
+    "polyhaven-rock-moss-set-01-gltf-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 9987,
+          "name": "rock_moss_set_01_1k.gltf",
+          "sha256": "c36675aca9c6b2be7785c2534cf413b03ec82a5a2a5407a2b1c0cdb0346c9727"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/rock_moss_set_01/rock_moss_set_01_1k.gltf"
+    },
+    "polyhaven-rock-moss-set-01-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 209975,
+          "name": "rock_moss_set_01_nor_gl_1k.jpg",
+          "sha256": "eb4aad3f207f1dc5b624d74ae240372171626a66912bd71adf7bd3e518181d6e"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_01/rock_moss_set_01_nor_gl_1k.jpg"
+    },
+    "polyhaven-rock-moss-set-01-rough-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 82624,
+          "name": "rock_moss_set_01_rough_1k.jpg",
+          "sha256": "4d6ec46623abd8e2cdb855f59c7ce31873ad61b36b60e4de579e9e776a497c6b"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_01/rock_moss_set_01_rough_1k.jpg"
+    },
+    "polyhaven-rock-moss-set-02-bin": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 1316572,
+          "name": "rock_moss_set_02.bin",
+          "sha256": "2df9d8eaaca4207529b0f613d4886d3962d0b9ffc0cdfd2bc4bf35dbcd391cb5"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/rock_moss_set_02/rock_moss_set_02.bin"
+    },
+    "polyhaven-rock-moss-set-02-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 194307,
+          "name": "rock_moss_set_02_diff_1k.jpg",
+          "sha256": "91dd2cc77d5198b067d77e5bdb3fa8ee7b8950aeff5aec2c1ccaddb76dcca481"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_02/rock_moss_set_02_diff_1k.jpg"
+    },
+    "polyhaven-rock-moss-set-02-gltf-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 11608,
+          "name": "rock_moss_set_02_1k.gltf",
+          "sha256": "c3b992a7622e94f7d8da97a47277a2a5177a513af0312a127ec908d4056c97db"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/rock_moss_set_02/rock_moss_set_02_1k.gltf"
+    },
+    "polyhaven-rock-moss-set-02-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 273527,
+          "name": "rock_moss_set_02_nor_gl_1k.jpg",
+          "sha256": "dd2503789089fb72ef469efd14364d393e769c0de8781a251475cac7e0b6f51d"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_02/rock_moss_set_02_nor_gl_1k.jpg"
+    },
+    "polyhaven-rock-moss-set-02-rough-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Kless Gyzen (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 146226,
+          "name": "rock_moss_set_02_rough_1k.jpg",
+          "sha256": "12252219a98a560940359973e83af831abdcfab0ead3f0a2a7b135a0143105f1"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_02/rock_moss_set_02_rough_1k.jpg"
+    },
+    "polyhaven-rock-wall-11-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 679322,
+          "name": "rock_wall_11_arm_1k.jpg",
+          "sha256": "bacdc74a4e7ac06a276885dc3322595308fa55db2014076d9daa8b24748555e5"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_wall_11/rock_wall_11_arm_1k.jpg"
+    },
+    "polyhaven-rock-wall-11-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 762222,
+          "name": "rock_wall_11_diff_1k.jpg",
+          "sha256": "850f45c4ea8692c4ea990a2bb8b673cb1a94a2240c4a5dedab5d8a3d695256f6"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_wall_11/rock_wall_11_diff_1k.jpg"
+    },
+    "polyhaven-rock-wall-11-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Dimitrios Savva (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 1134539,
+          "name": "rock_wall_11_nor_gl_1k.jpg",
+          "sha256": "3860610f296afecef43613aa90dd0fbd244f1ab4d02bd3cdb88aec37818963be"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_wall_11/rock_wall_11_nor_gl_1k.jpg"
     },
     "polyhaven-rocks-ground-05-arm-1k": {
       "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (no attribution required; credited as courtesy)",
