@@ -13,6 +13,8 @@ export const pineMeshName = (variant: number, level: 0 | 1): string =>
 export const PINE_CARD = "pine_far_card";
 
 const numbers = z.array(z.number());
+/** An index column: `Uint8Array.from` would wrap -1 to 255 and drop the instance silently. */
+const indices = z.array(z.number().int().min(0));
 
 const tierSchema = z.object({
   density: z.number().min(0).max(1),
@@ -33,7 +35,7 @@ export const vegetationSchema = z.object({
     height: numbers,
     scaleXZ: numbers,
     keep: numbers,
-    variant: numbers,
+    variant: indices,
     yaw: numbers,
     leanX: numbers,
     leanZ: numbers,
@@ -53,7 +55,7 @@ export const vegetationSchema = z.object({
     height: numbers,
     scale: numbers,
     yaw: numbers,
-    model: numbers,
+    model: indices,
     keep: numbers,
   }),
   budget: z.object({
@@ -69,7 +71,10 @@ export function tierParams(data: VegetationData, tier: QualityTier): TierParams 
   return data.budget.tiers[tier];
 }
 
-/** Rejects columns of different lengths: a mismatch would silently read `undefined`. */
+/**
+ * Rejects columns of different lengths (a mismatch would silently read `undefined`) and indices
+ * beyond the variants or models (the instance would have no mesh and be dropped silently).
+ */
 export function assertConsistent(data: VegetationData): void {
   const check = (name: string, count: number, columns: Record<string, readonly number[]>): void => {
     for (const [column, values] of Object.entries(columns)) {
@@ -84,4 +89,14 @@ export function assertConsistent(data: VegetationData): void {
   check("crowns", crowns, c);
   const { count: understory, models: _models, ...u } = data.understory;
   check("understory", understory, u);
+  const inRange = (name: string, values: readonly number[], limit: number): void => {
+    const bad = values.findIndex((value) => value >= limit);
+    if (bad >= 0) {
+      throw new Error(
+        `vegetation.json ${name}[${bad}] is ${values[bad]}, but there are only ${limit} to pick from.`,
+      );
+    }
+  };
+  inRange("crowns.variant", data.crowns.variant, data.variants);
+  inRange("understory.model", data.understory.model, data.understory.models.length);
 }
