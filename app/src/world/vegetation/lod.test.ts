@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { countLevels, isKept, LOD_HYSTERESIS, type LodBands, levelFor, selectLevels } from "./lod";
+import {
+  countLevels,
+  isKept,
+  LEVEL_UNSET,
+  LOD_HYSTERESIS,
+  type LodBands,
+  levelFor,
+  selectLevels,
+} from "./lod";
 
 const BANDS: LodBands = [30, 70, 120];
 
@@ -20,29 +28,38 @@ describe("vegetation LOD", () => {
     expect(levelFor(120.01 ** 2, BANDS)).toBe(-1);
   });
 
-  it("keeps the previous level within the hysteresis margin around a band edge", () => {
-    const inside = (30 * (1 + LOD_HYSTERESIS / 2)) ** 2; // just past the 30 m edge
-    expect(levelFor(inside, BANDS, 0)).toBe(0);
-    expect(levelFor(inside, BANDS, 1)).toBe(1);
-    const before = (30 * (1 - LOD_HYSTERESIS / 2)) ** 2; // just short of it
-    expect(levelFor(before, BANDS, 1)).toBe(1);
-    expect(levelFor(before, BANDS, 0)).toBe(0);
-    const far = (120 * (1 + LOD_HYSTERESIS / 2)) ** 2;
+  it("keeps the previous level inside the hysteresis margin, just short of a band edge", () => {
+    const margin = (30 * (1 - LOD_HYSTERESIS / 2)) ** 2;
+    expect(levelFor(margin, BANDS, 0)).toBe(0);
+    expect(levelFor(margin, BANDS, 1)).toBe(1);
+    const far = (120 * (1 - LOD_HYSTERESIS / 2)) ** 2;
     expect(levelFor(far, BANDS, 2)).toBe(2);
     expect(levelFor(far, BANDS, -1)).toBe(-1);
   });
 
-  it("changes level once the distance leaves the margin", () => {
-    expect(levelFor((30 * (1 + LOD_HYSTERESIS) + 0.01) ** 2, BANDS, 0)).toBe(1);
+  it("never draws a finer level past its recorded edge, which the budget is measured at", () => {
+    expect(levelFor(30.01 ** 2, BANDS, 0)).toBe(1);
+    expect(levelFor(70.01 ** 2, BANDS, 0)).toBe(2);
+    expect(levelFor(120.01 ** 2, BANDS, 2)).toBe(-1);
+  });
+
+  it("returns to a finer level once inside the margin", () => {
     expect(levelFor((30 * (1 - LOD_HYSTERESIS) - 0.01) ** 2, BANDS, 1)).toBe(0);
-    expect(levelFor((70 * (1 + LOD_HYSTERESIS) + 0.01) ** 2, BANDS, 0)).toBe(2);
+    expect(levelFor((120 * (1 - LOD_HYSTERESIS) - 0.01) ** 2, BANDS, -1)).toBe(2);
   });
 
   it("uses each instance's previous level, already in `out`, when re-bucketing", () => {
-    const columns = { count: 2, x: [31, 31], y: [0, 0], z: [0, 0], keep: [0, 0] };
+    const columns = { count: 2, x: [29, 29], y: [0, 0], z: [0, 0], keep: [0, 0] };
     const out = Int8Array.from([0, 1]);
     selectLevels(columns, { x: 0, y: 0, z: 0 }, 1, BANDS, out);
     expect(Array.from(out)).toEqual([0, 1]);
+  });
+
+  it("selects instances without a previous level at the plain band edges", () => {
+    const columns = { count: 2, x: [29, 119], y: [0, 0], z: [0, 0], keep: [0, 0] };
+    const out = new Int8Array(2).fill(LEVEL_UNSET);
+    selectLevels(columns, { x: 0, y: 0, z: 0 }, 1, BANDS, out);
+    expect(Array.from(out)).toEqual([0, 2]);
   });
 
   it("buckets a column set by 3D distance and density", () => {

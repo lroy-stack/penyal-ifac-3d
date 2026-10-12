@@ -25,7 +25,7 @@ import {
   type VegetationData,
   vegetationSchema,
 } from "./data";
-import { type LodBands, selectLevels } from "./lod";
+import { LEVEL_UNSET, type LodBands, selectLevels } from "./lod";
 import { plantMatrix, treeMatrix } from "./transform";
 
 /** Frames between two looks at the camera distance; the camera must also have moved. */
@@ -200,7 +200,7 @@ export function createVegetationSystem(
       y: new Float32Array(count),
       z: Float32Array.from(z),
       keep: Uint8Array.from(keep),
-      levels: new Int8Array(count).fill(-1),
+      levels: new Int8Array(count).fill(LEVEL_UNSET),
     };
   }
 
