@@ -114,4 +114,5 @@ La propuesta completa está en `003-entorno-construido.md` §4. Los primeros, po
 1. **"El museo"** son los edificios del Centro de Información y de Visitantes al inicio del sendero. Se modelan en E3. El Museu d'Història de Calp queda fuera.
 2. **Alcance:** el parque con detalle desde el centro, más el acceso desde la rotonda del puerto a baja resolución (E5): asfalto, aparcamiento, Club Náutico y marina. La ciudad de fondo no se modela.
 3. **Fotos:** las hace el usuario, siguiendo `docs/specs/002/protocolo-fotos.md`, ampliado con la sección "Fotos y medidas para modelar".
-4. **Orden aprobado:** E1 → E6. E1 (caminos) y E2 (árboles) empiezan cuando termine B0. Los demás pasos esperan a las fotos.
+4. **Orden aprobado:** E1 → E6. E1 (caminos) y E2 (árboles) empiezan cuando termine B0. Los demás pasos esperaban a las fotos.
+5. **Cambio del 12/10/2026:** el usuario no está en Calp y no hará fotos. Las fotos, medidas y planos salen de fuentes en línea con licencia comprobada (`docs/research/004-*`), y el usuario solo aprueba las descargas.

@@ -46,7 +46,7 @@ A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Ca
 - Branch policy: `trunk` · Conventional Commits (enforced by hook).
 - Specs live in `docs/specs/NNN-slug/`, decisions in `docs/adr/`, session handoffs in `docs/handoff/`.
 - Code, comments, commits and docs in English; user-facing text in es / va / en from the content files.
-- Never invent geometry or facts. Missing data → ask for the file. Approximations are flagged in code and `CREDITS.md`.
+- Never invent geometry or facts. Missing data → find it in open online sources first (Commons, Flickr CC, Mapillary, official GVA/Ajuntament pages, public contracting documents, academic repositories, open data), check its licence, and ask the user only for the download approval; the user is not on site and takes no field photos. Approximations are flagged in code and `CREDITS.md`.
 - Never adjust the terrain to match a published figure (summit is 332 m officially, ~326–328 m in the data). The only allowed terrain edits are evidence-backed local corrections of 2.5D limits (ADR 0009), defined in `data/curated/` and listed in `CREDITS.md`.
 - Every fact shown in the UI comes from `content/facts.json` with its sources and status.
 - Do not reveal locations of real Silene hifacensis plants.

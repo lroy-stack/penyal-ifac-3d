@@ -10,7 +10,7 @@
 - Reglas comunes:
   - prueba que falla primero;
   - salidas deterministas con manifiesto de procedencia, comprobadas por `penyal verify-generated`;
-  - nada de geometría inventada: las medidas que falten se marcan como aproximación en `CREDITS.md` hasta que lleguen las fotos y medidas del usuario.
+  - nada de geometría inventada: las medidas que falten se marcan como aproximación en `CREDITS.md` hasta tener medidas de fuentes en línea (fotos con licencia, documentos oficiales, pliegos de contratación); el usuario no está en Calp y no hará fotos de campo (12/10/2026).
 
 ## E2 — Árboles y matorral reales (carril L3)
 
@@ -27,7 +27,7 @@
 | Tarea | Objetivo | Ficheros | Aceptación | Comprobación | Tamaño | Responsable |
 |---|---|---|---|---|---|---|
 | E1.1 | Máscara de firmes desde OSM | `pipeline/src/penyal_pipeline/surfaces.py`, sus pruebas | (1) Rasteriza las vías de OSM con su `surface` (empedrado, compactado, adoquín, asfalto, tierra y grava) a 0,25 m/px en la zona del parque y del acceso. Se codifica en **KTX2 UASTC lineal**, como dato y no como color: es la decisión tras la revisión, porque el PNG RGBA corría el riesgo de que Safari premultiplicara el alfa y ocupaba unos 4 MiB por tesela. Se carga solo para las teselas presentes. (2) El ancho de cada tipo es provisional y está marcado como aproximación hasta tener las medidas del usuario. (3) Salida por tesela o global con su procedencia, y determinista | `uv run --project pipeline pytest -q tests/test_surfaces.py`; `penyal verify-generated` | M | `implementer` |
-| E1.2 | Materiales de los firmes | `data/catalog.toml` (fase 4), `scripts/make-material-textures.mjs` | (1) Una textura CC0 por firme, elegida comparando con las fotos del usuario. **La descarga necesita su aprobación** con nombre, origen, tamaño y licencia. (2) KTX2 con manifiesto, como en la fase 2 | `node scripts/make-material-textures.mjs`; `penyal verify-generated` | S | responsable técnico e `implementer` |
+| E1.2 | Materiales de los firmes | `data/catalog.toml` (fase 4), `scripts/make-material-textures.mjs` | (1) Una textura CC0 por firme, elegida comparando con fotos en línea del sendero (`docs/research/004-recursos-acceso-centro.md`). **La descarga necesita su aprobación** con nombre, origen, tamaño y licencia. (2) KTX2 con manifiesto, como en la fase 2 | `node scripts/make-material-textures.mjs`; `penyal verify-generated` | S | responsable técnico e `implementer` |
 | E1.3 | El terreno pinta los firmes | `app/src/world/terrain/material.ts` (la edición permitida), un parche de shader nuevo | (1) Mezcla por máscara, con el borde suavizado, sobre el detalle cercano. **Acota la suma de canales a 1**: la compresión UASTC deja fugas entre clases de hasta unos 48/255 en las transiciones, medidas en la revisión de E1. La máscara se lee como dato lineal (`NoColorSpace`) y solo se carga para las teselas presentes (ADR 0010, enmienda 1). (2) Cero llamadas de dibujo adicionales. (3) En nivel `low`, solo color, sin texturas de detalle. (4) Clave de caché nueva y versionada | `pnpm --filter @penyal/app e2e -- viewpoints terrain-material budget` | M | `frontend-engineer` |
 | E1.4 | Escalones como malla | `pipeline/src/penyal_pipeline/structures.py` (empieza L5) | (1) Las escaleras de 30 y de 10 peldaños, y también la de 6 de la boca oeste del túnel (`way/862108208`), con su barandilla, a lo largo de su línea de OSM y con su `step_count`. (2) Contrahuella uniforme y peldaños que siguen el perfil del MDT tallado: ninguna huella queda bajo el terreno que se ve. (3) Medidas provisionales hasta las del usuario | `uv run --project pipeline pytest -q tests/test_structures.py` | M | `implementer` |
 
@@ -36,7 +36,7 @@
 1. B0 integrado en `main`.
 2. **En paralelo:**
    - **E2:** E2.1 → E2.2 → E2.3 → E2.4 → E2.5;
-   - **E1:** E1.1 → E1.3, usando como textura provisional `rocks_ground_05`, ya descargada en la fase 2 y reservada para el firme del sendero (`CREDITS.md`), sin descargar nada nuevo; después E1.2, que cambia por los materiales elegidos cuando lleguen las fotos, y E1.4.
+   - **E1:** E1.1 → E1.3, usando como textura provisional `rocks_ground_05`, ya descargada en la fase 2 y reservada para el firme del sendero (`CREDITS.md`), sin descargar nada nuevo; después E1.2, que cambia por los materiales elegidos con las fotos en línea, y E1.4.
 3. Cada tarea termina con revisión de código independiente y su comprobación en verde.
 
 ## Riesgos
@@ -61,7 +61,7 @@
   - En total, 914 triángulos. La holgura de las huellas es de −6 mm como mínimo.
   - Las medidas, el material y el lado de la barandilla son provisionales.
   - Pasó tres rondas de revisión independiente.
-- [ ] E1.2, materiales: espera a las fotos y medidas del usuario.
+- [ ] E1.2, materiales: se eligen con las fotos y documentos en línea de `docs/research/004-*` (investigación en curso, 12/10/2026).
 - [x] **E1.3, el terreno pinta los firmes** (L5), integrada en `main` el 12/10/2026 (36cfe82, 0364396, 3382d14).
   - Parche `penyal-surfaces-v1`; las máscaras se cargan y liberan con cada tesela; la suma de canales se acota a 1.
   - La fila `terrain` de `low` sube a 24 MiB de textura por las máscaras, y la de estructuras sin textura baja para que `low` sume su tope de 32 MiB.
@@ -93,4 +93,4 @@
     - las tarjetas lejanas del matorral salen oscuras; mientras tanto se usa `lod1` en la banda lejana.
 - [x] **E3, edificios del centro** (`penyal buildings` y sistema `buildings`), integrados en `main` el 12/10/2026 (f981f04).
   - Huellas de OSM; alero en el percentil 25 y cumbrera en el 95 del LiDAR; cubierta a cuatro aguas; texturas CC0 en KTX2 ETC1S.
-  - Pendiente: cubierta con un error cuadrático medio de unos 1,5 m frente al LiDAR, sin porche ni terrazas, y fachadas a falta de las fotos del usuario.
+  - Pendiente: cubierta con un error cuadrático medio de unos 1,5 m frente al LiDAR, sin porche ni terrazas, y fachadas a falta de la investigación en línea (`docs/research/004-recursos-acceso-centro.md`).
