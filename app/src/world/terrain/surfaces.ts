@@ -189,6 +189,7 @@ export type SurfaceStats = {
   /** Of those, the masks that have loaded. */
   readonly loaded: number;
   readonly detail: boolean;
+  /** The first unresolved failure (manifest, detail map or a tile mask), or null. */
   readonly error: string | null;
 };
 
@@ -207,7 +208,13 @@ export type SurfaceMasksOptions = {
   readonly manifestUrl: string;
   /** Load the detail map (not at the `low` tier: colour only). */
   readonly detail: boolean;
+  /** Aborts the manifest request; `dispose` aborts it too. */
   readonly signal?: AbortSignal;
+  /**
+   * Called once for each new failure, with an actionable message. A mask that failed is tried
+   * again when another LOD of its tile arrives, and its error clears when that load succeeds.
+   */
+  readonly onError?: (message: string) => void;
 };
 
 type TileRecord = {
@@ -222,7 +229,12 @@ type TileRecord = {
  * missing manifest or a failed load leaves the tile unpainted and records the error.
  */
 export function createSurfaceMasks(options: SurfaceMasksOptions): SurfaceMasks {
-  const { loader, manifestUrl, signal } = options;
+  const { loader, manifestUrl, onError } = options;
+  const controller = new AbortController();
+  const abort = (): void => controller.abort(options.signal?.reason);
+  if (options.signal?.aborted === true) abort();
+  else options.signal?.addEventListener("abort", abort, { once: true });
+  const { signal } = controller;
   const records = new Map<string, TileRecord>();
   const urls = new Map<string, string>();
   const shared = {
@@ -230,12 +242,16 @@ export function createSurfaceMasks(options: SurfaceMasksOptions): SurfaceMasks {
     uSurfDetailOn: { value: 0 },
   };
   let detailTexture: Texture | null = null;
-  let error: string | null = null;
+  const errors = new Map<string, string>();
   let disposed = false;
   let manifestReady = false;
 
-  const fail = (what: string, cause: unknown): void => {
-    error = `${what}: ${cause instanceof Error ? cause.message : String(cause)}`;
+  const fail = (key: string, what: string, cause: unknown): void => {
+    if (signal.aborted || errors.has(key)) return;
+    const reason = cause instanceof Error ? cause.message : String(cause);
+    const message = `Painted path surfaces: ${what} failed (${reason}). The paths stay unpainted; check the files under assets/generated/surfaces/ or regenerate them with "penyal surfaces".`;
+    errors.set(key, message);
+    onError?.(message);
   };
 
   const startTile = (id: string, record: TileRecord): void => {
@@ -252,6 +268,7 @@ export function createSurfaceMasks(options: SurfaceMasksOptions): SurfaceMasks {
         texture.wrapS = ClampToEdgeWrapping;
         texture.wrapT = ClampToEdgeWrapping;
         texture.flipY = false;
+        errors.delete(`tile:${id}`);
         record.texture = texture;
         for (const sets of record.lods.values()) {
           for (const uniforms of sets) {
@@ -262,7 +279,8 @@ export function createSurfaceMasks(options: SurfaceMasksOptions): SurfaceMasks {
       },
       (cause: unknown) => {
         record.started = false;
-        fail(`surface mask ${id}`, cause);
+        if (records.get(id) !== record) return;
+        fail(`tile:${id}`, `the mask of tile ${id}`, cause);
       },
     );
   };
@@ -273,7 +291,7 @@ export function createSurfaceMasks(options: SurfaceMasksOptions): SurfaceMasks {
       const manifest = manifestSchema.parse(await opened.read((r) => r.json()));
       for (const tile of manifest.tiles) urls.set(tile.id, tile.url);
     } catch (cause) {
-      if (!(cause instanceof NotFoundError)) fail("surfaces manifest", cause);
+      if (!(cause instanceof NotFoundError)) fail("manifest", "the manifest", cause);
       return;
     }
     if (disposed) return;
@@ -296,7 +314,7 @@ export function createSurfaceMasks(options: SurfaceMasksOptions): SurfaceMasks {
         shared.uSurfDetail.value = texture;
         shared.uSurfDetailOn.value = 1;
       },
-      (cause: unknown) => fail("surface detail map", cause),
+      (cause: unknown) => fail("detail", "the detail map", cause),
     );
   }
   void begin();
@@ -335,6 +353,7 @@ export function createSurfaceMasks(options: SurfaceMasksOptions): SurfaceMasks {
       if (record.lods.size > 0) return;
       record.texture?.dispose();
       records.delete(tileId);
+      errors.delete(`tile:${tileId}`);
     },
     stats() {
       const tracked = [...records.entries()].filter(([id]) => urls.has(id));
@@ -342,11 +361,13 @@ export function createSurfaceMasks(options: SurfaceMasksOptions): SurfaceMasks {
         resident: tracked.length,
         loaded: tracked.filter(([, record]) => record.texture !== null).length,
         detail: detailTexture !== null,
-        error,
+        error: errors.values().next().value ?? null,
       };
     },
     dispose() {
       disposed = true;
+      options.signal?.removeEventListener("abort", abort);
+      controller.abort();
       for (const record of records.values()) record.texture?.dispose();
       records.clear();
       detailTexture?.dispose();

@@ -97,6 +97,10 @@ export type TerrainStreamerOptions = {
    * before the rest of the terrain competes for the connection. Default true.
    */
   readonly detailEnabled?: boolean;
+  /** Aborts the surface-mask manifest request; `dispose` aborts it too. */
+  readonly signal?: AbortSignal;
+  /** Called once per new failure of the painted-surface masks, with an actionable message. */
+  readonly onSurfaceError?: (message: string) => void;
   /** Largest LOD-level difference allowed between edge-adjacent tiles; default 1. */
   readonly maxLodStep?: number;
 };
@@ -221,6 +225,8 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
           loader: surfaceLoader,
           manifestUrl: resolveAssetUrl(manifestUrl, "../surfaces/manifest.json"),
           detail: quality === "high",
+          signal: options.signal,
+          onError: options.onSurfaceError,
         });
   const retryDelayMs = options.retryDelayMs ?? 2000;
   const maxRetries = options.maxRetries ?? 3;
@@ -403,6 +409,12 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
       (flight) => detailEnabled || isCritical(flight.request, requiredSet),
     ).length;
     const gateOpen = Math.max(gateQueued, gateInFlight) > 0;
+    const surfaceStats = surfaces?.stats() ?? {
+      resident: 0,
+      loaded: 0,
+      detail: false,
+      error: null,
+    };
     return {
       resident,
       displayed: shown,
@@ -414,10 +426,10 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
       pending,
       inFlight: inFlight.size,
       failed: failures.size,
-      lastError: lastError ?? detailTextures.lastError(),
+      lastError: lastError ?? detailTextures.lastError() ?? surfaceStats.error,
       quality,
       detail: detailTextures.source(),
-      surfaces: surfaces?.stats() ?? { resident: 0, loaded: 0, detail: false, error: null },
+      surfaces: surfaceStats,
     };
   };
 

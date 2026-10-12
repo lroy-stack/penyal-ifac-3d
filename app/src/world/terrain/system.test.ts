@@ -104,6 +104,30 @@ describe("terrain system init", () => {
   });
 });
 
+describe("terrain system surface masks", () => {
+  it("hands the streamer the system's abort signal", async () => {
+    const { world, createStreamer } = setup({ status: "ready", manifest: MANIFEST });
+    await world.init("critical");
+    const options = createStreamer.mock.calls[0]?.[0] ?? {};
+    expect(options.signal).toBeInstanceOf(AbortSignal);
+    expect((options.signal as AbortSignal).aborted).toBe(false);
+    world.dispose();
+    expect((options.signal as AbortSignal).aborted).toBe(true);
+  });
+
+  it("logs a surface failure and marks the terrain degraded without failing it", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { world, createStreamer } = setup({ status: "ready", manifest: MANIFEST });
+    await world.init("critical");
+    const options = createStreamer.mock.calls[0]?.[0] ?? {};
+    (options.onSurfaceError as (message: string) => void)("masks are broken");
+    expect(world.status().terrain).toEqual({ state: "degraded", message: "masks are broken" });
+    expect(error).toHaveBeenCalledWith("[world:terrain] masks are broken");
+    vi.restoreAllMocks();
+  });
+});
+
 describe("terrain system walk gate", () => {
   it("updates the streamer every frame with the camera view", async () => {
     const { world, streamer } = setup({ status: "ready", manifest: MANIFEST });

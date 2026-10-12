@@ -1,5 +1,5 @@
 import { Mesh, MeshStandardMaterial, Object3D, type Texture } from "three";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { shaderPatchUniforms } from "../../core/shaderPatch";
 import {
   createSurfaceMasks,
@@ -135,5 +135,195 @@ describe("createSurfaceMasks", () => {
     expect(mask.disposed).toBe(1);
     expect(masks.stats().resident).toBe(0);
     vi.unstubAllGlobals();
+  });
+
+  describe("races and failures", () => {
+    const MANIFEST_URL = "http://x/assets/generated/surfaces/manifest.json";
+    const jsonResponse = (body: unknown): Response =>
+      new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } });
+    const manifestWith = (...ids: string[]): Response =>
+      jsonResponse({ version: 1, tiles: ids.map((id) => ({ id, url: `${id}.ktx2` })) });
+
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("drops a mask that arrives after its tile was released", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => manifestWith("t_1_1")),
+      );
+      const mask = fakeTexture();
+      let arrive: (texture: Texture) => void = () => undefined;
+      const loadAsync = vi.fn(() => new Promise<Texture>((resolve) => (arrive = resolve)));
+      const masks = createSurfaceMasks({
+        loader: { loadAsync },
+        manifestUrl: MANIFEST_URL,
+        detail: false,
+      });
+      const tile = tileObject();
+      masks.attach("t_1_1", 0, tile.object);
+      await flush();
+      expect(loadAsync).toHaveBeenCalledTimes(1);
+
+      masks.release("t_1_1", 0);
+      arrive(mask);
+      await flush();
+
+      expect(mask.disposed).toBe(1);
+      expect(shaderPatchUniforms(tile.material).uSurfOn?.value).toBe(0);
+      expect(masks.stats()).toMatchObject({ resident: 0, loaded: 0, error: null });
+    });
+
+    it("aborts the manifest request on dispose and disposes a mask that arrives afterwards", async () => {
+      let requestSignal: AbortSignal | undefined;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          (_url: string, init?: RequestInit) =>
+            new Promise<Response>((_resolve, reject) => {
+              requestSignal = init?.signal ?? undefined;
+              requestSignal?.addEventListener("abort", () =>
+                reject(new DOMException("x", "AbortError")),
+              );
+            }),
+        ),
+      );
+      const onError = vi.fn();
+      const masks = createSurfaceMasks({
+        loader: { loadAsync: vi.fn(async () => fakeTexture()) },
+        manifestUrl: MANIFEST_URL,
+        detail: false,
+        onError,
+      });
+      masks.attach("t_1_1", 0, tileObject().object);
+      masks.dispose();
+      await flush();
+
+      expect(requestSignal?.aborted).toBe(true);
+      expect(onError).not.toHaveBeenCalled();
+      expect(masks.stats().error).toBeNull();
+    });
+
+    it("aborts the manifest request when the caller's signal aborts", async () => {
+      let requestSignal: AbortSignal | undefined;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          (_url: string, init?: RequestInit) =>
+            new Promise<Response>((_resolve, reject) => {
+              requestSignal = init?.signal ?? undefined;
+              requestSignal?.addEventListener("abort", () =>
+                reject(new DOMException("x", "AbortError")),
+              );
+            }),
+        ),
+      );
+      const caller = new AbortController();
+      const onError = vi.fn();
+      createSurfaceMasks({
+        loader: { loadAsync: vi.fn() },
+        manifestUrl: MANIFEST_URL,
+        detail: false,
+        signal: caller.signal,
+        onError,
+      });
+      caller.abort();
+      await flush();
+
+      expect(requestSignal?.aborted).toBe(true);
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it("reports a failed mask once, retries it when another LOD arrives and clears the error", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => manifestWith("t_1_1")),
+      );
+      const mask = fakeTexture();
+      const loadAsync = vi
+        .fn<(url: string) => Promise<Texture>>()
+        .mockRejectedValueOnce(new Error("decode failed"))
+        .mockResolvedValue(mask);
+      const onError = vi.fn();
+      const masks = createSurfaceMasks({
+        loader: { loadAsync },
+        manifestUrl: MANIFEST_URL,
+        detail: false,
+        onError,
+      });
+      masks.attach("t_1_1", 2, tileObject().object);
+      await flush();
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError.mock.calls[0]?.[0]).toMatch(/mask of tile t_1_1 failed \(decode failed\)/);
+      expect(masks.stats().error).toBe(onError.mock.calls[0]?.[0]);
+
+      const finer = tileObject();
+      masks.attach("t_1_1", 0, finer.object);
+      await flush();
+
+      expect(loadAsync).toHaveBeenCalledTimes(2);
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(masks.stats()).toMatchObject({ loaded: 1, error: null });
+      expect(shaderPatchUniforms(finer.material).uSurfOn?.value).toBe(1);
+    });
+
+    it("reports a manifest that fails validation and leaves the tiles unpainted", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => jsonResponse({ version: 2, tiles: [] })),
+      );
+      const loadAsync = vi.fn();
+      const onError = vi.fn();
+      const masks = createSurfaceMasks({
+        loader: { loadAsync },
+        manifestUrl: MANIFEST_URL,
+        detail: false,
+        onError,
+      });
+      const tile = tileObject();
+      masks.attach("t_1_1", 0, tile.object);
+      await flush();
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError.mock.calls[0]?.[0]).toMatch(/the manifest failed/);
+      expect(masks.stats().error).not.toBeNull();
+      expect(loadAsync).not.toHaveBeenCalled();
+      expect(shaderPatchUniforms(tile.material).uSurfOn?.value).toBe(0);
+    });
+
+    it("reports a failed detail map", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => manifestWith()),
+      );
+      const onError = vi.fn();
+      createSurfaceMasks({
+        loader: { loadAsync: vi.fn(async () => Promise.reject(new Error("no ktx2"))) },
+        manifestUrl: MANIFEST_URL,
+        detail: true,
+        onError,
+      });
+      await flush();
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError.mock.calls[0]?.[0]).toMatch(/the detail map failed \(no ktx2\)/);
+    });
+
+    it("treats a manifest that does not exist as no surfaces, not as an error", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("", { status: 404 })),
+      );
+      const onError = vi.fn();
+      const masks = createSurfaceMasks({
+        loader: { loadAsync: vi.fn() },
+        manifestUrl: MANIFEST_URL,
+        detail: false,
+        onError,
+      });
+      masks.attach("t_1_1", 0, tileObject().object);
+      await flush();
+      expect(onError).not.toHaveBeenCalled();
+      expect(masks.stats().error).toBeNull();
+    });
   });
 });
