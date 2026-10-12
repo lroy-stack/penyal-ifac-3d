@@ -230,7 +230,7 @@ Boceto sobre capturas reales del juego (12/10/2026, en el torniquete): `docs/spe
   - Lo alimenta `weather.json` (instantánea) o una escena.
   - Sin datos, se queda en un tiempo por defecto y lo rotula, nunca falla.
 - **Interfaz** (L7).
-  - Componentes DOM y SVG, que no gastan llamadas de dibujo: minimapa y mapa, altímetro y perfil, brújula, coordenadas y fichas.
+  - Componentes DOM y SVG, que no gastan llamadas de dibujo: minimapa y mapa grande, altitud y perfil, coordenadas (solo en el mapa grande) y fichas.
   - Leen el estado del jugador a unas 10 veces por segundo, no en cada fotograma, para no forzar el maquetado.
 - **Viaje rápido.**
   - `teleport(anclaje, rumbo)` a través del controlador.
@@ -263,7 +263,7 @@ Boceto sobre capturas reales del juego (12/10/2026, en el torniquete): `docs/spe
 | Fase | Qué | Por qué en este orden | Tamaño |
 |---|---|---|---|
 | **X0. Base de interfaz** (L7) | Ficha visible al descubrir un punto, cuaderno conectado, menú de ajustes (idioma, sonido, comodidad, calidad), botón "Ir a la cima" y estructura accesible de la interfaz | Sin esto no se ve ningún contenido: es el camino crítico | M |
-| **X1. Orientación** | Minimapa y mapa completo, GPS simulado, altímetro con perfil, brújula, distancia y tiempo, viaje rápido a miradores, opciones contra el mareo | Es lo más útil para los cuatro públicos y no necesita datos nuevos: ortofoto, `trail.json` y el campo de colisión ya están | M |
+| **X1. Orientación** | Hora y tiempo diminutos, minimapa con altitud, aviso de llegada, tres botones; mapa grande con GPS simulado, perfil, distancia y tiempo; viaje rápido a las paradas; "¿Dónde estoy?"; opciones contra el mareo | Es lo más útil para los cuatro públicos y no necesita datos nuevos: ortofoto, `trail.json` y el campo de colisión ya están | M |
 | **X2. Tiempo vivo** (L1 + L4) | Sol y luna reales, control de hora y fecha, amanecer, atardecer, noche con estrellas y luna. Después, escenas de tiempo (niebla y visibilidad, nubes, viento, lluvia, mar) y por último el tiempo de hoy | Es lo que más emoción da. B1 ya estaba planificado y aquí se amplía | L, se divide |
 | **X3. Conocimiento** (L2 + L7) | Fichas en todos los anclajes, guía de naturaleza por estaciones, "¿Qué estoy viendo?", narración con subtítulos en es, va y en | Depende de los datos validados (consulta al parque) y de la base X0 | L, se divide |
 | **X4. Memoria** | 1956 ↔ hoy primero en el mapa y luego en el relieve, refotografía, capa de la Pobla | Depende de las imágenes históricas (aprobación de descarga) y de E6 | M |
