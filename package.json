@@ -12,11 +12,13 @@
     "typecheck": "pnpm -r typecheck && uv run --directory pipeline basedpyright",
     "test": "pnpm -r test && uv run --project pipeline pytest -q",
     "optimize": "node scripts/optimize.mjs",
+    "deploy:preview": "node scripts/deploy-preview.mjs",
     "spike": "uv run --project pipeline penyal spike && node scripts/optimize.mjs build/spike/spike.glb app/public/assets/generated/spike/spike.glb --textures keep"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
-    "@gltf-transform/cli": "4.5.1"
+    "@gltf-transform/cli": "4.5.1",
+    "wrangler": "4.149.0"
   },
   "license": "EUPL-1.2"
 }

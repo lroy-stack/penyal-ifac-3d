@@ -1,0 +1,17 @@
+# Cloudflare Pages response headers (https://developers.cloudflare.com/pages/configuration/headers/).
+# Applies to the private preview (ADR 0012). Vite copies this file to dist/ unchanged.
+# CSP notes: KTX2Loader builds its transcoder worker from a blob: URL; the Basis transcoder
+# (emscripten embind) calls new Function, so script-src needs 'unsafe-eval' (it also covers
+# WebAssembly for the meshopt decoder). script-src stays 'self', so eval only runs our own bundle.
+# glTF textures are decoded from blob: URLs and index.html carries one inline <style> block.
+/*
+  X-Robots-Tag: noindex, nofollow
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  Permissions-Policy: accelerometer=(), autoplay=(self), bluetooth=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), hid=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(), serial=(), usb=(), xr-spatial-tracking=()
+  Cross-Origin-Opener-Policy: same-origin
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self' data: blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+
+# Hashed bundles never change under the same name.
+/bundle/*
+  Cache-Control: public, max-age=31536000, immutable
