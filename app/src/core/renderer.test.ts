@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { profileFor } from "./quality";
-import { isWebGL2Available, pixelRatioFor } from "./renderer";
+import { contextAttributesFor, isWebGL2Available, pixelRatioFor } from "./renderer";
 
 describe("pixelRatioFor", () => {
   const resolution = profileFor("medium", {
@@ -19,6 +19,18 @@ describe("pixelRatioFor", () => {
 
   it("multiplies by the scale the governor chose", () => {
     expect(pixelRatioFor(2, { maxPixelRatio: 2, scale: 0.8, minScale: 0.7 })).toBeCloseTo(1.6, 9);
+  });
+});
+
+describe("contextAttributesFor", () => {
+  it("asks for an opaque drawing buffer so alpha-to-coverage never lets the page show through", () => {
+    expect(contextAttributesFor(false).alpha).toBe(false);
+    expect(contextAttributesFor(true).alpha).toBe(false);
+  });
+
+  it("multisamples for fine pointers only", () => {
+    expect(contextAttributesFor(false).antialias).toBe(true);
+    expect(contextAttributesFor(true).antialias).toBe(false);
   });
 });
 

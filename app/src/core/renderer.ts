@@ -43,6 +43,24 @@ export type RendererOptions = {
   readonly quality: { readonly current: QualityProfile };
 };
 
+/**
+ * The WebGL 2 context the renderer draws into. three r186 always asks the browser for an alpha
+ * channel and only clears it to 1, so any fragment that writes alpha < 1 makes the canvas
+ * translucent over the page. Alpha-to-coverage (the vegetation) writes its coverage there: foliage
+ * edges and thin crowns showed the white page through. An opaque buffer has no alpha to leak.
+ */
+export function contextAttributesFor(coarsePointer: boolean): WebGLContextAttributes {
+  return {
+    alpha: false,
+    antialias: !coarsePointer,
+    depth: true,
+    stencil: false,
+    premultipliedAlpha: true,
+    preserveDrawingBuffer: false,
+    powerPreference: "high-performance",
+  };
+}
+
 export function createRenderer(
   canvas: HTMLCanvasElement,
   onResize: (width: number, height: number) => void,
@@ -56,11 +74,9 @@ export function createRenderer(
 
   let renderer: WebGLRenderer;
   try {
-    renderer = new WebGLRenderer({
-      canvas,
-      antialias: !coarsePointer,
-      powerPreference: "high-performance",
-    });
+    const context = canvas.getContext("webgl2", contextAttributesFor(coarsePointer));
+    if (context === null) return { ok: false, message: WEBGL2_UNAVAILABLE_MESSAGE };
+    renderer = new WebGLRenderer({ canvas, context });
   } catch {
     return { ok: false, message: WEBGL2_UNAVAILABLE_MESSAGE };
   }
