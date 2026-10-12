@@ -178,3 +178,56 @@ def test_real_catalog_keeps_the_locked_snapshot_order() -> None:
     which would silently change the locked snapshot, so it stays off."""
     cv05 = next(s for s in load_catalog() if s.id == "icv-cv05-penyal")
     assert cv05.sort_by == ""
+
+
+WMS_ENTRY = """
+[[source]]
+id = "w"
+phase = 5
+kind = "wms"
+description = "d"
+used_for = "u"
+licence = "CC BY 4.0"
+attribution = "a"
+endpoint = "https://example.org/wms"
+version = "1.3.0"
+layer = "L_PAN"
+crs = "EPSG:25830"
+bbox = [767000, 4280000, 768500, 4281500]
+width = 3000
+height = 3000
+output_format = "image/jpeg"
+expected_bytes = 900000
+size_tolerance = 0.05
+"""
+
+
+def test_wms_entry_is_parsed_and_named_after_its_format() -> None:
+    (source,) = parse_catalog(WMS_ENTRY)
+    assert source.kind == "wms"
+    assert source.filenames == ("w.jpg",)
+    assert source.layer == "L_PAN"
+    assert (source.width, source.height) == (3000, 3000)
+    assert source.bbox == (767000.0, 4280000.0, 768500.0, 4281500.0)
+    assert source.host == "example.org"
+
+
+@pytest.mark.parametrize("missing", ["layer", "width", "height", "bbox", "output_format", "crs"])
+def test_wms_requires_its_request_fields(missing: str) -> None:
+    text = "\n".join(line for line in WMS_ENTRY.splitlines() if not line.startswith(f"{missing} ="))
+    with pytest.raises(CatalogError, match=missing):
+        parse_catalog(text)
+
+
+def test_wms_rejects_unsupported_format_and_bad_size() -> None:
+    with pytest.raises(CatalogError, match=r"output_format"):
+        parse_catalog(WMS_ENTRY.replace("image/jpeg", "image/tiff"))
+    with pytest.raises(CatalogError, match=r"width"):
+        parse_catalog(WMS_ENTRY.replace("width = 3000", "width = 0"))
+
+
+def test_filename_overrides_the_name_derived_from_the_url() -> None:
+    (source,) = parse_catalog(FILE_ENTRY + 'filename = "renamed.tif"\n')
+    assert source.filenames == ("renamed.tif",)
+    with pytest.raises(CatalogError, match=r"filename"):
+        parse_catalog(FILE_ENTRY + 'filename = "../x.tif"\n')

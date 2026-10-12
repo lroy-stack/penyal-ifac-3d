@@ -14,6 +14,7 @@ from penyal_pipeline.fetch import (
     FetchError,
     SizeMismatchError,
     _wfs_url,  # pyright: ignore[reportPrivateUsage]
+    _wms_url,  # pyright: ignore[reportPrivateUsage]
     plan_rows,
     read_manifest,
     run_fetch,
@@ -336,3 +337,105 @@ def test_wfs_rerun_only_fetches_missing_layers(
 def test_plan_rows_describe_without_downloading() -> None:
     rows = plan_rows([_source("https://example.org/x/big.tif", expected_bytes=825_000_000)])
     assert rows == [["demo", "big.tif", "example.org", "~825.0 MB", "CC BY 4.0"]]
+
+
+JPEG = b"\xff\xd8\xff\xe0" + bytes(range(256)) * 40  # 10_244 bytes, JPEG magic number
+
+
+def _wms_source(server: FakeServer, **overrides: object) -> Source:
+    fields: dict[str, object] = {
+        "id": "wms-demo",
+        "kind": "wms",
+        "url": server.url("/wms"),
+        "expected_bytes": len(JPEG),
+        "size_tolerance": 0.05,
+        "version": "1.3.0",
+        "layer": "L_PAN",
+        "bbox": (767000.0, 4280000.0, 768500.0, 4281500.0),
+        "crs": "EPSG:25830",
+        "width": 3000,
+        "height": 3000,
+        "output_format": "image/jpeg",
+    }
+    fields.update(overrides)
+    return _source(**fields)  # type: ignore[arg-type]
+
+
+def test_wms_url_is_a_deterministic_getmap_with_a_fixed_bbox() -> None:
+    source = _wms_source(FakeServer(base_url="http://x"))
+    url = _wms_url(source)
+    assert url == _wms_url(source)
+    query = parse_qs(urlparse(url).query, keep_blank_values=True)
+    assert {k: v[0] for k, v in query.items()} == {
+        "service": "WMS",
+        "version": "1.3.0",
+        "request": "GetMap",
+        "layers": "L_PAN",
+        "styles": "",
+        "crs": "EPSG:25830",
+        "bbox": "767000,4280000,768500,4281500",
+        "width": "3000",
+        "height": "3000",
+        "format": "image/jpeg",
+    }
+
+
+def test_wms_crop_is_downloaded_hashed_and_locked(
+    server: FakeServer, downloader: Downloader, tmp_path: Path
+) -> None:
+    server.files["/wms"] = JPEG
+    source = _wms_source(server)
+    assert run_fetch([source], data_dir=tmp_path, downloader=downloader, today=TODAY) == []
+    assert (tmp_path / "raw" / "wms-demo" / "wms-demo.jpg").read_bytes() == JPEG
+    entry = read_manifest(tmp_path / "manifest.lock.json")["sources"]["wms-demo"]
+    assert entry["files"] == [
+        {"name": "wms-demo.jpg", "bytes": len(JPEG), "sha256": hashlib.sha256(JPEG).hexdigest()}
+    ]
+    assert entry["request"]["bbox"] == [767000.0, 4280000.0, 768500.0, 4281500.0]
+    assert entry["request"]["layer"] == "L_PAN"
+    assert verify_sources([source], data_dir=tmp_path) == []
+    n_requests = len(server.requests)
+    assert run_fetch([source], data_dir=tmp_path, downloader=downloader, today=TODAY) == []
+    assert len(server.requests) == n_requests  # the snapshot is reused, no network
+
+
+def test_wms_size_outside_tolerance_is_reported(
+    server: FakeServer, downloader: Downloader, tmp_path: Path
+) -> None:
+    server.files["/wms"] = JPEG + bytes(2_000)
+    errors = run_fetch([_wms_source(server)], data_dir=tmp_path, downloader=downloader, today=TODAY)
+    assert len(errors) == 1
+    assert "wms-demo" in errors[0]
+    assert "tolerance" in errors[0]
+
+
+def test_wms_service_exception_with_http_200_is_not_saved_as_an_image(
+    server: FakeServer, downloader: Downloader, tmp_path: Path
+) -> None:
+    server.files["/wms"] = b'<?xml version="1.0"?><ServiceExceptionReport/>'
+    errors = run_fetch(
+        [_wms_source(server, expected_bytes=None)],
+        data_dir=tmp_path,
+        downloader=downloader,
+        today=TODAY,
+    )
+    assert len(errors) == 1
+    assert "image/jpeg" in errors[0]
+    assert not (tmp_path / "raw" / "wms-demo" / "wms-demo.jpg").exists()
+
+
+def test_changing_the_wms_bbox_is_flagged_as_lock_drift(
+    server: FakeServer, downloader: Downloader, tmp_path: Path
+) -> None:
+    server.files["/wms"] = JPEG
+    run_fetch([_wms_source(server)], data_dir=tmp_path, downloader=downloader, today=TODAY)
+    moved = _wms_source(server, bbox=(767000.0, 4280000.0, 768000.0, 4281000.0))
+    problems = verify_sources([moved], data_dir=tmp_path)
+    assert len(problems) == 1
+    assert "bbox" in problems[0]
+
+
+def test_plan_rows_for_a_wms_crop_show_the_expected_size() -> None:
+    source = _wms_source(FakeServer(base_url="http://example.org"), expected_bytes=1_280_000)
+    row = ["wms-demo", "wms-demo.jpg", "example.org", "~1.3 MB", "CC BY 4.0"]
+    assert plan_rows([source]) == [row]

@@ -359,6 +359,39 @@ def _wfs_url(source: Source, layer: str, count: int, start: int) -> str:
     return f"{source.url}{sep}{urlencode(params)}"
 
 
+IMAGE_MAGIC = {"image/jpeg": b"\xff\xd8\xff", "image/png": b"\x89PNG\r\n\x1a\n"}
+
+
+def _wms_url(source: Source) -> str:
+    """Deterministic GetMap request: a fixed bbox and pixel size, no time or random parameters."""
+    assert source.bbox is not None
+    params = {
+        "service": "WMS",
+        "version": source.version,
+        "request": "GetMap",
+        "layers": source.layer,
+        "styles": "",
+        "crs": source.crs,
+        "bbox": ",".join(_coordinate(v) for v in source.bbox),
+        "width": str(source.width),
+        "height": str(source.height),
+        "format": source.output_format,
+    }
+    sep = "&" if "?" in source.url else "?"
+    return f"{source.url}{sep}{urlencode(params)}"
+
+
+def fetch_wms_image(downloader: Downloader, source: Source) -> bytes:
+    """GetMap one image. MapServer answers errors as XML with HTTP 200, so check the magic bytes."""
+    payload = downloader.get_bytes(_wms_url(source))
+    if not payload.startswith(IMAGE_MAGIC[source.output_format]):
+        raise FetchError(
+            f"{source.id}: the WMS did not return {source.output_format} (got "
+            f"{payload[:120]!r}). Check layer, crs and bbox in data/catalog.toml."
+        )
+    return payload
+
+
 def fetch_wfs_layer(downloader: Downloader, source: Source, layer: str) -> bytes:
     """Page through one WFS feature type and return a single GeoJSON FeatureCollection.
 
@@ -447,6 +480,17 @@ def fetch_source(
                 tolerance=source.size_tolerance,
             )
         ]
+    if source.kind == "wms":
+        dest = target / source.filenames[0]
+        if not dest.exists():
+            _write_atomic(dest, fetch_wms_image(downloader, source))
+        else:
+            log.info("%s: %s already present, checking it", source.id, dest.name)
+        size = dest.stat().st_size
+        check_size(
+            dest.name, size, source.expected_bytes, source.size_tolerance, source.id, path=dest
+        )
+        return [FileRecord(dest.name, size, sha256_file(dest))]
     if source.kind == "osm":
         dest = target / source.filenames[0]
         if dest.exists() and not refresh:
@@ -506,6 +550,16 @@ def source_request(source: Source) -> dict[str, Any]:
         if source.sort_by:
             request["sortBy"] = source.sort_by
         return request
+    if source.kind == "wms":
+        return {
+            "version": source.version,
+            "layer": source.layer,
+            "bbox": list(source.bbox or ()),
+            "crs": source.crs,
+            "width": source.width,
+            "height": source.height,
+            "format": source.output_format,
+        }
     return {}
 
 
@@ -710,6 +764,9 @@ def plan_rows(sources: list[Source]) -> list[list[str]]:
         if s.kind == "wfs":
             files = f"{len(s.layers)} GeoJSON layers"
             size = "small (paged WFS)"
+        elif s.kind == "wms":
+            files = s.filenames[0]
+            size = f"~{human_bytes(s.expected_bytes)}" if s.expected_bytes else "unknown"
         elif s.kind == "osm":
             files = s.filenames[0]
             size = "small (single request)"

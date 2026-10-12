@@ -10,12 +10,14 @@ from urllib.parse import urlparse
 from penyal_pipeline.paths import DATA_DIR
 
 CATALOG_PATH = DATA_DIR / "catalog.toml"
-KINDS = ("file", "wfs", "osm")
+KINDS = ("file", "wfs", "osm", "wms")
+WMS_FORMATS = {"image/jpeg": "jpg", "image/png": "png"}
 DEFAULT_SIZE_TOLERANCE = 0.01
 # Ids and layer names become path components under data/raw, so they must not be able to escape it.
 ID_PATTERN = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 LAYER_PATTERN = re.compile(r"[A-Za-z0-9_.:-]+")
 SORT_BY_PATTERN = re.compile(r"[A-Za-z0-9_.:+, -]+")
+FILENAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
 
 
 class CatalogError(ValueError):
@@ -49,6 +51,10 @@ class Source:
     page_size: int = 1000
     sort_by: str = ""
     layers: tuple[Layer, ...] = ()
+    layer: str = ""
+    width: int = 0
+    height: int = 0
+    filename: str = ""
 
     @property
     def host(self) -> str:
@@ -61,12 +67,16 @@ class Source:
             return tuple(f"{layer.name}.geojson" for layer in self.layers)
         if self.kind == "osm":
             return (f"{self.id}.json",)
+        if self.filename:
+            return (self.filename,)
+        if self.kind == "wms":
+            return (f"{self.id}.{WMS_FORMATS[self.output_format]}",)
         return (Path(urlparse(self.url).path).name,)
 
 
 _COMMON = ("id", "phase", "kind", "description", "used_for", "licence", "attribution")
 _ALLOWED: dict[str, set[str]] = {
-    "file": {"url", "expected_bytes", "size_tolerance"},
+    "file": {"url", "expected_bytes", "size_tolerance", "filename"},
     "wfs": {
         "endpoint",
         "version",
@@ -78,11 +88,25 @@ _ALLOWED: dict[str, set[str]] = {
         "layers",
     },
     "osm": {"url"},
+    "wms": {
+        "endpoint",
+        "version",
+        "layer",
+        "crs",
+        "bbox",
+        "width",
+        "height",
+        "output_format",
+        "expected_bytes",
+        "size_tolerance",
+        "filename",
+    },
 }
 _REQUIRED: dict[str, tuple[str, ...]] = {
     "file": ("url",),
     "wfs": ("endpoint", "version", "bbox", "crs", "output_format", "layers"),
     "osm": ("url",),
+    "wms": ("endpoint", "version", "layer", "crs", "bbox", "width", "height", "output_format"),
 }
 
 
@@ -198,9 +222,30 @@ def _parse_source(raw: object, index: int) -> Source:
             layers=_parse_layers(raw["layers"], where),
         )
 
-    url = _http_url(_str(raw, "url", where), "url", where)
     if kind == "osm":
-        return Source(**common, url=url)
+        return Source(**common, url=_http_url(_str(raw, "url", where), "url", where))
+
+    extra: dict[str, Any] = {}
+    if kind == "wms":
+        output_format = _str(raw, "output_format", where)
+        if output_format not in WMS_FORMATS:
+            raise _fail(where, f"'output_format' must be one of {', '.join(WMS_FORMATS)}")
+        for key in ("width", "height"):
+            value = raw[key]
+            if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+                raise _fail(where, f"'{key}' must be a positive integer")
+        extra = {
+            "layer": _str(raw, "layer", where),
+            "version": _str(raw, "version", where),
+            "crs": _str(raw, "crs", where),
+            "bbox": _parse_bbox(raw["bbox"], where),
+            "width": raw["width"],
+            "height": raw["height"],
+            "output_format": output_format,
+        }
+        url = _http_url(_str(raw, "endpoint", where), "endpoint", where)
+    else:
+        url = _http_url(_str(raw, "url", where), "url", where)
 
     expected = raw.get("expected_bytes")
     if expected is not None and (
@@ -214,7 +259,17 @@ def _parse_source(raw: object, index: int) -> Source:
         or not 0 <= tolerance < 1
     ):
         raise _fail(where, "'size_tolerance' must be a fraction in [0, 1)")
-    source = Source(**common, url=url, expected_bytes=expected, size_tolerance=float(tolerance))
+    filename = raw.get("filename", "")
+    if filename != "" and not (isinstance(filename, str) and FILENAME_PATTERN.fullmatch(filename)):
+        raise _fail(where, f"'filename' must match {FILENAME_PATTERN.pattern}, got {filename!r}")
+    source = Source(
+        **common,
+        **extra,
+        url=url,
+        expected_bytes=expected,
+        size_tolerance=float(tolerance),
+        filename=filename,
+    )
     name = source.filenames[0]
     if not name or name in (".", "..") or "/" in name or "\\" in name or "\0" in name:
         raise _fail(where, f"cannot derive a safe file name from url {url!r}")
