@@ -1,5 +1,8 @@
 # 002 — Plan propuesto
 
+> **12/10/2026:** el orden de lo que queda (resto de la fase B, B2, C y D) lo marca ahora `docs/roadmap.md`, con los hitos H0–H5. Los criterios de salida de este documento siguen vigentes y el roadmap los cita.
+
+
 - Estado: **propuesto, pendiente de aprobación**. No sustituye todavía a `docs/specs/001-penyal-ifac-3d/plan.md`.
 - Fecha: 11/10/2026.
 - Base:

@@ -1,7 +1,7 @@
 # penyal-ifac-3d
 
 ## What this is
-A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Calp), from the Centre d'Informació to the summit through the tunnel, gifted to the town for neighbours, schools and visitors. **Geographic fidelity and factual accuracy beat feature count.** Must run smoothly on a mid-range phone and a desktop browser with nothing to install. Spec: `docs/specs/001-penyal-ifac-3d/`.
+A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Calp), from the Centre d'Informació to the summit through the tunnel, gifted to the town for neighbours, schools and visitors. **Geographic fidelity and factual accuracy beat feature count.** Must run smoothly on a mid-range phone and a desktop browser with nothing to install. Spec: `docs/specs/001-penyal-ifac-3d/`. Milestones H0–H5 and the agentic development plan: `docs/roadmap.md`.
 
 ## Stack
 - App: TypeScript 7 (strict) · Vite 8 · three r186 `WebGLRenderer` (WebGL2) · zod 4 · vitest 5 · Biome 2 (lint + format). Node 24 (`.node-version`, fnm), pnpm 12 workspace.
