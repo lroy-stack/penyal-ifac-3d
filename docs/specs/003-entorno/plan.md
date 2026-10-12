@@ -62,7 +62,10 @@
   - Las medidas, el material y el lado de la barandilla son provisionales.
   - Pasó tres rondas de revisión independiente.
 - [ ] E1.2, materiales: espera a las fotos y medidas del usuario.
-- [ ] E1.3, el terreno pinta los firmes: espera a B0.
+- [x] **E1.3, el terreno pinta los firmes** (L5), integrada en `main` el 12/10/2026 (36cfe82, 0364396, 3382d14).
+  - Parche `penyal-surfaces-v1`; las máscaras se cargan y liberan con cada tesela; la suma de canales se acota a 1.
+  - La fila `terrain` de `low` sube a 24 MiB de textura por las máscaras, y la de estructuras sin textura baja para que `low` sume su tope de 32 MiB.
+  - Con la escalera (`structures`, 4c4a328), el jugador pisa las huellas de los peldaños.
 - [x] **E2.1–E2.4, árboles y matorral** (`penyal vegetation`, `penyal pine` y `penyal plants`), integrados en `main` el 11/10/2026 (6fdc30f) tras dos rondas de revisión.
   - 1.224 árboles en el parque, 178 de ellos en el tramo piloto, y 6.547 matas.
   - `verify-generated`: 10 artefactos al día.
@@ -82,4 +85,12 @@
   - Render de Blender con las teselas del terreno, los árboles y el matorral en sus posiciones medidas, y las escaleras.
   - Aún no lleva las máscaras de firmes ni la inclinación de los troncos, y el terreno no tiene las texturas de detalle de la app.
   - Terreno y ortofoto: © Institut Cartogràfic Valencià, CC BY 4.0. Posiciones de árboles derivadas del LiDAR 2016 del ICV (CC BY 4.0). Modelos generados por el proyecto con texturas CC0 de Poly Haven.
-- [ ] E2.5: espera a B0.
+- [x] **E2.5, sistema `vegetation`** (L3), integrado en `main` el 12/10/2026 (5554dec, 0ab6d58).
+  - Un `InstancedMesh` por modelo y nivel de detalle, con bandas y densidad por nivel de calidad leídas de `vegetation.json`.
+  - Presupuesto e2e de la vegetación sola, en `medium`: 5–12 llamadas y 2,5k–134k triángulos, frente a 40 y 250.000.
+  - **Defectos abiertos, en corrección:**
+    - los pinos a media distancia se ven como siluetas planas de color beis;
+    - las tarjetas lejanas del matorral salen oscuras; mientras tanto se usa `lod1` en la banda lejana.
+- [x] **E3, edificios del centro** (`penyal buildings` y sistema `buildings`), integrados en `main` el 12/10/2026 (f981f04).
+  - Huellas de OSM; alero en el percentil 25 y cumbrera en el 95 del LiDAR; cubierta a cuatro aguas; texturas CC0 en KTX2 ETC1S.
+  - Pendiente: cubierta con un error cuadrático medio de unos 1,5 m frente al LiDAR, sin porche ni terrazas, y fachadas a falta de las fotos del usuario.
