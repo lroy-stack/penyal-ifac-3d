@@ -12,10 +12,10 @@ from typing import Any, ClassVar
 
 import numpy as np
 import pytest
-from conftest import raw_marks
+from conftest import glb_attribute, raw_marks
 
-from penyal_pipeline import understory
-from penyal_pipeline.blender import plants
+from penyal_pipeline import foliage_tint, understory
+from penyal_pipeline.blender import pine, plants
 from penyal_pipeline.paths import REPO_ROOT
 
 TEXTURES = (
@@ -88,7 +88,7 @@ def test_the_triangle_budgets_hold(meshes: list[plants.PlantMesh]) -> None:
         card = by_name[f"{model.id}_card"]
         assert 0 < lod1.triangle_count <= plants.LOD1_MAX_TRIANGLES
         assert lod1.triangle_count < lod0.triangle_count <= plants.LOD0_MAX_TRIANGLES
-        assert card.triangle_count == 4
+        assert card.triangle_count == 8  # two crossed planes of single-sided twin quads
 
 
 def test_the_tall_shrub_is_a_real_lentisc_sized_model_not_a_stretched_small_one(
@@ -115,6 +115,20 @@ def test_meshes_are_valid_and_uvs_stay_in_the_atlas(meshes: list[plants.PlantMes
         assert mesh.uvs.min() >= 0.0
         assert mesh.uvs.max() <= 1.0
         assert np.allclose(np.linalg.norm(mesh.normals, axis=1), 1.0, atol=1e-5)
+
+
+def test_the_far_cards_are_single_sided_twins_shaded_on_their_own_side(
+    meshes: list[plants.PlantMesh],
+) -> None:
+    # In-plane normals made the cards grazing-lit from the front and black from behind.
+    for mesh in (m for m in meshes if m.name.endswith("_card")):
+        p = mesh.positions.astype(np.float64)[mesh.triangles]
+        face = np.cross(p[:, 1] - p[:, 0], p[:, 2] - p[:, 0])
+        face /= np.linalg.norm(face, axis=1, keepdims=True)
+        towards = np.einsum("tvk,tk->tv", mesh.normals[mesh.triangles], face)
+        assert mesh.single_sided, mesh.name
+        assert (towards > 0.3).all(), mesh.name
+        assert mesh.normals[:, 1].min() > 0.3, mesh.name
 
 
 def test_the_sprites_have_leaves_holes_and_no_black_background(atlas: plants.Atlas) -> None:
@@ -184,15 +198,35 @@ class TestExport:
     def test_two_raw_exports_are_byte_identical(self, exports: tuple[Path, Path]) -> None:
         assert sha256(exports[0]) == sha256(exports[1])
 
-    def test_the_glb_holds_every_mesh_one_masked_clamped_material(
+    def test_the_glb_holds_every_mesh_and_masked_materials_sharing_one_atlas(
         self, exports: tuple[Path, Path]
     ) -> None:
         gltf = read_glb_json(exports[0])
         assert len(gltf["nodes"]) == 9
-        assert len(gltf["materials"]) == 1
-        assert gltf["materials"][0]["alphaMode"] == "MASK"
+        names = sorted(m["name"] for m in gltf["materials"])
+        card = pine.card_material_name(plants.MATERIAL_NAME)
+        assert names == sorted([plants.MATERIAL_NAME, card])
+        assert all(m["alphaMode"] == "MASK" for m in gltf["materials"])
+        cards = [m for m in gltf["meshes"] if m["name"].endswith("_card")]
+        assert {gltf["materials"][m["primitives"][0]["material"]]["name"] for m in cards} == {card}
+        assert len(gltf["images"]) == 1
         assert gltf["samplers"][0]["wrapS"] == 33071
         assert all(len(m["primitives"]) == 1 for m in gltf["meshes"])
+
+    def test_the_materials_have_no_specular_reflection(self, exports: tuple[Path, Path]) -> None:
+        gltf = read_glb_json(exports[0])
+        for material in gltf["materials"]:
+            specular = material["extensions"]["KHR_materials_specular"]
+            assert specular["specularFactor"] == 0.0, material["name"]
+
+    def test_each_foliage_multiplier_reaches_color_0_unchanged(
+        self, exports: tuple[Path, Path]
+    ) -> None:
+        # COLOR_0 is linear (glTF): decoding the factors as sRGB made the cards near black.
+        for model in understory.MODELS:
+            factor = np.array(foliage_tint.FOLIAGE_FACTORS[model.id])
+            card = glb_attribute(exports[0], f"{model.id}_card", "COLOR_0")[:, :3]
+            assert np.allclose(card, factor, atol=1 / 255), model.id
 
 
 @needs_optimizer

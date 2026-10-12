@@ -77,6 +77,11 @@
     - el tinte de los pinos tira a oliva parduzco y parece seco, cuando el pino carrasco es verde amarillento o grisáceo;
     - como el multiplicador oscurece, se ajusta con la luz y la exposición reales;
     - hay que comprobar que el cargador respeta `COLOR_0`.
+  - **Revisado (12/10/2026):** la derivación del tinte era correcta y su aplicación no.
+    - Blender guardaba el multiplicador en una capa de color de bytes (sRGB) y el exportador lo decodificaba otra vez: el pino recibía (0,80; 1; 0,28) en vez de (0,907; 1; 0,568), con tono 66,7° y saturación 0,67 frente a los 62° y 0,48 de las fotos. Ahora es una capa de color flotante (lineal) y el albedo tiene el tono y la saturación de las fotos (pino 62,0° y 0,51; lentisco 46,6° y 0,36).
+    - El cargador respeta `COLOR_0`: llega al GLB optimizado como (231, 255, 145)/255 en el pino.
+    - El brillo sigue en 0,44 del de las fotos (un multiplicador no aclara); no se ha tocado.
+    - Las copas lejanas pálidas eran brillo especular: las normales de las tarjetas son aproximaciones, y desde abajo y a contraluz quedan en ángulo rasante. La vegetación ya no tiene especular (`KHR_materials_specular` a 0) y las tarjetas lejanas son pares de caras de una sola cara con normal de copa.
   - Entradas del catálogo sin usar por ahora, que **se conservan** por si sirven como normal y ARM en calidad alta: `shrub_04`, `shrub_02` y `grass_medium_02` (gltf, bin, arm y nor), y del pino `twig-arm`, `twig-nor-gl`, `bark-arm` y `bark-nor-gl`.
 - **Vista previa fuera de la app** (11/10/2026): `docs/research/003-capturas/preview-e2-aereo.jpg` y `preview-e2-torniquete.jpg`.
   - Render de Blender con las teselas del terreno, los árboles y el matorral en sus posiciones medidas, y las escaleras.

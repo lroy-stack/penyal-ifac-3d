@@ -6,11 +6,12 @@ leaning, curved trunk, bare for its lower third, and layered main branches that 
 needles at their ends. Needle tufts are crossed cards textured with the twigs of Poly Haven's
 ``pine_tree_01`` (CC0, textures only: its mesh is not used) and the bark of the same asset.
 
-One GLB holds every mesh, sharing one material and one 1024 x 512 atlas (bark, two twigs, a far
-silhouette) so each mesh draws in one call: ``pine_v<N>_lod0`` (near, <= 8000 triangles),
-``pine_v<N>_lod1`` (mid, <= 1500) for each of ``VARIANT_COUNT`` seeded variants, and
-``pine_far_card`` (two crossed quads). Trees are modelled 10 m tall with a 3.2 m crown radius
-(``NOMINAL_*``); an instance scales y by ``height / 10`` and x, z by ``radius / 3.2``.
+One GLB holds every mesh, sharing one 1024 x 512 atlas (bark, two twigs, a far silhouette) so
+each mesh draws in one call: ``pine_v<N>_lod0`` (near, <= 8000 triangles), ``pine_v<N>_lod1``
+(mid, <= 1500) for each of ``VARIANT_COUNT`` seeded variants, and ``pine_far_card`` (two crossed
+planes of single-sided twin quads, drawn with the back-face-culled twin of the material). Trees
+are modelled 10 m tall with a 3.2 m crown radius (``NOMINAL_*``); an instance scales y by
+``height / 10`` and x, z by ``radius / 3.2``.
 
 Geometry and the atlas are computed with numpy (pure, testable without Blender); only
 ``build_scene`` and ``export_pine`` touch ``bpy``, with the exporter options ``spike`` proved
@@ -46,6 +47,9 @@ PINE_GLB = "pine.glb"
 PINE_JSON = "pine.json"
 MATERIAL_NAME = "pine"
 ROUGHNESS = 0.95
+# Card normals are "outwards from the crown, then up by this much" (needle cards and far cards
+# alike), so foliage takes skylight on every face it shows and its LODs shade alike.
+SHADE_UP = 0.8
 
 TWIG_DIFFUSE, TWIG_ALPHA, BARK_DIFFUSE = artefacts.PINE_TEXTURES
 
@@ -86,6 +90,7 @@ class PineMesh:
     uvs: Floats
     triangles: Ints
     colours: Floats | None = None  # (n, 3) linear multiplier of the base colour (COLOR_0)
+    single_sided: bool = False  # drawn with the back-face-culled card material
 
     @property
     def triangle_count(self) -> int:
@@ -480,7 +485,7 @@ def card_mesh(
         else:  # stem at the bottom of the image
             corner_uv = [(u0, v1), (u1, v1), (u1, v0), (u0, v0)]
         outward = unit(corners - crown[None, :])
-        shade = unit(outward + np.array([0.0, 0.8, 0.0]))
+        shade = unit(outward + np.array([0.0, SHADE_UP, 0.0]))
         offset = len(positions) * 4
         positions.append(corners)
         normals.append(shade)
@@ -579,33 +584,65 @@ def build_variant(variant: int, lod: Lod, name: str, atlas: Atlas) -> PineMesh:
     )
 
 
-def far_card() -> PineMesh:
-    """Two crossed quads (4 triangles) with the silhouette cell, as wide as the nominal crown."""
-    u0, v0, u1, v1 = _cell_uv(FAR_CELL)
-    half = NOMINAL_RADIUS * 1.1
-    positions, uvs, triangles = [], [], []
-    for k, (dx, dz) in enumerate(((1.0, 0.0), (0.0, 1.0))):
-        positions.append(
+def crossed_quads(
+    half: float, height: float, uv_rect: tuple[float, float, float, float]
+) -> tuple[Floats, Floats, Floats, Ints]:
+    """Two vertical planes crossed at the axis, each a pair of single-sided twin quads facing
+    opposite ways (8 triangles), ``2 * half`` wide, mapping ``uv_rect``. Draw with back faces
+    culled (``single_sided``).
+
+    Each twin is shaded like the needle cards of the crown: its normal points out of the crown
+    surface it stands for (the vertex's direction from the axis plus the twin's own facing
+    direction), then up by ``SHADE_UP``. One double-sided quad cannot do that: the renderer flips
+    its normal for the back face, so an upward normal points down and goes black from behind,
+    and the in-plane normals used before gave N.V = 0 to anyone facing the card, whose grazing
+    specular washed it out to a pale beige.
+    """
+    u0, v0, u1, v1 = uv_rect
+    up = np.array([0.0, SHADE_UP, 0.0])
+    positions, normals, uvs, triangles = [], [], [], []
+    for dx, dz in ((1.0, 0.0), (0.0, 1.0)):
+        corners = np.array(
             [
                 (-dx * half, 0.0, -dz * half),
                 (dx * half, 0.0, dz * half),
-                (dx * half, NOMINAL_HEIGHT, dz * half),
-                (-dx * half, NOMINAL_HEIGHT, -dz * half),
+                (dx * half, height, dz * half),
+                (-dx * half, height, -dz * half),
             ]
         )
-        uvs.append([(u0, v1), (u1, v1), (u1, v0), (u0, v0)])
-        triangles.append(np.array([[0, 1, 2], [0, 2, 3]]) + 4 * k)
-    flat = np.array(positions, dtype=np.float32).reshape(-1, 3)
-    horizontal = flat.astype(np.float64)
-    horizontal[:, 1] = 0.0
-    normals = unit(unit(horizontal) + np.array([0.0, 0.8, 0.0]))  # outwards and lit from above
-    return PineMesh(
-        CARD_NAME,
-        flat,
-        normals.astype(np.float32),
+        corner_uv = [(u0, v1), (u1, v1), (u1, v0), (u0, v0)]
+        front = unit(np.cross(corners[1] - corners[0], corners[2] - corners[0]))
+        radial = unit(corners * np.array([1.0, 0.0, 1.0]))
+        for side, order in ((1.0, [0, 1, 2, 3]), (-1.0, [1, 0, 3, 2])):
+            offset = len(positions) * 4
+            positions.append(corners[order])
+            normals.append(unit(unit(radial[order] + side * front) + up))
+            uvs.append([corner_uv[i] for i in order])
+            triangles.append(np.array([[0, 1, 2], [0, 2, 3]]) + offset)
+    return (
+        np.concatenate(positions).astype(np.float32),
+        np.concatenate(normals).astype(np.float32),
         np.array(uvs, dtype=np.float32).reshape(-1, 2),
         np.concatenate(triangles).astype(np.int32),
-        np.tile(np.array(foliage_tint.FOLIAGE_FACTORS["pine"], dtype=np.float32), (len(flat), 1)),
+    )
+
+
+def far_card() -> PineMesh:
+    """Two crossed twin-quad planes (8 triangles) with the silhouette cell, as wide as the
+    nominal crown."""
+    positions, normals, uvs, triangles = crossed_quads(
+        NOMINAL_RADIUS * 1.1, NOMINAL_HEIGHT, _cell_uv(FAR_CELL)
+    )
+    return PineMesh(
+        CARD_NAME,
+        positions,
+        normals,
+        uvs,
+        triangles,
+        np.tile(
+            np.array(foliage_tint.FOLIAGE_FACTORS["pine"], dtype=np.float32), (len(positions), 1)
+        ),
+        single_sided=True,
     )
 
 
@@ -638,7 +675,9 @@ def _make_object(bpy: Any, bmesh: Any, item: PineMesh, material: Any) -> None:
     uvs = blender_uvs(item.uvs)
     builder = bmesh.new()
     layer = builder.loops.layers.uv.new("UVMap")
-    colour_layer = builder.loops.layers.color.new("Color")
+    # FLOAT_COLOR holds linear values as written. The byte layer (``layers.color``) stores sRGB,
+    # so the exporter decoded each factor once more (0.568 -> 0.28): dark, olive-brown foliage.
+    colour_layer = builder.loops.layers.float_color.new("Color")
     colours = np.ones((len(positions), 3)) if item.colours is None else item.colours
     verts = [builder.verts.new(tuple(float(c) for c in p)) for p in positions]
     for a, b, c in item.triangles:
@@ -654,17 +693,22 @@ def _make_object(bpy: Any, bmesh: Any, item: PineMesh, material: Any) -> None:
     bpy.context.scene.collection.objects.link(bpy.data.objects.new(item.name, mesh))
 
 
-def _make_material(bpy: Any, atlas: HasRgba, name: str = MATERIAL_NAME) -> Any:
-    image = bpy.data.images.new(f"{name}_atlas", ATLAS_WIDTH, ATLAS_HEIGHT, alpha=True)
-    image.pixels.foreach_set(rgba_pixels(atlas.rgba))
-    image.update()
-    image.pack()
+def card_material_name(name: str) -> str:
+    """The back-face-culled twin of material ``name``, for the ``single_sided`` far cards."""
+    return f"{name}_card"
+
+
+def _make_material(bpy: Any, image: Any, name: str, double_sided: bool) -> Any:
     material = bpy.data.materials.new(name)
-    material.use_backface_culling = False  # cards are seen from both sides
+    material.use_backface_culling = not double_sided  # needle cards are seen from both sides
     nodes, links = material.node_tree.nodes, material.node_tree.links
     bsdf = nodes["Principled BSDF"]
     bsdf.inputs["Roughness"].default_value = ROUGHNESS
     bsdf.inputs["Metallic"].default_value = 0.0
+    # No specular (glTF KHR_materials_specular, specularFactor 0): the card normals are shading
+    # proxies for a crown, not surfaces. Seen from below the slope and against the sun they sit
+    # at grazing angles, where the Fresnel term turned every crown a pale, sun-coloured beige.
+    bsdf.inputs["Specular IOR Level"].default_value = 0.0
     texture = nodes.new("ShaderNodeTexImage")
     texture.image = image
     texture.extension = "EXTEND"  # glTF CLAMP_TO_EDGE: cells must not bleed into each other
@@ -687,18 +731,25 @@ def _make_material(bpy: Any, atlas: HasRgba, name: str = MATERIAL_NAME) -> Any:
 def build_scene(
     bpy: Any, meshes: list[PineMesh], atlas: HasRgba, material_name: str = MATERIAL_NAME
 ) -> None:
-    """Replace the current Blender scene with every pine mesh sharing one material."""
+    """Replace the current Blender scene with every mesh sharing one atlas image: the
+    double-sided material, and its back-face-culled twin for the ``single_sided`` far cards."""
     bmesh = importlib.import_module("bmesh")
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    material = _make_material(bpy, atlas, material_name)
+    image = bpy.data.images.new(f"{material_name}_atlas", ATLAS_WIDTH, ATLAS_HEIGHT, alpha=True)
+    image.pixels.foreach_set(rgba_pixels(atlas.rgba))
+    image.update()
+    image.pack()
+    material = _make_material(bpy, image, material_name, double_sided=True)
+    card = _make_material(bpy, image, card_material_name(material_name), double_sided=False)
     for item in meshes:
-        _make_object(bpy, bmesh, item, material)
+        _make_object(bpy, bmesh, item, card if item.single_sided else material)
 
 
 def export_scene(
     meshes: list[PineMesh], atlas: HasRgba, out: Path, material_name: str = MATERIAL_NAME
 ) -> Path:
-    """Build ``meshes`` sharing one atlas material in a fresh Blender state and write ``out``."""
+    """Build ``meshes`` sharing one atlas (``build_scene``) in a fresh Blender state and write
+    ``out``."""
     bpy = importlib.import_module("bpy")
     build_scene(bpy, meshes, atlas, material_name)
     export_glb(bpy, out)
@@ -744,6 +795,7 @@ def manifest(meshes: list[PineMesh], atlas: Atlas, glb_bytes: int) -> dict[str, 
             "name": MATERIAL_NAME,
             "alphaMode": "MASK",
             "atlas": [ATLAS_WIDTH, ATLAS_HEIGHT],
+            "cards": card_material_name(MATERIAL_NAME),
         },
         "atlas": {
             "bark": list(BARK_CELL),
