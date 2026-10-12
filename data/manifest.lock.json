@@ -1,5 +1,18 @@
 {
   "sources": {
+    "cds-bsc5-catalog": {
+      "attribution": "Yale Bright Star Catalogue, 5th revised ed. (Hoffleit and Warren 1991), distributed by CDS (V/50)",
+      "files": [
+        {
+          "bytes": 573921,
+          "name": "catalog.gz",
+          "sha256": "3dc44b1e90be8fbe5bcc7656032560f51275f985c7e3f783c9028e1838ec7bed"
+        }
+      ],
+      "licence": "No licence declared (1991 catalogue of astrometric facts, Hoffleit and Warren, NASA/ADC); legal confirmation by the buyer's adviser pending (ADR 0007 to record it)",
+      "retrieved": "2026-10-12",
+      "url": "https://cdsarc.cds.unistra.fr/ftp/V/50/catalog.gz"
+    },
     "commons-cicadas-in-greece": {
       "attribution": "\"Cicadas in Greece\" by Channel R, via Wikimedia Commons, public domain (credited as courtesy)",
       "files": [
@@ -38,6 +51,32 @@
       "licence": "CC BY 3.0",
       "retrieved": "2026-10-11",
       "url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Oceanwavescrushing.ogg"
+    },
+    "dogv-prug-1994": {
+      "attribution": "Diari Oficial de la Generalitat Valenciana, 21 January 1994",
+      "files": [
+        {
+          "bytes": 402591,
+          "name": "dogv-1994-prug-penyal-ifac.pdf",
+          "sha256": "e48c2d1b1a8f62a396aabb25e3c9c56096118f951713ed73ece1cb32235f1c35"
+        }
+      ],
+      "licence": "Official public legal text (DOGV)",
+      "retrieved": "2026-10-12",
+      "url": "https://dogv.gva.es/datos/1994/01/21/pdf/1994_830310.pdf"
+    },
+    "eso-eso0932a-milky-way": {
+      "attribution": "ESO/S. Brunier (credit line must stay unaltered; state any adaptation)",
+      "files": [
+        {
+          "bytes": 4857484,
+          "name": "eso0932a.jpg",
+          "sha256": "5363732a1629eed9df2f707b31eaae6b117c0ee35d7cc8d6ddd636bc6512302d"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "retrieved": "2026-10-12",
+      "url": "https://cdn.eso.org/images/publicationjpg/eso0932a.jpg"
     },
     "icv-cv05-penyal": {
       "attribution": "Cartografia CV05 1:5000 © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0)",
@@ -167,6 +206,114 @@
       "retrieved": "2026-10-11",
       "url": "https://descargas.icv.gva.es/dcd/03_mde/02_mdt/2016_PALI_0100/01_Malla/01_25830_01_Hoja_CV50_03_TIF/030201_MDT_2016PALI0100_25830_01_Hoja_CV50_0848.tif"
     },
+    "icv-orto-1945-crop": {
+      "attribution": "Ortofoto 1945 50 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0); American series A flight, 1945-46 (U.S. Army Map Service flight scanned by the CNIG)",
+      "files": [
+        {
+          "bytes": 1280005,
+          "name": "icv-orto-1945-crop.jpg",
+          "sha256": "f646e62f71275def582b5f79be034a0c5e55b5a028c9d00dafa601ee62295b38"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "request": {
+        "bbox": [
+          767000.0,
+          4280000.0,
+          768500.0,
+          4281500.0
+        ],
+        "crs": "EPSG:25830",
+        "format": "image/jpeg",
+        "height": 3000,
+        "layer": "1945AMSA0050_PAN",
+        "version": "1.3.0",
+        "width": 3000
+      },
+      "retrieved": "2026-10-12",
+      "url": "https://terramapas.icv.gva.es/0202_1945AMSA0050"
+    },
+    "icv-orto-1956-crop": {
+      "attribution": "Ortofoto 1956 50 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0); American series B flight, 1956-57 (U.S. Army Map Service flight scanned by the CNIG)",
+      "files": [
+        {
+          "bytes": 858205,
+          "name": "icv-orto-1956-crop.jpg",
+          "sha256": "afbd2bce906b6db37b2621518c006e27998260fc7aea72d691e60ff5681cdc66"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "request": {
+        "bbox": [
+          767000.0,
+          4280000.0,
+          768500.0,
+          4281500.0
+        ],
+        "crs": "EPSG:25830",
+        "format": "image/jpeg",
+        "height": 3000,
+        "layer": "1956AMSB0050_PAN",
+        "version": "1.3.0",
+        "width": 3000
+      },
+      "retrieved": "2026-10-12",
+      "url": "https://terramapas.icv.gva.es/0202_1956AMSB0050"
+    },
+    "icv-orto-1977-crop": {
+      "attribution": "Ortofoto 1977 25 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0); Interministerial flight, 1976-78",
+      "files": [
+        {
+          "bytes": 1105345,
+          "name": "icv-orto-1977-crop.jpg",
+          "sha256": "7cbbd7a351c67bb66220a62d5c9ea5fd78f7b5401343ca972ddec2ec58c5130c"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "request": {
+        "bbox": [
+          767000.0,
+          4280000.0,
+          768500.0,
+          4281500.0
+        ],
+        "crs": "EPSG:25830",
+        "format": "image/jpeg",
+        "height": 3000,
+        "layer": "1977INTM0025_PAN",
+        "version": "1.3.0",
+        "width": 3000
+      },
+      "retrieved": "2026-10-12",
+      "url": "https://terramapas.icv.gva.es/0202_1977INTM0025"
+    },
+    "icv-orto-1989-crop": {
+      "attribution": "Ortofoto 1989 10 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0); Dirección General de Costas flight, 1989-90",
+      "files": [
+        {
+          "bytes": 1269991,
+          "name": "icv-orto-1989-crop.jpg",
+          "sha256": "9860b49b546cba72a89b1ad33ad00744f851d176a5fc38281f997d3721dabb74"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "request": {
+        "bbox": [
+          767000.0,
+          4280000.0,
+          768500.0,
+          4281500.0
+        ],
+        "crs": "EPSG:25830",
+        "format": "image/jpeg",
+        "height": 3000,
+        "layer": "1989COST0010_RGB",
+        "version": "1.3.0",
+        "width": 3000
+      },
+      "retrieved": "2026-10-12",
+      "url": "https://terramapas.icv.gva.es/0202_1989COST0010"
+    },
     "icv-orto-2024-0848-7-2": {
       "attribution": "Ortofoto 2024 25 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0)",
       "files": [
@@ -179,6 +326,97 @@
       "licence": "CC BY 4.0",
       "retrieved": "2026-10-11",
       "url": "https://descargas.icv.gva.es/dcd/02_imagen/02_ortofoto/2024_CVAL_0025/01_Imagen/01_25830_01_8bits_02_RGBI_02_TIFJPG/020201_2024CVAL0025_25830_8bits_RGBI_0848_7-2.tif"
+    },
+    "marq-14-2023-menendez-domus-pobla-ifach": {
+      "attribution": "J. L. Menéndez Fueyo, MARQ. Arqueología y Museos 14 (2023), MARQ",
+      "files": [
+        {
+          "bytes": 6903435,
+          "name": "marq-14-2023-menendez-domus-pobla-ifach.pdf",
+          "sha256": "29e48f354d4d70f89a719b0e806c5ef2ac9a0e3c5ad14e3257cea2f71cfe6631"
+        }
+      ],
+      "licence": "Copyright of MARQ and the author(s); reference only, not redistributed",
+      "retrieved": "2026-10-12",
+      "url": "https://www.marqalicante.com/contenido/particulos/pub_227.pdf"
+    },
+    "marq-2006-penyal-ifac": {
+      "attribution": "J. L. Menéndez Fueyo, Intervenciones arqueológicas 2006, MARQ",
+      "files": [
+        {
+          "bytes": 788087,
+          "name": "marq-2006-penyal-ifac.pdf",
+          "sha256": "4e8f86e9b92e9ffe5e114e11c587cbc29773e6508d2ff8045da4af0c36170f52"
+        }
+      ],
+      "licence": "Copyright of MARQ and the author(s); reference only, not redistributed",
+      "retrieved": "2026-10-12",
+      "url": "https://www.marqalicante.com/contenido/int_arqueologicas/72%20Parque%20Natural%20del%20Penyal%20d%27Ifac%20%28Calp%29.pdf"
+    },
+    "marq-2008-penyal-ifac-proyecto-ifac": {
+      "attribution": "J. L. Menéndez Fueyo, Intervenciones arqueológicas 2008, MARQ",
+      "files": [
+        {
+          "bytes": 708568,
+          "name": "marq-2008-penyal-ifac-proyecto-ifac.pdf",
+          "sha256": "95d4df346c6cc202294f0ee451d64984e3843c723559785208c5f275be5bf6d0"
+        }
+      ],
+      "licence": "Copyright of MARQ and the author(s); reference only, not redistributed",
+      "retrieved": "2026-10-12",
+      "url": "https://www.marqalicante.com/contenido/int_arqueologicas/74%20Penyal%20d%27Ifac.%20Proyecto%20IFAC.%20Sectores%20Muralla%20de%20Poniente%2C%20Muralla%20Norte%20e%20Iglesia%20%28Calp%29.pdf"
+    },
+    "marq-2009-penyal-ifac-proyecto-ifac": {
+      "attribution": "J. L. Menéndez Fueyo, Intervenciones arqueológicas 2009, MARQ",
+      "files": [
+        {
+          "bytes": 862965,
+          "name": "marq-2009-penyal-ifac-proyecto-ifac.pdf",
+          "sha256": "66c281e66b52f578f8ecab4b0f73eb230de07300167d54d2d1e7db636a0030c5"
+        }
+      ],
+      "licence": "Copyright of MARQ and the author(s); reference only, not redistributed",
+      "retrieved": "2026-10-12",
+      "url": "https://www.marqalicante.com/contenido/int_arqueologicas/92%20Penyal%20d%27Ifac.%20Proyecto%20IFAC.%20Sectores%20Muralla%20de%20Poniente%2C%20Muralla%20Norte%20e%20Iglesia%20%28Calp%29.pdf"
+    },
+    "marq-2011-penyal-ifac": {
+      "attribution": "Menéndez, Ferrer and Pina, Intervenciones arqueológicas 2011, MARQ",
+      "files": [
+        {
+          "bytes": 462621,
+          "name": "marq-2011-penyal-ifac.pdf",
+          "sha256": "b6c3bee1c18f30d25581eb0ea2c1675d8065b715874d930943ff51b5901136a9"
+        }
+      ],
+      "licence": "Copyright of MARQ and the author(s); reference only, not redistributed",
+      "retrieved": "2026-10-12",
+      "url": "https://www.marqalicante.com/contenido/int_arqueologicas/doc_186.pdf"
+    },
+    "marq-extra01-2014-menendez-pobla-ifach": {
+      "attribution": "Menéndez, Pina, Torrecillas and Ferrer, MARQ Extra 01 (2014), MARQ",
+      "files": [
+        {
+          "bytes": 5305478,
+          "name": "marq-extra01-2014-menendez-pobla-ifach.pdf",
+          "sha256": "cb23aa221242686707890a0fc4628ac143650079055a5ab48f9b8e54afd30b79"
+        }
+      ],
+      "licence": "Copyright of MARQ and the author(s); reference only, not redistributed",
+      "retrieved": "2026-10-12",
+      "url": "https://dialnet.unirioja.es/descarga/articulo/4939614.pdf"
+    },
+    "nasa-svs-4720-lroc-color-2k": {
+      "attribution": "NASA's Scientific Visualization Studio",
+      "files": [
+        {
+          "bytes": 457942,
+          "name": "lroc_color_2k.jpg",
+          "sha256": "f7130a1822681fa7512d7dcfd40db8c10b9ba4f06777910348698260ed7a2170"
+        }
+      ],
+      "licence": "NASA media usage policy (generally not copyrighted in the US; informational and educational use with acknowledgement); ADR 0007 needs a US-government-work category",
+      "retrieved": "2026-10-12",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg"
     },
     "osm-penyal": {
       "attribution": "© OpenStreetMap contributors (ODbL)",
@@ -261,6 +499,45 @@
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_02/grass_medium_02_nor_gl_1k.jpg"
     },
+    "polyhaven-gravel-floor-04-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Poly Haven (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 749840,
+          "name": "gravel_floor_04_arm_1k.jpg",
+          "sha256": "43a2ce35c6b9a6a909ff41349b2ab3089ac9ab35dab420081c79de1547406de7"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_floor_04/gravel_floor_04_arm_1k.jpg"
+    },
+    "polyhaven-gravel-floor-04-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Poly Haven (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 952532,
+          "name": "gravel_floor_04_diff_1k.jpg",
+          "sha256": "e334b4c4c26ad2ff4420fca473f5a0ed29e422034b8cdf5a1126d8cd89421694"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_floor_04/gravel_floor_04_diff_1k.jpg"
+    },
+    "polyhaven-gravel-floor-04-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Poly Haven (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 1287582,
+          "name": "gravel_floor_04_nor_gl_1k.jpg",
+          "sha256": "8842ed74a0e68191054e0503baf51608da95ffc4acb30c5b889fe6a936e649a6"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_floor_04/gravel_floor_04_nor_gl_1k.jpg"
+    },
     "polyhaven-marble-cliff-05-arm-1k": {
       "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",
       "files": [
@@ -338,6 +615,19 @@
       "licence": "CC0 1.0",
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_cliff_05/marble_cliff_05_nor_gl_2k.jpg"
+    },
+    "polyhaven-patio-tiles-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Dario Barresi (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 700816,
+          "name": "patio_tiles_diff_1k.jpg",
+          "sha256": "bc9a54329dc5b3aa90b388a9b743a50b39f429393537acd63f715aa88e3f72d6"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/patio_tiles/patio_tiles_diff_1k.jpg"
     },
     "polyhaven-pine-tree-01-bark-arm-1k": {
       "attribution": "Poly Haven (polyhaven.com), CC0 — Rob Tuytel (photography) and Rico Cilliers (modelling) (no attribution required; credited as courtesy)",
@@ -715,6 +1005,45 @@
       "licence": "CC0 1.0",
       "retrieved": "2026-10-11",
       "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stacked_stone_wall/stacked_stone_wall_nor_gl_1k.jpg"
+    },
+    "polyhaven-stone-tiles-02-arm-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Charlotte Baglioni (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 623281,
+          "name": "stone_tiles_02_arm_1k.jpg",
+          "sha256": "5f19b8f986ec3fcabf29b125e225140066beb8f3bc687d62364968ac540514a9"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles_02/stone_tiles_02_arm_1k.jpg"
+    },
+    "polyhaven-stone-tiles-02-diff-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Charlotte Baglioni (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 817710,
+          "name": "stone_tiles_02_diff_1k.jpg",
+          "sha256": "687ef4a6cc07fb680352cf26b0a2a6256d4c18d8084dcd59ac739bc509296e18"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles_02/stone_tiles_02_diff_1k.jpg"
+    },
+    "polyhaven-stone-tiles-02-nor-gl-1k": {
+      "attribution": "Poly Haven (polyhaven.com), CC0 — Charlotte Baglioni (no attribution required; credited as courtesy)",
+      "files": [
+        {
+          "bytes": 873564,
+          "name": "stone_tiles_02_nor_gl_1k.jpg",
+          "sha256": "ab19cc9baacb0bc30a219f841254beb6837412ddad9bfc9c052b5aa805d1c3f0"
+        }
+      ],
+      "licence": "CC0 1.0",
+      "retrieved": "2026-10-12",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles_02/stone_tiles_02_nor_gl_1k.jpg"
     },
     "polyhaven-white-stucco-arm-1k": {
       "attribution": "Poly Haven (polyhaven.com), CC0 — Amal Kumar (no attribution required; credited as courtesy)",

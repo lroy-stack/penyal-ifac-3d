@@ -1,13 +1,18 @@
 # Source catalogue for penyal-ifac-3d. Validated by penyal_pipeline.catalog.
 #
-# Common fields: id, phase, kind (file | wfs | osm), description, used_for, licence, attribution.
+# Common fields: id, phase, kind (file | wfs | osm | wms), description, used_for, licence, attribution.
 # Optional: optional (default false), share_alike (default false).
 # kind = "file": url, expected_bytes, size_tolerance (default 0.01; a fraction of expected_bytes).
+#   filename (optional) overrides the name derived from the last URL path segment.
 #   Sizes below come from HTTP Content-Length observed on 2026-10-10 and are rounded, hence the
 #   wider tolerance. Replace expected_bytes with the exact size after the first download.
 # kind = "wfs": endpoint, version, bbox (minx, miny, maxx, maxy), crs, output_format, page_size,
 #   sort_by (optional WFS sortBy; changing it reorders features and so changes the locked files),
 #   and one [[source.layers]] table per feature type (confirmed = false: failures are skipped).
+# kind = "wms": endpoint, version (1.3.0), layer, crs, bbox (minx, miny, maxx, maxy in that CRS),
+#   width, height (px), output_format (image/jpeg | image/png), expected_bytes, size_tolerance
+#   (default 0.01; a server re-encode can change the bytes, so crops use a wider one). One
+#   deterministic GetMap, saved as <id>.<ext>; the lock records the request parameters.
 # kind = "osm": url (OSM API map call; bbox order is min_lon,min_lat,max_lon,max_lat).
 
 [[source]]
@@ -779,3 +784,341 @@ expected_bytes = 807997
 size_tolerance = 0.0
 licence = "CC0 1.0"
 attribution = "Poly Haven (polyhaven.com), CC0 \u2014 Dimitrios Savva (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-stone-tiles-02-diff-1k"
+phase = 5
+kind = "file"
+description = "Poly Haven stone_tiles_02 albedo map, 1k JPEG."
+used_for = "E1.2: flagstone paving of the path and access."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles_02/stone_tiles_02_diff_1k.jpg"
+expected_bytes = 817710
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Charlotte Baglioni (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-stone-tiles-02-nor-gl-1k"
+phase = 5
+kind = "file"
+description = "Poly Haven stone_tiles_02 normal map (OpenGL), 1k JPEG."
+used_for = "E1.2: flagstone paving of the path and access."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles_02/stone_tiles_02_nor_gl_1k.jpg"
+expected_bytes = 873564
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Charlotte Baglioni (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-stone-tiles-02-arm-1k"
+phase = 5
+kind = "file"
+description = "Poly Haven stone_tiles_02 AO/roughness/metalness packed map, 1k JPEG."
+used_for = "E1.2: flagstone paving of the path and access."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles_02/stone_tiles_02_arm_1k.jpg"
+expected_bytes = 623281
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Charlotte Baglioni (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-patio-tiles-diff-1k"
+phase = 5
+kind = "file"
+description = "Poly Haven patio_tiles albedo map, 1k JPEG."
+used_for = "E3: floor of the visitor-centre arcade."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/patio_tiles/patio_tiles_diff_1k.jpg"
+expected_bytes = 700816
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Dario Barresi (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-gravel-floor-04-diff-1k"
+phase = 5
+kind = "file"
+description = "Poly Haven gravel_floor_04 albedo map, 1k JPEG."
+used_for = "E1.2: gravel of the upper path, track and esplanade."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_floor_04/gravel_floor_04_diff_1k.jpg"
+expected_bytes = 952532
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Poly Haven (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-gravel-floor-04-nor-gl-1k"
+phase = 5
+kind = "file"
+description = "Poly Haven gravel_floor_04 normal map (OpenGL), 1k JPEG."
+used_for = "E1.2: gravel of the upper path, track and esplanade."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_floor_04/gravel_floor_04_nor_gl_1k.jpg"
+expected_bytes = 1287582
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Poly Haven (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "polyhaven-gravel-floor-04-arm-1k"
+phase = 5
+kind = "file"
+description = "Poly Haven gravel_floor_04 AO/roughness/metalness packed map, 1k JPEG."
+used_for = "E1.2: gravel of the upper path, track and esplanade."
+url = "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_floor_04/gravel_floor_04_arm_1k.jpg"
+expected_bytes = 749840
+size_tolerance = 0.0
+licence = "CC0 1.0"
+attribution = "Poly Haven (polyhaven.com), CC0 — Poly Haven (no attribution required; credited as courtesy)"
+
+[[source]]
+id = "icv-orto-1945-crop"
+phase = 5
+kind = "wms"
+description = "ICV historical orthophoto 1945 (50 cm, panchromatic), 1.5 x 1.5 km crop at 0.5 m/px via WMS GetMap."
+used_for = "X4: memory layer, how the Penyal looked before the park. Crop covers the park entrance, the visitor centre, the tunnel, the summit and Carabiners."
+endpoint = "https://terramapas.icv.gva.es/0202_1945AMSA0050"
+version = "1.3.0"
+layer = "1945AMSA0050_PAN"
+crs = "EPSG:25830"
+bbox = [767000, 4280000, 768500, 4281500]
+width = 3000
+height = 3000
+output_format = "image/jpeg"
+expected_bytes = 1280005
+size_tolerance = 0.05
+licence = "CC BY 4.0"
+attribution = "Ortofoto 1945 50 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0); American series A flight, 1945-46 (U.S. Army Map Service flight scanned by the CNIG)"
+
+[[source]]
+id = "icv-orto-1956-crop"
+phase = 5
+kind = "wms"
+description = "ICV historical orthophoto 1956 (50 cm, panchromatic), 1.5 x 1.5 km crop at 0.5 m/px via WMS GetMap."
+used_for = "X4: memory layer, how the Penyal looked before the park. Crop covers the park entrance, the visitor centre, the tunnel, the summit and Carabiners."
+endpoint = "https://terramapas.icv.gva.es/0202_1956AMSB0050"
+version = "1.3.0"
+layer = "1956AMSB0050_PAN"
+crs = "EPSG:25830"
+bbox = [767000, 4280000, 768500, 4281500]
+width = 3000
+height = 3000
+output_format = "image/jpeg"
+expected_bytes = 858205
+size_tolerance = 0.05
+licence = "CC BY 4.0"
+attribution = "Ortofoto 1956 50 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0); American series B flight, 1956-57 (U.S. Army Map Service flight scanned by the CNIG)"
+
+[[source]]
+id = "icv-orto-1977-crop"
+phase = 5
+kind = "wms"
+description = "ICV historical orthophoto 1977 (25 cm, panchromatic), 1.5 x 1.5 km crop at 0.5 m/px via WMS GetMap."
+used_for = "X4: memory layer, how the Penyal looked before the park. Crop covers the park entrance, the visitor centre, the tunnel, the summit and Carabiners."
+endpoint = "https://terramapas.icv.gva.es/0202_1977INTM0025"
+version = "1.3.0"
+layer = "1977INTM0025_PAN"
+crs = "EPSG:25830"
+bbox = [767000, 4280000, 768500, 4281500]
+width = 3000
+height = 3000
+output_format = "image/jpeg"
+expected_bytes = 1105345
+size_tolerance = 0.05
+licence = "CC BY 4.0"
+attribution = "Ortofoto 1977 25 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0); Interministerial flight, 1976-78"
+
+[[source]]
+id = "icv-orto-1989-crop"
+phase = 5
+kind = "wms"
+description = "ICV historical orthophoto 1989 (10 cm, colour, coastal strip only), 1.5 x 1.5 km crop at 0.5 m/px via WMS GetMap."
+used_for = "X4: memory layer, how the Penyal looked before the park. Crop covers the park entrance, the visitor centre, the tunnel, the summit and Carabiners."
+endpoint = "https://terramapas.icv.gva.es/0202_1989COST0010"
+version = "1.3.0"
+layer = "1989COST0010_RGB"
+crs = "EPSG:25830"
+bbox = [767000, 4280000, 768500, 4281500]
+width = 3000
+height = 3000
+output_format = "image/jpeg"
+expected_bytes = 1269991
+size_tolerance = 0.05
+licence = "CC BY 4.0"
+attribution = "Ortofoto 1989 10 cm © Institut Cartogràfic Valencià, Generalitat (CC BY 4.0); Dirección General de Costas flight, 1989-90"
+
+[[source]]
+id = "cds-bsc5-catalog"
+phase = 5
+kind = "file"
+description = "Yale Bright Star Catalogue (BSC5, V/50), gzipped fixed-width catalogue."
+used_for = "X2: night sky, about 2,900 stars to V 5.5 plus planets, positions J2000, magnitude and B-V."
+url = "https://cdsarc.cds.unistra.fr/ftp/V/50/catalog.gz"
+expected_bytes = 573921
+size_tolerance = 0.0
+licence = "No licence declared (1991 catalogue of astrometric facts, Hoffleit and Warren, NASA/ADC); legal confirmation by the buyer's adviser pending (ADR 0007 to record it)"
+attribution = "Yale Bright Star Catalogue, 5th revised ed. (Hoffleit and Warren 1991), distributed by CDS (V/50)"
+
+[[source]]
+id = "eso-eso0932a-milky-way"
+phase = 5
+kind = "file"
+description = "ESO/S. Brunier Milky Way panorama eso0932a, publication JPEG 6000 x 3000."
+used_for = "X2: Milky Way band of the night sky."
+url = "https://cdn.eso.org/images/publicationjpg/eso0932a.jpg"
+expected_bytes = 4857484
+size_tolerance = 0.0
+licence = "CC BY 4.0"
+attribution = "ESO/S. Brunier (credit line must stay unaltered; state any adaptation)"
+
+[[source]]
+id = "nasa-svs-4720-lroc-color-2k"
+phase = 5
+kind = "file"
+description = "NASA CGI Moon Kit colour map lroc_color_2k.jpg (2048 x 1024)."
+used_for = "X2: moon texture."
+url = "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg"
+expected_bytes = 457942
+size_tolerance = 0.0
+licence = "NASA media usage policy (generally not copyrighted in the US; informational and educational use with acknowledgement); ADR 0007 needs a US-government-work category"
+attribution = "NASA's Scientific Visualization Studio"
+
+[[source]]
+id = "ign-resena-84878"
+phase = 5
+kind = "file"
+description = "IGN geodetic vertex 84878 (summit of the Penyal d'Ifac), reseña PDF with position, dimensions and photo."
+used_for = "Upper trail: summit vertex position and dimensions."
+url = "https://datos-geodesia.ign.es/Red_Geodesica/Hoja0848/084878.pdf"
+expected_bytes = 1491494
+size_tolerance = 0.0
+licence = "CC BY 4.0"
+attribution = "© Instituto Geográfico Nacional de España, CC BY 4.0 (reference 84878)"
+
+[[source]]
+id = "ign-roi-84878"
+phase = 5
+kind = "file"
+filename = "ign-roi-84878.json"
+description = "IGN OGC API record of ROI vertex 84878 (machine-readable position, heights, date)."
+used_for = "Upper trail: summit vertex coordinates and heights."
+url = "https://api-features.ign.es/collections/red_roi/items/84878?f=json"
+expected_bytes = 2414
+size_tolerance = 0.1
+licence = "CC BY 4.0"
+attribution = "© Instituto Geográfico Nacional de España, CC BY 4.0 (red_roi 84878)"
+
+[[source]]
+id = "dogv-prug-1994"
+phase = 5
+kind = "file"
+filename = "dogv-1994-prug-penyal-ifac.pdf"
+description = "Decree 260/1993 (PRUG of the Parc Natural del Penyal d'Ifac), DOGV 21 January 1994."
+used_for = "Legal basis for articles 16, 26 and 30-33 shown in the facts."
+url = "https://dogv.gva.es/datos/1994/01/21/pdf/1994_830310.pdf"
+expected_bytes = 402591
+size_tolerance = 0.0
+licence = "Official public legal text (DOGV)"
+attribution = "Diari Oficial de la Generalitat Valenciana, 21 January 1994"
+
+[[source]]
+id = "marq-14-2023-menendez-domus-pobla-ifach"
+phase = 5
+kind = "file"
+filename = "marq-14-2023-menendez-domus-pobla-ifach.pdf"
+description = "MARQ publication on the Pobla d'Ifach (J. L. Menéndez Fueyo, MARQ. Arqueología y Museos 14 (2023))."
+used_for = "Reference only, not redistributed (lives in data/raw, gitignored): plan 1:250 (Fig. 4), building 6 and North Gate measurements."
+url = "https://www.marqalicante.com/contenido/particulos/pub_227.pdf"
+expected_bytes = 6903435
+size_tolerance = 0.0
+licence = "Copyright of MARQ and the author(s); reference only, not redistributed"
+attribution = "J. L. Menéndez Fueyo, MARQ. Arqueología y Museos 14 (2023), MARQ"
+
+[[source]]
+id = "marq-extra01-2014-menendez-pobla-ifach"
+phase = 5
+kind = "file"
+filename = "marq-extra01-2014-menendez-pobla-ifach.pdf"
+description = "MARQ publication on the Pobla d'Ifach (Menéndez, Pina, Torrecillas and Ferrer, MARQ Extra 01 (2014))."
+used_for = "Reference only, not redistributed (lives in data/raw, gitignored): numbered towers (Fig. 2), church, bell tower and gate measurements."
+url = "https://dialnet.unirioja.es/descarga/articulo/4939614.pdf"
+expected_bytes = 5305478
+size_tolerance = 0.0
+licence = "Copyright of MARQ and the author(s); reference only, not redistributed"
+attribution = "Menéndez, Pina, Torrecillas and Ferrer, MARQ Extra 01 (2014), MARQ"
+
+[[source]]
+id = "marq-2006-penyal-ifac"
+phase = 5
+kind = "file"
+filename = "marq-2006-penyal-ifac.pdf"
+description = "MARQ publication on the Pobla d'Ifach (J. L. Menéndez Fueyo, Intervenciones arqueológicas 2006)."
+used_for = "Reference only, not redistributed (lives in data/raw, gitignored): tower 1, Bazzana pp. 11-12, elevations."
+url = "https://www.marqalicante.com/contenido/int_arqueologicas/72%20Parque%20Natural%20del%20Penyal%20d%27Ifac%20%28Calp%29.pdf"
+expected_bytes = 788087
+size_tolerance = 0.0
+licence = "Copyright of MARQ and the author(s); reference only, not redistributed"
+attribution = "J. L. Menéndez Fueyo, Intervenciones arqueológicas 2006, MARQ"
+
+[[source]]
+id = "marq-2008-penyal-ifac-proyecto-ifac"
+phase = 5
+kind = "file"
+filename = "marq-2008-penyal-ifac-proyecto-ifac.pdf"
+description = "MARQ publication on the Pobla d'Ifach (J. L. Menéndez Fueyo, Intervenciones arqueológicas 2008)."
+used_for = "Reference only, not redistributed (lives in data/raw, gitignored): church and patin."
+url = "https://www.marqalicante.com/contenido/int_arqueologicas/74%20Penyal%20d%27Ifac.%20Proyecto%20IFAC.%20Sectores%20Muralla%20de%20Poniente%2C%20Muralla%20Norte%20e%20Iglesia%20%28Calp%29.pdf"
+expected_bytes = 708568
+size_tolerance = 0.0
+licence = "Copyright of MARQ and the author(s); reference only, not redistributed"
+attribution = "J. L. Menéndez Fueyo, Intervenciones arqueológicas 2008, MARQ"
+
+[[source]]
+id = "marq-2009-penyal-ifac-proyecto-ifac"
+phase = 5
+kind = "file"
+filename = "marq-2009-penyal-ifac-proyecto-ifac.pdf"
+description = "MARQ publication on the Pobla d'Ifach (J. L. Menéndez Fueyo, Intervenciones arqueológicas 2009)."
+used_for = "Reference only, not redistributed (lives in data/raw, gitignored): tower spacing and the Bell Tower."
+url = "https://www.marqalicante.com/contenido/int_arqueologicas/92%20Penyal%20d%27Ifac.%20Proyecto%20IFAC.%20Sectores%20Muralla%20de%20Poniente%2C%20Muralla%20Norte%20e%20Iglesia%20%28Calp%29.pdf"
+expected_bytes = 862965
+size_tolerance = 0.0
+licence = "Copyright of MARQ and the author(s); reference only, not redistributed"
+attribution = "J. L. Menéndez Fueyo, Intervenciones arqueológicas 2009, MARQ"
+
+[[source]]
+id = "marq-2011-penyal-ifac"
+phase = 5
+kind = "file"
+filename = "marq-2011-penyal-ifac.pdf"
+description = "MARQ publication on the Pobla d'Ifach (Menéndez, Ferrer and Pina, Intervenciones arqueológicas 2011)."
+used_for = "Reference only, not redistributed (lives in data/raw, gitignored): level 59.06 m, geotextile, hotel, tower 5."
+url = "https://www.marqalicante.com/contenido/int_arqueologicas/doc_186.pdf"
+expected_bytes = 462621
+size_tolerance = 0.0
+licence = "Copyright of MARQ and the author(s); reference only, not redistributed"
+attribution = "Menéndez, Ferrer and Pina, Intervenciones arqueológicas 2011, MARQ"
+
+[[source]]
+id = "catastro-inspire-licencia"
+phase = 5
+kind = "file"
+filename = "catastro-inspire-licencia-v1.pdf"
+description = "Dirección General del Catastro, INSPIRE data licence (PDF)."
+used_for = "Reference only, not redistributed (lives in data/raw, gitignored): cite the licence of the Catastro INSPIRE data."
+url = "https://www.catastro.hacienda.gob.es/webinspire/documentos/Licencia.pdf"
+expected_bytes = 100483
+size_tolerance = 0.0
+licence = "Official document of the Dirección General del Catastro; copyright, reference only"
+attribution = "Dirección General del Catastro"
+
+[[source]]
+id = "catastro-inspire-bu-wfs"
+phase = 5
+kind = "file"
+filename = "catastro-inspire-bu-wfs-v1.pdf"
+description = "Dirección General del Catastro, INSPIRE Buildings WFS service document (PDF)."
+used_for = "Reference only, not redistributed (lives in data/raw, gitignored): parameters and limits of the Catastro buildings WFS."
+url = "https://www.catastro.hacienda.gob.es/webinspire/documentos/inspire-bu-WFS.pdf"
+expected_bytes = 139132
+size_tolerance = 0.0
+licence = "Official document of the Dirección General del Catastro; copyright, reference only"
+attribution = "Dirección General del Catastro"
