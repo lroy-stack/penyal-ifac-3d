@@ -119,6 +119,14 @@ Hoy el total de `medium` ronda las 35 llamadas, y estas filas añaden hasta 19. 
 
 ## 7. Progreso
 
+**12/10/2026, primera tanda en marcha.**
+- Interfaz: A1 (004 X0).
+- Entorno: B1 (firmes), B2 (inventario por evidencia) y B5, parte de detección de barcos.
+- Recursos: R1 (assets con licencia).
+- Publicación: F1. El usuario eligió Cloudflare Pages; se prepara sin publicar y cada publicación necesitará su confirmación.
+- Contenido: D2 hecha (83804f3), con 7 preguntas nuevas en `consulta-parque.md`. Falta que el usuario la envíe.
+- C1 (sonido) espera a que se integre A1, porque comparte "Más".
+
 - [~] H1-A1 (004 X0.2–X0.5) · [ ] A2 · [ ] A3 · [ ] A4 · [ ] A5 · [ ] A6
-- [ ] H1-B1 · [ ] B2 · [ ] B3 · [ ] B4 · [ ] B5 · [ ] B6 · [ ] B7 · [ ] R1
-- [ ] H1-C1 · [ ] D1 · [ ] D2 · [ ] E1 · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [ ] F1 · [ ] G1 (opcional)
+- [~] H1-B1 · [~] B2 · [ ] B3 · [ ] B4 · [~] B5 (detección) · [ ] B6 · [ ] B7 · [~] R1
+- [ ] H1-C1 · [ ] D1 · [x] D2 (falta el envío) · [ ] E1 · [ ] E2 · [ ] E3 · [ ] E4 · [ ] E5 · [~] F1 · [ ] G1 (opcional)
