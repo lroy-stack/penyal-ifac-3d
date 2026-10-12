@@ -32,33 +32,35 @@ describe("tree matrix", () => {
     expect(top.z).toBeCloseTo(-300, 6);
   });
 
-  it("tilts the crown from the foot towards (x + leanX, apexY, z + leanZ)", () => {
-    const leaning = { ...tree, leanX: 0.6, leanZ: -0.3 };
-    const top = apexOf(leaning);
-    const wanted = new Vector3(0.6, 12, -0.3).normalize().multiplyScalar(12);
-    expect(top.x - 100).toBeCloseTo(wanted.x, 5);
-    expect(top.y - 20).toBeCloseTo(wanted.y, 5);
-    expect(top.z + 300).toBeCloseTo(wanted.z, 5);
+  it("puts the top of a leaning tree on the measured apex (x + leanX, apexY, z + leanZ)", () => {
+    const top = apexOf({ ...tree, leanX: 0.6, leanZ: -0.3 });
+    expect(top.x).toBeCloseTo(100.6, 5);
+    expect(top.y).toBeCloseTo(32, 5);
+    expect(top.z).toBeCloseTo(-300.3, 5);
   });
 
-  it("the lean does not change the tree height or shear it", () => {
-    const leaning = { ...tree, leanX: 0.6, yaw: 77 };
+  it("a strong lean lengthens the trunk to reach the apex instead of falling short", () => {
+    // vegetation.json leans up to 0.6 x height: kept at `height`, the top missed by up to 0.89 m.
+    const leaning = { ...tree, leanX: 7.2, yaw: 77 };
     const m = treeMatrix(new Matrix4(), leaning, null);
     const foot = new Vector3(0, 0, 0).applyMatrix4(m);
     const top = new Vector3(0, TREE_NOMINAL_HEIGHT, 0).applyMatrix4(m);
-    expect(top.distanceTo(foot)).toBeCloseTo(12, 5);
+    expect(top.distanceTo(foot)).toBeCloseTo(Math.hypot(7.2, 12), 5);
+    expect(top.distanceTo(new Vector3(107.2, 32, -300))).toBeCloseTo(0, 5);
+  });
+
+  it("the lean does not shear the tree", () => {
+    const m = treeMatrix(new Matrix4(), { ...tree, leanX: 0.6, yaw: 77 }, null);
     const a = new Vector3(1, 0, 0).transformDirection(m);
     const b = new Vector3(0, 1, 0).transformDirection(m);
     expect(a.dot(b)).toBeCloseTo(0, 6);
   });
 
-  it("puts the foot on the resampled ground and leans towards the apex from there", () => {
+  it("puts the foot on the resampled ground and the top on the apex from there", () => {
     const m = treeMatrix(new Matrix4(), { ...tree, leanX: 0.5 }, 22);
     expect(new Vector3().applyMatrix4(m).y).toBeCloseTo(22, 6);
     const top = new Vector3(0, TREE_NOMINAL_HEIGHT, 0).applyMatrix4(m);
-    const direction = top.sub(new Vector3(100, 22, -300)).normalize();
-    expect(direction.equals(new Vector3(0.5, 10, 0).normalize())).toBe(false);
-    expect(direction.x / direction.y).toBeCloseTo(0.5 / (32 - 22), 5);
+    expect(top.distanceTo(new Vector3(100.5, 32, -300))).toBeCloseTo(0, 5);
   });
 
   it("ignores a lean when the apex is not above the foot", () => {
