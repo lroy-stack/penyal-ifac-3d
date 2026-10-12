@@ -100,3 +100,4 @@
 - [x] **E3, edificios del centro** (`penyal buildings` y sistema `buildings`), integrados en `main` el 12/10/2026 (f981f04).
   - Huellas de OSM; alero en el percentil 25 y cumbrera en el 95 del LiDAR; cubierta a cuatro aguas; texturas CC0 en KTX2 ETC1S.
   - Pendiente: cubierta con un error cuadrático medio de unos 1,5 m frente al LiDAR, sin porche ni terrazas, y fachadas a falta de la investigación en línea (`docs/research/004-recursos-acceso-centro.md`).
+- **12/10/2026:** los barcos y los pantalanes de E5 se adelantan al hito H1, como H1-B5 en `docs/specs/006-h1-paseo-con-sentido/plan.md`. E1.2, E3+ y E4 se ejecutan allí como H1-B1, H1-B6 y H1-B7, y los muros y las rocas son H1-B3 y H1-B4. El resto de E5 (edificios del puerto y escollera) y E6 siguen en H3.

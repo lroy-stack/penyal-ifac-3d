@@ -40,6 +40,8 @@ Cada hito termina en algo que se puede **enseñar y probar**, con criterios obse
 
 ### H1 — Paseo con sentido: el tramo piloto, entregable
 
+- **Plan detallado:** `docs/specs/006-h1-paseo-con-sentido/` (spec y plan). Incluye además barcos medidos en la ortofoto de 2024 con sus pantalanes, muros de piedra seca, rocas y un inventario por evidencia de todo lo que se coloca (petición del usuario, 12/10/2026).
+
 - **Objetivo:** del aparcamiento al km 0,421, alguien que nunca ha estado entiende dónde está, aprende algo con fuente y puede llegar a la cima con un botón.
 - **Contenido:**
   - 004 X1: minimapa, altitud, mapa grande, viaje rápido y "¿Dónde estoy?";
