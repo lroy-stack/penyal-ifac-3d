@@ -99,13 +99,13 @@ def covers(src: DatasetReader, area: LocalRect) -> bool:
     )
 
 
-def read_texture(src: DatasetReader, area: LocalRect, size: int) -> TextureRead:
-    """RGB of ``area`` resampled (area average) to ``size`` x ``size``; outside pixels are sea."""
+def read_rgb(src: DatasetReader, area: LocalRect, width: int, height: int) -> TextureRead:
+    """RGB of ``area`` resampled (area average) to ``width`` x ``height``; outside is sea."""
     window = pixel_window(src, area)
     data = src.read(
         list(RGB_BANDS),
         window=window,
-        out_shape=(len(RGB_BANDS), size, size),
+        out_shape=(len(RGB_BANDS), height, width),
         resampling=Resampling.average,
         boundless=True,
         masked=True,
@@ -114,3 +114,8 @@ def read_texture(src: DatasetReader, area: LocalRect, size: int) -> TextureRead:
     rgb = np.ma.getdata(data).transpose(1, 2, 0).astype(np.uint8)
     rgb[outside_mask] = SEA_RGB
     return TextureRead(rgb=np.ascontiguousarray(rgb), outside=int(outside_mask.sum()))
+
+
+def read_texture(src: DatasetReader, area: LocalRect, size: int) -> TextureRead:
+    """RGB of ``area`` resampled (area average) to ``size`` x ``size``; outside pixels are sea."""
+    return read_rgb(src, area, size, size)

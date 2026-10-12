@@ -16,6 +16,7 @@ from penyal_pipeline import (
     dem,
     doctor,
     fetch,
+    minimap,
     ortho,
     provenance,
     structures,
@@ -160,6 +161,17 @@ def _cmd_surfaces(args: argparse.Namespace) -> int:
         f"surfaces: {len(manifest['tiles'])} tiles, {len(manifest['ways'])} ways, "
         f"{_megabytes(sizes)} of KTX2; skipped ways {manifest['skippedWays']}; "
         f"widths are {manifest['widths']['status']}"
+    )
+    return 0
+
+
+def _cmd_minimap(args: argparse.Namespace) -> int:
+    manifest = minimap.run_minimap(args.out_dir, artefacts.provenance("minimap"))
+    bounds, size, image = manifest["bounds"], manifest["size"], manifest["image"]
+    print(
+        f"minimap: {size['width']}x{size['height']} px at {manifest['metresPerPixel']} m/px, "
+        f"x {bounds['x0']}..{bounds['x1']}, z {bounds['z0']}..{bounds['z1']}; "
+        f"{image['url']} {image['bytes']:,} bytes ({image['format']} q{image['quality']})"
     )
     return 0
 
@@ -479,6 +491,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     surfaces_cmd.set_defaults(handler=_cmd_surfaces)
 
+    minimap_cmd = commands.add_parser(
+        "minimap", help="crop the orthophoto around the trail corridor: minimap.jpg + minimap.json"
+    )
+    minimap_cmd.add_argument(
+        "--out-dir",
+        type=Path,
+        default=minimap.MINIMAP_GENERATED_DIR,
+        help="output directory (default: %(default)s)",
+    )
+    minimap_cmd.set_defaults(handler=_cmd_minimap)
+
     structures_cmd = commands.add_parser(
         "structures", help="build the OSM staircases: structures.glb + structures.json"
     )
@@ -590,6 +613,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         tunnel.TunnelError,
         provenance.ProvenanceError,
         tunnel_geometry.GeometryError,
+        minimap.MinimapError,
         surfaces.SurfacesError,
         structures.StructuresError,
         buildings.BuildingsError,
