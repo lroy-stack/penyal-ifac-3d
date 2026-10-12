@@ -48,6 +48,7 @@ ALL_JSON = {
     "vegetation.json",
     "vegetation/pine.json",
     "vegetation/plants.json",
+    "minimap/minimap.json",
 }
 
 
@@ -118,6 +119,7 @@ def assets(repo: Path, tmp_path: Path) -> Path:
         ("vegetation.json", "vegetation"),
         ("vegetation/pine.json", "pine"),
         ("vegetation/plants.json", "plants"),
+        ("minimap/minimap.json", "minimap"),
     ):
         path = out / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -185,6 +187,7 @@ class TestInputs:
             ("trail", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
             ("tunnel", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
             ("surfaces", {"osm-penyal"}, False),
+            ("minimap", {"icv-orto-2024-0848-7-2"}, False),
             ("structures", {"icv-mdt-2016-0848", "icv-cv05-penyal", "osm-penyal"}, True),
             (
                 "buildings",
@@ -309,6 +312,7 @@ class TestVerify:
         assert flagged(provenance.verify_generated(assets, repo)) == {
             "terrain/manifest.json",
             "vegetation.json",
+            "minimap/minimap.json",
         }
 
     def test_a_pine_texture_change_flags_only_the_pine(self, repo: Path, assets: Path) -> None:
@@ -343,8 +347,8 @@ class TestVerify:
     ) -> None:
         (repo / TRAIL_JSON).write_text('{"route":{"segments":[1]}}', encoding="utf-8")
         problems = provenance.verify_generated(assets, repo)
-        assert flagged(problems) == {"vegetation.json"}
-        assert "trail.json" in problems[0].message
+        assert flagged(problems) == {"vegetation.json", "minimap/minimap.json"}
+        assert all("trail.json" in p.message for p in problems)
 
     def test_an_osm_change_flags_the_surface_masks(self, repo: Path, assets: Path) -> None:
         shas = {source_id: sha(source_id) for source_id in RAW_FILES}

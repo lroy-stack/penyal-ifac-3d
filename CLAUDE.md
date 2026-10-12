@@ -28,6 +28,7 @@ A free web 3D walk along the Ruta Roja of the Parc Natural del Penyal d'Ifac (Ca
 | Tree crowns, NDVI check and understory (`vegetation.json`; `--analyse` prints counts and the NDVI histogram, writes nothing) | `uv run --project pipeline penyal vegetation` |
 | Procedural Aleppo pine (`vegetation/pine.glb` + `pine.json`: 4 variants x LOD0/LOD1, far card; shape generated, not measured) | `uv run --project pipeline penyal pine` |
 | Procedural understory plants (`vegetation/plants.glb` + `plants.json`: lentisc, rosemary, grass tuft, each LOD0/LOD1/far card; generated, leaf pixels from Poly Haven) | `uv run --project pipeline penyal plants` |
+| Minimap (ICV 2024 orthophoto cropped to the trail corridor + 60 m, 0.5 m/px north-up RGB JPEG ≤ 600 KB + `minimap.json` bounds, in `app/public/assets/generated/minimap/`) | `uv run --project pipeline penyal minimap` |
 | Generated assets up to date with their inputs | `uv run --project pipeline penyal verify-generated` (exit 1 if a manifest's recorded `inputs` no longer match) |
 | Data-dependent tests must run, not skip | `PENYAL_REQUIRE_DATA=1 uv run --project pipeline pytest -q` (default on a clean clone: they skip) |
 | Asset spike (bpy → glTF → meshopt, deterministic) | `pnpm spike`; view at `http://localhost:5173/dev/asset-viewer.html?src=<url>` (dev server only) |

@@ -29,7 +29,11 @@ def raw_input(source_id: str, suffix: str, root: Path = REPO_ROOT) -> Input:
 
 
 def curated_input(root: Path = REPO_ROOT) -> Input:
-    path = root / TUNNEL_CURATED.relative_to(REPO_ROOT)
+    return file_input(root / TUNNEL_CURATED.relative_to(REPO_ROOT), root)
+
+
+def file_input(path: Path, root: Path = REPO_ROOT) -> Input:
+    """A generated or curated file, hashed from disk (no catalogue id)."""
     return {"file": relative(path, root), "sha256": sha256_file(path)}
 
 
@@ -44,17 +48,20 @@ def _osm_input(root: Path) -> Input:
     return raw_input(trail.OSM_SOURCE_ID, trail.OSM_FILE, root)
 
 
+def _trail_input(root: Path) -> Input:
+    return file_input(root / TRAIL_GENERATED.relative_to(REPO_ROOT), root)
+
+
 def _vegetation_inputs(root: Path) -> list[Input]:
-    trail_json = root / TRAIL_GENERATED.relative_to(REPO_ROOT)
     surfaces_manifest = root / SURFACES_MANIFEST.relative_to(REPO_ROOT)
     return [
         *_dem_inputs(root),
         _osm_input(root),
         raw_input(ortho.ORTHO_SOURCE_ID, ortho.ORTHO_SUFFIX, root),
         *(raw_input(source_id, ".laz", root) for source_id in dem.LIDAR_SOURCE_IDS),
-        {"file": relative(trail_json, root), "sha256": sha256_file(trail_json)},
+        _trail_input(root),
         # the surface masks the understory avoids (E1): their manifest fingerprints them
-        {"file": relative(surfaces_manifest, root), "sha256": sha256_file(surfaces_manifest)},
+        file_input(surfaces_manifest, root),
     ]
 
 
@@ -69,6 +76,9 @@ def _inputs(kind: str, root: Path) -> list[Input]:
             ]
         case "surfaces":
             return [_osm_input(root)]
+        case "minimap":
+            # the orthophoto pixels and the corridor that sets the crop
+            return [raw_input(ortho.ORTHO_SOURCE_ID, ortho.ORTHO_SUFFIX, root), _trail_input(root)]
         case "collision" | "trail":
             return [*_dem_inputs(root), _osm_input(root), curated_input(root)]
         case "vegetation":
@@ -108,6 +118,8 @@ def _tools(kind: str) -> tuple[str, ...]:
             return ("numpy", "rasterio", "shapely")
         case "surfaces":
             return ("numpy", "ktx")
+        case "minimap":
+            return ("numpy", "rasterio")
         case "vegetation":
             return ("numpy", "rasterio", "shapely", "laspy")
         case _:
