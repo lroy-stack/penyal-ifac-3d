@@ -413,6 +413,7 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
       resident: 0,
       loaded: 0,
       detail: false,
+      pending: 0,
       error: null,
     };
     return {

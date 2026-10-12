@@ -146,6 +146,48 @@ describe("createSurfaceMasks", () => {
 
     afterEach(() => vi.unstubAllGlobals());
 
+    it("counts the manifest, the detail map and the masks in flight as pending until they settle", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => manifestWith("t_1_1", "t_2_2")),
+      );
+      const detail = fakeTexture();
+      const arrivals: Array<(texture: Texture) => void> = [];
+      const loadAsync = vi.fn(() => new Promise<Texture>((resolve) => arrivals.push(resolve)));
+      const masks = createSurfaceMasks({
+        loader: { loadAsync },
+        manifestUrl: MANIFEST_URL,
+        detail: true,
+      });
+      masks.attach("t_1_1", 0, tileObject().object);
+      expect(masks.stats().pending).toBe(2);
+      await flush();
+      // detail map, then the mask of t_1_1
+      expect(masks.stats().pending).toBe(2);
+      arrivals[0]?.(detail);
+      await flush();
+      expect(masks.stats().pending).toBe(1);
+      arrivals[1]?.(fakeTexture());
+      await flush();
+      expect(masks.stats()).toMatchObject({ pending: 0, loaded: 1, error: null });
+    });
+
+    it("is not pending after a failure", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => manifestWith("t_1_1")),
+      );
+      const masks = createSurfaceMasks({
+        loader: { loadAsync: vi.fn(async () => Promise.reject(new Error("bad"))) },
+        manifestUrl: MANIFEST_URL,
+        detail: false,
+      });
+      masks.attach("t_1_1", 0, tileObject().object);
+      await flush();
+      expect(masks.stats()).toMatchObject({ pending: 0, loaded: 0 });
+      expect(masks.stats().error).not.toBeNull();
+    });
+
     it("drops a mask that arrives after its tile was released", async () => {
       vi.stubGlobal(
         "fetch",
