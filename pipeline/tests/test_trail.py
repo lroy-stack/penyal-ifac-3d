@@ -241,6 +241,24 @@ class TestRealRoute:
             inside = corridor.covers(Point(a["x"], a["z"]))
             assert inside is (name != "pobla"), name
 
+    def test_corridor_keeps_the_capsule_clear_of_the_modelled_buildings(
+        self, document: Doc, osm: OsmData
+    ) -> None:
+        corridor = shapely.Polygon(document["corridor"]["polygon"])
+        for way in trail.SOLID_BUILDING_WAYS:
+            footprint = shapely.Polygon([osm.xz[n] for n in osm.ways[way].nodes])
+            clearance = footprint.buffer(trail.CAPSULE_RADIUS - 0.01, join_style="mitre")
+            assert corridor.intersection(clearance).area < 1e-6, way
+
+    def test_centre_anchor_stands_in_front_of_the_centre_wall(
+        self, document: Doc, osm: OsmData
+    ) -> None:
+        nodes = osm.ways[trail.CENTRE_BUILDING_WAY].nodes
+        footprint = shapely.Polygon([osm.xz[n] for n in nodes])
+        centre = document["anchors"]["centre"]
+        gap = footprint.distance(Point(centre["x"], centre["z"]))
+        assert gap == pytest.approx(trail.CENTRE_ANCHOR_CLEARANCE, abs=1e-3)
+
     def test_corridor_is_one_hole_free_simplified_polygon(self, osm: OsmData) -> None:
         corridor, viewpoints = trail.build_corridor(osm)
         assert corridor.geom_type == "Polygon"

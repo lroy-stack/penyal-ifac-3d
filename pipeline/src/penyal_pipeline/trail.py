@@ -48,6 +48,13 @@ TUNNEL_STRIP_OVERLAP = (
 )
 
 CENTRE_BUILDING_WAY = 26330271
+ANNEX_BUILDING_WAY = 26330272
+# Modelled as solid volumes by `penyal buildings` (no collision mesh): the corridor keeps the
+# capsule clear of their walls, so it is their collision.
+SOLID_BUILDING_WAYS = (CENTRE_BUILDING_WAY, ANNEX_BUILDING_WAY)
+# Approximation: the `centre` anchor stands this far in front of the wall, towards the trail, so
+# the player does not start touching it. The door position is unknown until the user's photos.
+CENTRE_ANCHOR_CLEARANCE = 1.0
 POBLA_WAY = 1159140951
 TURNSTILE_NODE = 8032598828
 TUNNEL_WEST_NODE = 288471873
@@ -292,6 +299,34 @@ def centre_entrance(osm: OsmData, trail: BaseGeometry) -> tuple[float, float]:
     return float(nearest.x), float(nearest.y)
 
 
+def centre_anchor_point(osm: OsmData, trail: BaseGeometry) -> tuple[float, float]:
+    """``CENTRE_ANCHOR_CLEARANCE`` in front of the entrance point, on the way to the trail.
+
+    The straight line from the nearest wall point to the trail never re-enters the footprint, so
+    the point keeps that distance from the wall.
+    """
+    entrance = Point(centre_entrance(osm, trail))
+    toward = nearest_points(entrance, trail)[1]
+    dx, dz = toward.x - entrance.x, toward.y - entrance.y
+    length = math.hypot(dx, dz)
+    if length <= CENTRE_ANCHOR_CLEARANCE:
+        return float(toward.x), float(toward.y)
+    step = CENTRE_ANCHOR_CLEARANCE / length
+    return float(entrance.x + dx * step), float(entrance.y + dz * step)
+
+
+def solid_building_clearance(osm: OsmData) -> BaseGeometry:
+    """Footprints of ``SOLID_BUILDING_WAYS`` grown by the capsule radius (mitred corners)."""
+    footprints: list[BaseGeometry] = []
+    for way_id in SOLID_BUILDING_WAYS:
+        way = osm.ways.get(way_id)
+        if way is None:
+            raise TrailError(f"way {way_id} is missing from the OSM extract")
+        footprint = Polygon([osm.xz[n] for n in way.nodes])
+        footprints.append(footprint.buffer(CAPSULE_RADIUS, join_style="mitre"))
+    return unary_union(footprints)
+
+
 def route_geometry(osm: OsmData) -> BaseGeometry:
     return unary_union([LineString(line) for line in route_lines_2d(osm)])
 
@@ -364,6 +399,8 @@ def build_corridor(osm: OsmData, tunnel: TunnelSpec | None = None) -> tuple[Poly
         zone = LineString(line).buffer(TRAIL_HALF_WIDTH + 1.0, cap_style="flat", quad_segs=8)
         wide = merged.difference(zone).simplify(SIMPLIFY_TOLERANCE, preserve_topology=True)
         merged = unary_union([wide, _tunnel_strip(line, tunnel.corridor_half_width)])
+    # After simplifying, so the simplification cannot eat into the capsule clearance.
+    merged = merged.difference(solid_building_clearance(osm))
     if not isinstance(merged, Polygon):
         raise TrailError(f"corridor is not a single polygon ({merged.geom_type})")
     if merged.interiors:
@@ -405,7 +442,7 @@ def build_anchors(
         return {"x": point[0], "y": point[1], "z": point[2], "osm": f"node/{node}"}
 
     anchors: dict[str, dict[str, Any]] = {
-        "centre": _anchor(dem, centre_entrance(osm, trail), f"way/{CENTRE_BUILDING_WAY}"),
+        "centre": _anchor(dem, centre_anchor_point(osm, trail), f"way/{CENTRE_BUILDING_WAY}"),
         "turnstile": _anchor(dem, osm.xz[TURNSTILE_NODE], f"node/{TURNSTILE_NODE}"),
         "tunnel-west": at_route(portal_west, TUNNEL_WEST_NODE),
         "tunnel-east": at_route(portal_east, TUNNEL_EAST_NODE),

@@ -452,3 +452,8 @@ class TestRun:
         assert {x["encoding"] for x in document["textures"].values()} == {"KTX2 ETC1S"}
         assert reports[0].triangles == sum(b["mesh"]["triangles"] for b in document["buildings"])
         assert (tmp_path / "first" / "buildings.glb").stat().st_size == reports[0].glb_bytes
+
+
+def test_the_trail_corridor_keeps_clear_of_every_modelled_building() -> None:
+    # The buildings are solid volumes with no collision mesh: the walkable corridor is the wall.
+    assert {spec.way for spec in buildings.SPECS} == set(trail.SOLID_BUILDING_WAYS)

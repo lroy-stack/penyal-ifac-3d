@@ -147,8 +147,14 @@ class BuildingSpec:
 
 
 SPECS = (
-    BuildingSpec("centre", "Centro de Interpretación Parque Natural del Penyal d'Ifac", 26330271),
-    BuildingSpec("annex", "Edificio contiguo al centro (sin nombre en OSM)", 26330272),
+    BuildingSpec(
+        "centre",
+        "Centro de Interpretación Parque Natural del Penyal d'Ifac",
+        trail.CENTRE_BUILDING_WAY,
+    ),
+    BuildingSpec(
+        "annex", "Edificio contiguo al centro (sin nombre en OSM)", trail.ANNEX_BUILDING_WAY
+    ),
 )
 
 
