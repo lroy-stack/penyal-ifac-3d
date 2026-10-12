@@ -15,15 +15,35 @@ export type InstanceColumns = {
 
 export const isKept = (keep: number, density: number): boolean => keep < 100 * density;
 
-/** Level for a squared distance to the camera; -1 beyond the far band. */
-export function levelFor(distanceSq: number, bands: LodBands): Level {
-  if (distanceSq <= bands[0] * bands[0]) return 0;
-  if (distanceSq <= bands[1] * bands[1]) return 1;
-  if (distanceSq <= bands[2] * bands[2]) return 2;
+/**
+ * Share of a band edge's distance by which an instance must cross it before its level changes:
+ * without it, an instance on an edge flickers between two meshes as the third-person camera
+ * orbits (7.5 %: 2.25 m at 30 m, 9 m at 120 m).
+ */
+export const LOD_HYSTERESIS = 0.075;
+
+/** Index of the level beyond `edge` (3 for "not drawn"), so -1 orders after the far card. */
+const rank = (level: Level): number => (level < 0 ? 3 : level);
+
+/**
+ * Level for a squared distance to the camera; -1 beyond the far band. With the `previous` level
+ * of the instance, each edge moves out by `LOD_HYSTERESIS` for an instance on its near side and
+ * in for one on its far side, so it keeps its level within that margin.
+ */
+export function levelFor(distanceSq: number, bands: LodBands, previous?: Level): Level {
+  for (let edge = 0; edge < 3; edge++) {
+    const limit = bands[edge] as number;
+    const factor =
+      previous === undefined ? 1 : rank(previous) <= edge ? 1 + LOD_HYSTERESIS : 1 - LOD_HYSTERESIS;
+    if (distanceSq <= limit * limit * factor * factor) return edge as Level;
+  }
   return -1;
 }
 
-/** Writes each instance's level (or -1) into `out`; pure apart from `out`. */
+/**
+ * Writes each instance's level (or -1) into `out`; pure apart from `out`, whose current values
+ * are the previous levels the hysteresis keeps (-1 for an instance not drawn).
+ */
 export function selectLevels(
   columns: InstanceColumns,
   camera: { readonly x: number; readonly y: number; readonly z: number },
@@ -39,7 +59,7 @@ export function selectLevels(
     const dx = (columns.x[i] as number) - camera.x;
     const dy = (columns.y[i] as number) - camera.y;
     const dz = (columns.z[i] as number) - camera.z;
-    out[i] = levelFor(dx * dx + dy * dy + dz * dz, bands);
+    out[i] = levelFor(dx * dx + dy * dy + dz * dz, bands, out[i] as Level);
   }
 }
 
