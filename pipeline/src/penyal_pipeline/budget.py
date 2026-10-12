@@ -27,7 +27,7 @@ TREE_LOD = (0.25, 7.0 / 12.0, 1.0)  # medium: 30 / 70 / 120 m
 UNDERSTORY_LOD = (8.0 / 120.0, 24.0 / 120.0, 0.5)  # medium: 8 / 24 / 60 m
 # Near and mid levels never reach further than at ``medium``: at ``high`` (200 m) the fractions
 # alone gave 50 / 117 m, 649,874 triangles against the 400,000 row, so ``high`` spends its extra
-# distance on far cards (4 triangles) only. The understory near / mid distances were 12 / 30 m
+# distance on far cards (8 triangles) only. The understory near / mid distances were 12 / 30 m
 # until its instances followed the LiDAR points (clumped, 264,786 triangles at medium against
 # 250,000): 8 / 24 m gives 239,940 (6 / 20 m would give 227,712).
 TREE_LOD_CAP = (30.0, 70.0)

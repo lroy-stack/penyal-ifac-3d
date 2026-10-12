@@ -12,9 +12,11 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 import numpy as np
+import numpy.typing as npt
 import pytest
-from conftest import raw_marks
+from conftest import glb_attribute, raw_marks
 
+from penyal_pipeline import foliage_tint
 from penyal_pipeline.blender import pine
 from penyal_pipeline.paths import REPO_ROOT
 
@@ -159,17 +161,34 @@ def test_a_card_is_two_triangles_and_cards_cross_around_the_growth_direction() -
     assert positions[2::4][:, 1].min() > 1.0
 
 
-def test_the_far_card_is_shaded_like_the_crown_not_flat_up() -> None:
+def face_normals(positions: npt.NDArray[np.float32], triangles: npt.NDArray[np.int32]) -> Any:
+    p = positions.astype(np.float64)[triangles]
+    face = np.cross(p[:, 1] - p[:, 0], p[:, 2] - p[:, 0])
+    return face / np.linalg.norm(face, axis=1, keepdims=True)
+
+
+def test_the_far_card_faces_are_single_sided_and_shaded_on_their_own_side() -> None:
+    # A normal lying in the quad's own plane gave N.V = 0 to a viewer facing the card (grazing
+    # specular painted it pale beige), and a double-sided flip turned it down (black from behind).
     card = pine.far_card()
-    assert np.allclose(np.linalg.norm(card.normals, axis=1), 1.0, atol=1e-5)
-    assert card.normals[:, 1].min() > 0.3  # lit from above...
-    assert abs(card.normals[:, 0]).max() > 0.3  # ...and turned outwards at the sides
+    face = face_normals(card.positions, card.triangles)
+    towards = np.einsum("tvk,tk->tv", card.normals[card.triangles], face)
+    assert card.single_sided
+    assert (towards > 0.3).all()  # every vertex normal leans out of its own face
+    assert card.normals[:, 1].min() > 0.3  # and up, as the needle cards of the crown
 
 
-def test_the_far_card_is_two_crossed_quads_of_four_triangles() -> None:
+def test_every_far_card_quad_has_a_twin_facing_the_other_way() -> None:
+    card = pine.far_card()
+    face = face_normals(card.positions, card.triangles)
+    pairs = face[0::2] @ face[0::2].T  # one triangle per quad
+    assert np.isclose(pairs, -1.0).sum() == 4  # (front, back) and (back, front) for two planes
+
+
+def test_the_far_card_is_two_crossed_twin_quads_of_eight_triangles() -> None:
     card = pine.far_card()
     assert card.name == pine.CARD_NAME
-    assert card.triangle_count == 4
+    assert card.triangle_count == 8
     assert card.positions[:, 1].max() == pine.NOMINAL_HEIGHT
     assert card.positions[:, 1].min() == 0.0
 
@@ -307,7 +326,7 @@ class TestExport:
         first, second = exports
         assert sha256(first) == sha256(second)
 
-    def test_the_glb_holds_every_mesh_one_masked_material_and_one_atlas(
+    def test_the_glb_holds_every_mesh_two_masked_materials_and_one_atlas(
         self, exports: tuple[Path, Path]
     ) -> None:
         gltf = read_glb_json(exports[0])
@@ -317,15 +336,50 @@ class TestExport:
             + [f"pine_v{v}_lod{lod}" for v in range(pine.VARIANT_COUNT) for lod in (0, 1)]
         )
         assert names == expected
-        assert len(gltf["materials"]) == 1
-        material = gltf["materials"][0]
-        assert material["alphaMode"] == "MASK"
-        assert material["doubleSided"] is True
+        materials = {m["name"]: m for m in gltf["materials"]}
+        assert sorted(materials) == [
+            pine.MATERIAL_NAME,
+            pine.card_material_name(pine.MATERIAL_NAME),
+        ]
+        assert all(m["alphaMode"] == "MASK" for m in materials.values())
+        assert materials[pine.MATERIAL_NAME]["doubleSided"] is True
+        # the card's twin quads cover both sides themselves
+        assert materials[pine.card_material_name(pine.MATERIAL_NAME)].get("doubleSided") is None
+        card_mesh = next(m for m in gltf["meshes"] if m["name"] == pine.CARD_NAME)
+        card_material = gltf["materials"][card_mesh["primitives"][0]["material"]]["name"]
+        assert card_material == pine.card_material_name(pine.MATERIAL_NAME)
+        textures = {
+            m["pbrMetallicRoughness"]["baseColorTexture"]["index"] for m in materials.values()
+        }
+        assert {gltf["textures"][t]["source"] for t in textures} == {0}
         assert len(gltf["images"]) == 1
         assert all(len(m["primitives"]) == 1 for m in gltf["meshes"])
         assert gltf["samplers"][0]["wrapS"] == 33071  # CLAMP_TO_EDGE: no bleeding between cells
         assert gltf["samplers"][0]["wrapT"] == 33071
         assert "animations" not in gltf
+
+    def test_the_materials_have_no_specular_reflection(self, exports: tuple[Path, Path]) -> None:
+        # Card normals are shading proxies, not surfaces: seen from below the slope and against
+        # the sun they are at grazing angles, and the Fresnel sheen painted the crowns pale beige.
+        gltf = read_glb_json(exports[0])
+        assert "KHR_materials_specular" in gltf["extensionsUsed"]
+        for material in gltf["materials"]:
+            specular = material["extensions"]["KHR_materials_specular"]
+            assert specular["specularFactor"] == 0.0, material["name"]
+
+    def test_the_foliage_multiplier_reaches_color_0_unchanged(
+        self, exports: tuple[Path, Path]
+    ) -> None:
+        # COLOR_0 is linear (glTF): the factor derived in linear light must not be decoded as sRGB.
+        factor = np.array(foliage_tint.FOLIAGE_FACTORS["pine"])
+        card = glb_attribute(exports[0], pine.CARD_NAME, "COLOR_0")[:, :3]
+        assert np.allclose(card, factor, atol=1 / 255)
+        lod0 = glb_attribute(exports[0], "pine_v0_lod0", "COLOR_0")[:, :3]
+        foliage = np.isclose(lod0, factor, atol=1 / 255).all(axis=1)
+        bark = np.isclose(lod0, 1.0, atol=1 / 255).all(axis=1)
+        assert foliage.any()
+        assert bark.any()
+        assert (foliage | bark).all()
 
 
 @needs_optimizer

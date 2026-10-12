@@ -110,7 +110,18 @@ describe("vegetation system", () => {
     const { world, deps } = await setup();
     expect(world.status().vegetation).toEqual({ state: "ready" });
     const root = deps.scene.getObjectByName("system:vegetation") as Group;
-    expect(meshesOf(root)).toHaveLength(2 * 2 + 1 + 2);
+    expect(meshesOf(root)).toHaveLength(2 * 2 + 1 + 3);
+  });
+
+  it("draws an understory plant in the far band with its card", async () => {
+    const { world, system, deps } = await setup("medium");
+    // medium understory bands 8/24/60: the plants at x = 2 are 40 m away.
+    deps.camera.position.set(42, 0, 0);
+    world.update("postPlayer", frame(6));
+    expect(system.counts().understory).toEqual([0, 0, 2]);
+    const root = deps.scene.getObjectByName("system:vegetation") as Group;
+    const card = meshesOf(root).find((m) => m.name === "vegetation:gc") as InstancedMesh;
+    expect(card.count).toBe(2);
   });
 
   it("buckets by distance at the recorded bands and density of the tier", async () => {
@@ -125,6 +136,20 @@ describe("vegetation system", () => {
     const root = deps.scene.getObjectByName("system:vegetation") as Group;
     const near = meshesOf(root).find((m) => m.name === "vegetation:pine_v0_lod0") as InstancedMesh;
     expect(near.instanceMatrix.array[13]).toBe(3);
+  });
+
+  it("fills the far card shared by every variant with each tree's own matrix", async () => {
+    const { world, system, deps } = await setup("medium");
+    // Both trees (x = 10, variant 0; x = 100, variant 1) about 100.6 m away: the far card.
+    deps.camera.position.set(55, 0, 90);
+    world.update("postPlayer", frame(6));
+    expect(system.counts().trees).toEqual([0, 0, 2]);
+    const root = deps.scene.getObjectByName("system:vegetation") as Group;
+    const card = meshesOf(root).find((m) => m.name === "vegetation:pine_far_card") as InstancedMesh;
+    expect(card.count).toBe(2);
+    const xs = [card.instanceMatrix.array[12], card.instanceMatrix.array[16 + 12]];
+    expect(xs).toEqual([10, 100]);
+    expect(system.counts().drawn).toBe(1);
   });
 
   it("re-buckets only every few frames and after the camera moved", async () => {

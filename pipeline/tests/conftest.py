@@ -2,6 +2,7 @@
 
 import json
 import os
+import struct
 import threading
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -10,6 +11,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+import numpy as np
+import numpy.typing as npt
 import pytest
 
 from penyal_pipeline.fetch import Downloader
@@ -55,6 +58,33 @@ def build_marks(*files: Path) -> list[pytest.MarkDecorator]:
     """Marks for outputs of earlier pipeline steps (``build/``), derived from data/raw."""
     missing = [str(f) for f in files if not f.is_file()]
     return data_gate(missing, "the build output")
+
+
+_GLB_COMPONENTS = {5121: ("B", 255.0), 5123: ("H", 65535.0), 5126: ("f", None)}
+_GLB_WIDTHS = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4}
+
+
+def glb_attribute(path: Path, mesh_name: str, attribute: str) -> npt.NDArray[np.float64]:
+    """An attribute of a mesh's first primitive in an uncompressed GLB, as floats (normalised
+    integers are divided back to 0..1)."""
+    data = path.read_bytes()
+    json_length = struct.unpack_from("<I", data, 12)[0]
+    document = json.loads(data[20 : 20 + json_length])
+    binary = data[20 + json_length + 8 :]
+    mesh = next(m for m in document["meshes"] if m["name"] == mesh_name)
+    accessor = document["accessors"][mesh["primitives"][0]["attributes"][attribute]]
+    view = document["bufferViews"][accessor["bufferView"]]
+    code, scale = _GLB_COMPONENTS[accessor["componentType"]]
+    width = _GLB_WIDTHS[accessor["type"]]
+    item = struct.calcsize(code)
+    stride = view.get("byteStride", item * width)
+    start = view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
+    rows = [
+        struct.unpack_from(f"<{width}{code}", binary, start + i * stride)
+        for i in range(accessor["count"])
+    ]
+    values = np.array(rows, dtype=np.float64)
+    return values / scale if scale is not None else values
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
