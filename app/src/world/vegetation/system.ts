@@ -228,12 +228,9 @@ export function createVegetationSystem(
     const plantTargets: [InstancedMesh[], InstancedMesh[], InstancedMesh[]] = [[], [], []];
     u.models.forEach((model, m) => {
       const n = modelCount[m] ?? 0;
-      const lod1 = makeMesh(plants.scene, ctx.root, model.meshes.lod1, n, msaa, ctx);
       plantTargets[0].push(makeMesh(plants.scene, ctx.root, model.meshes.lod0, n, msaa, ctx));
-      plantTargets[1].push(lod1);
-      // The understory cards render as opaque dark rectangles at distance (their atlas cell
-      // loses its alpha in the mips, see pine.json "notes"): the far band uses lod1 instead.
-      plantTargets[2].push(lod1);
+      plantTargets[1].push(makeMesh(plants.scene, ctx.root, model.meshes.lod1, n, msaa, ctx));
+      plantTargets[2].push(makeMesh(plants.scene, ctx.root, model.meshes.card, n, msaa, ctx));
     });
     plantSet = {
       ...columnsFrom(u.count, u.x, u.z, u.keep),
