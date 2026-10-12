@@ -93,7 +93,9 @@ TEXTURES: dict[str, tuple[str, float]] = {
 }
 TEXTURE_SUFFIX = ".jpg"
 TEXTURE_SIZE = (
-    1024  # pixels: the 1k maps as downloaded; four ETC1S KTX2 maps cost ~5 MiB on the GPU
+    # pixels: the 1k maps as downloaded. Four ETC1S KTX2 maps with mips cost ~2.7 MiB on the GPU
+    # when transcoded to ETC2/ASTC (mobile; the budget row of 3 MiB) and ~5.3 MiB as BC7 (desktop).
+    1024
 )
 TEXTURE_ENCODING = "KTX2 ETC1S"
 COLOUR_SOURCE = {

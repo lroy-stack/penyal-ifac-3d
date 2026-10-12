@@ -16,6 +16,7 @@ import {
   readState,
   waitForFrames,
   waitForSettledTerrain,
+  waitForSettledWorld,
 } from "./support/terrain";
 
 // The per-system budget of ADR 0010 section 4 and Amendment 1: at each viewpoint and tier, switch
@@ -115,6 +116,7 @@ test.describe("per-system budget", () => {
 
         await page.goto(`/?start=${anchor}&quality=${tier}`);
         await waitForSettledTerrain(page, DETAIL[tier]);
+        await waitForSettledWorld(page);
         await page.evaluate(() => window.__world?.freezeTime(0));
         await waitForFrames(page, 2);
 
@@ -124,6 +126,12 @@ test.describe("per-system budget", () => {
         const caps = FRAME_BUDGET[tier];
         const ids = Object.keys(state.systems).filter((id) => !id.startsWith("debug-"));
         expect(ids.length).toBeGreaterThan(0);
+        // A system that failed, is missing or never started costs nothing and would pass its row.
+        expect(
+          ids.filter((id) => state.systems[id]?.status.state !== "ready"),
+          "systems that are not ready",
+        ).toEqual([]);
+        expect(state.terrain.stats?.surfaces.error ?? null, "surface mask error").toBeNull();
 
         const total = await cost(page);
         expect(total.calls, "draw calls").toBeLessThanOrEqual(caps.drawCallsCap);

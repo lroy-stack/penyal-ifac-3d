@@ -1,12 +1,6 @@
-import {
-  type BufferGeometry,
-  type Material,
-  Mesh,
-  type Object3D,
-  PointLight,
-  Texture,
-} from "three";
+import { type BufferGeometry, Mesh, type Object3D, PointLight } from "three";
 import type { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { disposeObject } from "./disposal";
 
 /** Intensity of the lamp that lights the tunnel interior (the hemisphere light barely reaches it). */
 export const TUNNEL_LAMP_INTENSITY = 7;
@@ -30,18 +24,7 @@ export async function loadTunnelView(loader: GLTFLoader, url: string): Promise<T
   object.updateMatrixWorld(true);
   return {
     object,
-    dispose: () => {
-      object.traverse((child) => {
-        if (!(child instanceof Mesh)) return;
-        (child.geometry as BufferGeometry).dispose();
-        const materials = Array.isArray(child.material) ? child.material : [child.material];
-        for (const material of materials as Material[]) {
-          for (const value of Object.values(material))
-            if (value instanceof Texture) value.dispose();
-          material.dispose();
-        }
-      });
-    },
+    dispose: () => disposeObject(object),
   };
 }
 

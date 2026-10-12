@@ -84,6 +84,11 @@ export function createTerrainSystem(deps: TerrainSystemDeps = DEFAULT_DEPS): {
         load: createGltfTileLoader(ctx.assets.gltf()),
         ...terrainOptions(ctx.quality.current),
         detailEnabled: false,
+        signal: ctx.signal,
+        onSurfaceError: (message) => {
+          console.error(`[world:terrain] ${message}`);
+          ctx.report({ state: "degraded", message });
+        },
       });
       ctx.root.add(streamer.root);
       return { status: "ready" };

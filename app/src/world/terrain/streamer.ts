@@ -6,12 +6,12 @@ import {
   Mesh,
   type Object3D,
   type PerspectiveCamera,
-  Texture,
   Vector3,
 } from "three";
 import type { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
 import { fetchBuffer } from "../../core/http";
+import { disposeObject } from "../disposal";
 import { createDetailTextures, type DetailSet, type DetailSource } from "./detailTextures";
 import { resolveAssetUrl, type TerrainManifest, type TerrainTile } from "./manifest";
 import { applyTerrainDetail, createTerrainDetailUniforms } from "./material";
@@ -97,6 +97,10 @@ export type TerrainStreamerOptions = {
    * before the rest of the terrain competes for the connection. Default true.
    */
   readonly detailEnabled?: boolean;
+  /** Aborts the surface-mask manifest request; `dispose` aborts it too. */
+  readonly signal?: AbortSignal;
+  /** Called once per new failure of the painted-surface masks, with an actionable message. */
+  readonly onSurfaceError?: (message: string) => void;
   /** Largest LOD-level difference allowed between edge-adjacent tiles; default 1. */
   readonly maxLodStep?: number;
 };
@@ -166,23 +170,6 @@ type Failure = { count: number; retryAt: number };
 
 const keyOf = (id: string, level: number): string => `${id}:${level}`;
 
-function disposeMaterial(material: Material): void {
-  for (const value of Object.values(material)) {
-    if (value instanceof Texture) value.dispose();
-  }
-  material.dispose();
-}
-
-/** Frees the GPU resources behind an object loaded from glTF. */
-export function disposeObject(object: Object3D): void {
-  object.traverse((child) => {
-    if (!(child instanceof Mesh)) return;
-    (child.geometry as BufferGeometry).dispose();
-    const materials = Array.isArray(child.material) ? child.material : [child.material];
-    for (const material of materials as Material[]) disposeMaterial(material);
-  });
-}
-
 /** Terrain is opaque and single-sided; culling needs bounding volumes on every geometry. */
 function prepareTerrainObject(object: Object3D, detail: ((m: Material) => void) | null): void {
   object.traverse((child) => {
@@ -238,6 +225,8 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
           loader: surfaceLoader,
           manifestUrl: resolveAssetUrl(manifestUrl, "../surfaces/manifest.json"),
           detail: quality === "high",
+          signal: options.signal,
+          onError: options.onSurfaceError,
         });
   const retryDelayMs = options.retryDelayMs ?? 2000;
   const maxRetries = options.maxRetries ?? 3;
@@ -420,6 +409,13 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
       (flight) => detailEnabled || isCritical(flight.request, requiredSet),
     ).length;
     const gateOpen = Math.max(gateQueued, gateInFlight) > 0;
+    const surfaceStats = surfaces?.stats() ?? {
+      resident: 0,
+      loaded: 0,
+      detail: false,
+      pending: 0,
+      error: null,
+    };
     return {
       resident,
       displayed: shown,
@@ -431,10 +427,10 @@ export function createTerrainStreamer(options: TerrainStreamerOptions): TerrainS
       pending,
       inFlight: inFlight.size,
       failed: failures.size,
-      lastError: lastError ?? detailTextures.lastError(),
+      lastError: lastError ?? detailTextures.lastError() ?? surfaceStats.error,
       quality,
       detail: detailTextures.source(),
-      surfaces: surfaces?.stats() ?? { resident: 0, loaded: 0, detail: false, error: null },
+      surfaces: surfaceStats,
     };
   };
 

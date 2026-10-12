@@ -30,7 +30,7 @@ function stats(overrides: Partial<TerrainStats> = {}): TerrainStats {
     lastError: null,
     quality: "low",
     detail: "procedural",
-    surfaces: { resident: 0, loaded: 0, detail: false, error: null },
+    surfaces: { resident: 0, loaded: 0, detail: false, pending: 0, error: null },
     ...overrides,
   };
 }
@@ -101,6 +101,30 @@ describe("terrain system init", () => {
     expect(options.detailSet).toBe(expected.terrain.detail);
     expect(options.sseThreshold).toBe(expected.terrain.sseThresholdPx);
     expect(options.manifestUrl).toBe("/assets/generated/terrain/manifest.json");
+  });
+});
+
+describe("terrain system surface masks", () => {
+  it("hands the streamer the system's abort signal", async () => {
+    const { world, createStreamer } = setup({ status: "ready", manifest: MANIFEST });
+    await world.init("critical");
+    const options = createStreamer.mock.calls[0]?.[0] ?? {};
+    expect(options.signal).toBeInstanceOf(AbortSignal);
+    expect((options.signal as AbortSignal).aborted).toBe(false);
+    world.dispose();
+    expect((options.signal as AbortSignal).aborted).toBe(true);
+  });
+
+  it("logs a surface failure and marks the terrain degraded without failing it", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { world, createStreamer } = setup({ status: "ready", manifest: MANIFEST });
+    await world.init("critical");
+    const options = createStreamer.mock.calls[0]?.[0] ?? {};
+    (options.onSurfaceError as (message: string) => void)("masks are broken");
+    expect(world.status().terrain).toEqual({ state: "degraded", message: "masks are broken" });
+    expect(error).toHaveBeenCalledWith("[world:terrain] masks are broken");
+    vi.restoreAllMocks();
   });
 });
 

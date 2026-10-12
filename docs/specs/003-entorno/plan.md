@@ -66,6 +66,7 @@
   - Parche `penyal-surfaces-v1`; las máscaras se cargan y liberan con cada tesela; la suma de canales se acota a 1.
   - La fila `terrain` de `low` sube a 24 MiB de textura por las máscaras, y la de estructuras sin textura baja para que `low` sume su tope de 32 MiB.
   - Con la escalera (`structures`, 4c4a328), el jugador pisa las huellas de los peldaños.
+  - Edición entre carriles: L5 tocó `app/src/world/terrain/streamer.ts` y `TerrainStats` (propiedad del integrador según el ADR 0010), y la tarea solo autorizaba `material.ts`. El integrador la acepta porque las máscaras se enganchan y se liberan con cada tesela, y solo el streamer sabe cuándo entra y sale un LOD; el cambio es aditivo (`surfaces` en las estadísticas).
 - [x] **E2.1–E2.4, árboles y matorral** (`penyal vegetation`, `penyal pine` y `penyal plants`), integrados en `main` el 11/10/2026 (6fdc30f) tras dos rondas de revisión.
   - 1.224 árboles en el parque, 178 de ellos en el tramo piloto, y 6.547 matas.
   - `verify-generated`: 10 artefactos al día.
