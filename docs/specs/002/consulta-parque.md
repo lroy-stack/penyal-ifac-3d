@@ -95,6 +95,16 @@ En cada caso basta con saber qué cifra o qué redacción prefiere el parque, o 
 16. **Medidas del túnel** (Q6 de la spec 001). ¿Existen planos o medidas de la anchura, la altura y los escalones de entrada y salida? Hoy la sección del túnel es provisional.
 17. **Especies sensibles**. ¿Tenéis alguna pauta sobre cómo presentar la *Silene hifacensis* y otras especies protegidas? Nuestra regla es mostrarlas solo en las fichas, nunca en su lugar real.
 
+### E. Añadidas el 12/10/2026 (investigación en línea, `docs/research/004-*`)
+
+18. **Ventana de reserva** [`access-booking`]. Una nota municipal (21/07/2026) dice "hasta 10 días" de antelación y una fuente de prensa (09/10/2026) dice "al menos 4 días". ¿Cuál es la vigente?
+19. **Camino del Mirador de Carabiners**. El PRUG (art. 30–32) lo restringe de abril a junio. ¿Se aplica hoy esa restricción?
+20. **Obras de 2016 en el sendero**. ¿Pueden facilitarnos la memoria o los planos de las obras de Vaersa (muros de mampostería, cadenas, cuerdas) y la anchura prevista del sendero?
+21. **Pasamanos del túnel**. ¿Hoy es cuerda o cadena, y a qué altura va?
+22. **Poste de Carabiners**. ¿Qué es el poste de acero con la parte superior roja del Mirador de Carabiners?
+23. **Bordes y mobiliario del primer tramo**. ¿Dónde hay talanqueras de rollizos, muros de piedra seca, bancos, papeleras y paneles entre el aparcamiento y el primer mirador? Solo colocamos lo que podemos situar con una fuente.
+24. **Los dos edificios del centro**. ¿Cuál es el Centre d'Informació y cuál el Centre de Visitants? ¿En qué año se construyeron?
+
 ## Qué hacemos con cada respuesta
 
 - **Antes de cambiar nada en `content/facts.json`**: hay que decidir cómo citar una respuesta por correo.
