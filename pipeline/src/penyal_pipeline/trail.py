@@ -20,7 +20,7 @@ import numpy.typing as npt
 from shapely.geometry import LineString, Point, Polygon
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import orient
-from shapely.ops import nearest_points, unary_union
+from shapely.ops import nearest_points, polygonize, substring, unary_union
 
 from penyal_pipeline.dem import Grid
 from penyal_pipeline.geo import to_local_array, wgs84_to_25830_array
@@ -128,6 +128,32 @@ SEGMENT_SPECS: tuple[SegmentSpec, ...] = (
         26330276,
         BIFURCATION_NODE,
         288472082,
+    ),
+)
+
+
+# Outer members of relation/2172136 (Parc Natural del Penyal d'Ifac).
+PARK_BOUNDARY_WAYS = (26330277, 162335453)
+PARK_RELATION = 2172136
+STEPS_FOOT_NODE = 288471763
+# Walking access from the foot of the centre steps down to the park boundary on the Avinguda de
+# l'Illa de Formentera: two footways, the service track closed to motor vehicles (gate
+# node/288471681) and the avenue. Not part of the Ruta Roja: it only widens the corridor so the
+# walk reaches the park entrance.
+ACCESS_SPECS = (
+    SegmentSpec(
+        "access-footway", "Footway below the centre steps", 26330270, STEPS_FOOT_NODE, 1795591680
+    ),
+    SegmentSpec(
+        "access-footway-2", "Footway to the service track", 862108209, 1795591680, 288471757
+    ),
+    SegmentSpec("access-track", "Service track (cobbled)", 862108206, 288471757, 1795591774),
+    SegmentSpec("access-track-2", "Service track to the gate", 37656546, 1795591774, 288471681),
+    SegmentSpec(
+        "access-track-3", "Service track below the gate", 1159140950, 288471681, 8032598839
+    ),
+    SegmentSpec(
+        "access-avenue", "Avinguda de l'Illa de Formentera", 37656545, 8032598839, 441403801
     ),
 )
 
@@ -327,6 +353,44 @@ def solid_building_clearance(osm: OsmData) -> BaseGeometry:
     return unary_union(footprints)
 
 
+def park_polygon(osm: OsmData) -> Polygon:
+    """The park area closed by ``PARK_BOUNDARY_WAYS`` (relation/2172136)."""
+    lines: list[LineString] = []
+    for way_id in PARK_BOUNDARY_WAYS:
+        way = osm.ways.get(way_id)
+        if way is None:
+            raise TrailError(f"park boundary way {way_id} is missing from the OSM extract")
+        lines.append(LineString([osm.xz[n] for n in way.nodes]))
+    polygons = list(polygonize(unary_union(lines)))
+    if not polygons:
+        raise TrailError(f"the boundary ways of relation/{PARK_RELATION} do not close a polygon")
+    return max(polygons, key=lambda p: p.area)
+
+
+def access_line(osm: OsmData) -> LineString:
+    """The ``ACCESS_SPECS`` chain from the foot of the centre steps, cut at the park boundary."""
+    coords: list[tuple[float, float]] = []
+    for spec in ACCESS_SPECS:
+        part = [osm.xz[n] for n in segment_nodes(osm, spec)]
+        coords.extend(part if not coords else part[1:])
+    line = LineString(coords)
+    crossings = line.intersection(park_polygon(osm).exterior)
+    if crossings.is_empty:
+        raise TrailError("the access chain never reaches the park boundary")
+    points = getattr(crossings, "geoms", [crossings])
+    exit_at = min(line.project(p) for p in points if p.geom_type == "Point")
+    cut = substring(line, 0.0, exit_at)
+    if not isinstance(cut, LineString):
+        raise TrailError("the access chain leaves the park at its first vertex")
+    return cut
+
+
+def park_entrance(osm: OsmData) -> tuple[float, float]:
+    """Where the access chain crosses the park boundary."""
+    x, z = access_line(osm).coords[-1]
+    return float(x), float(z)
+
+
 def route_geometry(osm: OsmData) -> BaseGeometry:
     return unary_union([LineString(line) for line in route_lines_2d(osm)])
 
@@ -386,6 +450,7 @@ def build_corridor(osm: OsmData, tunnel: TunnelSpec | None = None) -> tuple[Poly
         )
     parts: list[BaseGeometry] = [
         wide_lines.buffer(TRAIL_HALF_WIDTH, quad_segs=8),
+        access_line(osm).buffer(TRAIL_HALF_WIDTH, quad_segs=8),
         _disc(centre_entrance(osm, trail), FORECOURT_RADIUS),
         _disc(osm.xz[SUMMIT_NODE], SUMMIT_RADIUS),
         _disc(osm.xz[CARABINERS_NODE], CARABINERS_RADIUS),
@@ -444,6 +509,7 @@ def build_anchors(
     anchors: dict[str, dict[str, Any]] = {
         "centre": _anchor(dem, centre_anchor_point(osm, trail), f"way/{CENTRE_BUILDING_WAY}"),
         "turnstile": _anchor(dem, osm.xz[TURNSTILE_NODE], f"node/{TURNSTILE_NODE}"),
+        "park-entrance": _anchor(dem, park_entrance(osm), f"relation/{PARK_RELATION}"),
         "tunnel-west": at_route(portal_west, TUNNEL_WEST_NODE),
         "tunnel-east": at_route(portal_east, TUNNEL_EAST_NODE),
         "bifurcation": at_route(bifurcation, BIFURCATION_NODE),

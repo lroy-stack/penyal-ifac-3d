@@ -236,10 +236,29 @@ class TestRealRoute:
             "summit",
             "carabiners",
             "pobla",
+            "park-entrance",
         } <= set(anchors)
         for name, a in anchors.items():
             inside = corridor.covers(Point(a["x"], a["z"]))
             assert inside is (name != "pobla"), name
+
+    def test_park_entrance_anchor_is_on_the_park_boundary(
+        self, document: Doc, osm: OsmData
+    ) -> None:
+        entrance = document["anchors"]["park-entrance"]
+        boundary = trail.park_polygon(osm).exterior
+        assert boundary.distance(Point(entrance["x"], entrance["z"])) < 0.01
+
+    def test_corridor_follows_the_access_track_down_to_the_park_entrance(
+        self, document: Doc, osm: OsmData
+    ) -> None:
+        corridor = shapely.Polygon(document["corridor"]["polygon"])
+        access = trail.access_line(osm)
+        steps_foot = osm.xz[288471763]
+        assert access.coords[0] == pytest.approx(steps_foot)
+        assert 440.0 < access.length < 470.0
+        samples = [access.interpolate(d) for d in np.arange(0.0, access.length, 1.0)]
+        assert all(corridor.covers(p) for p in samples)
 
     def test_corridor_keeps_the_capsule_clear_of_the_modelled_buildings(
         self, document: Doc, osm: OsmData
